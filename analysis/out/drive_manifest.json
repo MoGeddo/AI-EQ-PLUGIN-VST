@@ -1,0 +1,64 @@
+{
+  "note": "Drive layout as found 2026-11-01, and what the phase-1 corpus actually measured. File IDs are stable Drive IDs. This is the bridge between the Drive audio and analysis/out/*.json.",
+  "drive_root": "0AIJmJq8x8l6rUk9PVA",
+  "folders": {
+    "DRY": {
+      "id": "1CdqnR8858NcM3fA8W_i_mYKtd7lI9hW8",
+      "contents": "13 files, one per song, the properly de-reverbed stems: (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+      "used_by_phase1": false
+    },
+    "مجلس بلا عنوان": {
+      "id": "1HA3GBfXV_n82tvePwAYIqWP6-P3AdFoY",
+      "contents": "27 files = 13 raw vocals + 13 reverb-only + 1 mp4",
+      "used_by_phase1": "PARTIALLY - the raw vocals (no (Dry) tag) were treated as 'dry' by build_manifest(), and the (Reverb) files as 'wet'"
+    },
+    "AEQ_AMIR_15 — أمير محروس (الفولدر المطلوب)": {
+      "id": "1A_RZifLZr7fxJ8I2GPMsTH2Ej50zEPWr",
+      "created": "2026-11-01",
+      "contents": "3 shortcuts to the Dry stems of the 3 Amir bridge songs. Awaiting the 12 new songs.",
+      "shortcuts": {
+        "01 - اتأخر عتابنا - عمرو دياب (أمير محروس)": {"shortcut_id": "1_u-MS79BJFNDBHHpHw0bStS-PJwrTrPm", "target_id": "1Nb_iAV1QotqFk9KY0FUvDNBMIfPeD_zd"},
+        "02 - ايامي - رامي صبري (أمير محروس)": {"shortcut_id": "1eKAGhFwYFpXeeQh6BIG6IwnoMaQLtCdv", "target_id": "1I2l_Ly8FPHQbeDvBSDq2vkAUJaiU9uGH"},
+        "03 - قالوا عني ايه - محمد حماقي (أمير محروس)": {"shortcut_id": "11tkxYpvcps1Df9wx5n61M22bcLAZVdCk", "target_id": "1rJ_NAb_Jq40QA2N4L1FDefbxFfuNoTzn"}
+      }
+    }
+  },
+  "dry_stem_ids": {
+    "اتأخر عتابنا - عمرو دياب": "1Nb_iAV1QotqFk9KY0FUvDNBMIfPeD_zd",
+    "انا فاضل - كايروكي": "1a7STsl8iqP44WmdiMQThK6ReLsToB9kC",
+    "ايامي - رامي صبري": "1I2l_Ly8FPHQbeDvBSDq2vkAUJaiU9uGH",
+    "بتمنى أنساك - شيرين عبدالوهاب": "1ED_RiJ6es4Jg7ALCft6igY3hvt-AI1JF",
+    "بيكلموني - رامي جمال": "16LNMr7qcxt4sdhNKgrTHvJT24272uf-H",
+    "جدع - تامر عاشور": "17cQWtqw_HwbIxBEqFbRQl7VE5POqo5we",
+    "غروب - حمزة نمرة": "1EXE7p6_xlDLf5thh_sgEA0DPZC4lKlmt",
+    "قالوا عني ايه - محمد حماقي": "1rJ_NAb_Jq40QA2N4L1FDefbxFfuNoTzn",
+    "قلب في الدفاتر - مُسلِم": "1hyqxIOJ66HxkDL6bLdadIFSvBGnyfvxp",
+    "مستني ايه - تامر حسني": "1kIovxIv3KkS7SMiYg3Sdn7Uone4gzRhu",
+    "معايا (من فيلم و لنا في الخيال حب) - بهاء سلطان_2": "15Wu1oz7D2osd8BLbF62e6hiPpR3jHpRB",
+    "نهايات الحكاوى - مسار اجباري": "1ANhjK_ywx1__u4uzp2P5aoNApXazDiWM",
+    "هو انت مين - أنغام": "1py96G01V5LSGpeOTO5Y9WTp_dw8eGYZe"
+  },
+  "finding": {
+    "summary": "Phase 1 measured the RAW separated vocals, not the de-reverbed ones.",
+    "mechanism": "analysis/aeq/corpus.py build_manifest(): files are split on '(Reverb)'. Anything else is taken as the dry file, and the model tag is parsed from '(Mel-Roformer...)' or '(BS-RoFormer...)'. The raw vocals are named '(Vocals) (Mel-Roformer deux by becruily).mp3' with no (Dry) tag, so they were treated as dry.",
+    "consequence": "Every number in analysis/out/*.json describes raw separated vocals carrying the original reverb. The (Dry) stems were never measured.",
+    "why_it_matters": "It is not an error - the raw vocals are internally consistent, all 13 measured the same way. But it means the corpus baseline has reverb energy in it, and any new set must be measured the SAME way to be comparable.",
+    "opportunity": "Proper (Dry) stems exist for all 13. Measuring everything on (Dry) - old and new - would remove the de-reverb artefact question entirely, because then the de-reverb is applied to every song by the same tool.",
+    "recommendation": "Keep using the raw vocals for the archived 13 numbers (they cannot be recomputed without re-downloading), UNLESS the audio is re-placed in the workspace, in which case re-run the corpus on (Dry) and compare: the delta dry-minus-raw is the calibration curve."
+  },
+  "naming_convention_required_for_new_files": "<song title> - <artist> (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+  "missing_songs_2026_11_01": [
+    "اسكت - أنغام",
+    "كان بريء - أنغام",
+    "يا لطيف - سميرة سعيد",
+    "جرالك إيه - سميرة سعيد",
+    "جيتلك - عمرو دياب",
+    "بحاول - عمرو دياب",
+    "شايف قمر - عمرو دياب",
+    "توبة - محمد حماقي",
+    "عمرنا ما نسينا - محمد حماقي",
+    "القمر - رامي صبري",
+    "اسمعيني - رامي صبري",
+    "من غير كلام - توو ليت"
+  ]
+}
