@@ -10,3 +10,4 @@ __pycache__/
 .venv/
 _refs/
 analysis/out/cache/
+*.whl
