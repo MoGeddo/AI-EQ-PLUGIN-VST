@@ -1,0 +1,327 @@
+{
+ "n_songs": 13,
+ "n_mix_engineers": 11,
+ "band_range_hz": [
+  200.0,
+  12000.0
+ ],
+ "n_bands_used": 18,
+ "credits": {
+  "اتأخر عتابنا - عمرو دياب": {
+   "mix": "أمير محروس",
+   "master": "أمير محروس",
+   "confidence": "high"
+  },
+  "انا فاضل - كايروكي": {
+   "mix": "شريف مصطفى",
+   "master": "شريف مصطفى",
+   "confidence": "medium"
+  },
+  "ايامي - رامي صبري": {
+   "mix": "أمير محروس",
+   "master": "أمير محروس",
+   "confidence": "high"
+  },
+  "بتمنى أنساك - شيرين عبدالوهاب": {
+   "mix": "توما",
+   "master": "توما",
+   "confidence": "high"
+  },
+  "بيكلموني - رامي جمال": {
+   "mix": "وسام عبد المنعم",
+   "master": "وسام عبد المنعم",
+   "confidence": "medium"
+  },
+  "جدع - تامر عاشور": {
+   "mix": "أسامة الهندي",
+   "master": "أمير محروس",
+   "confidence": "high"
+  },
+  "غروب - حمزة نمرة": {
+   "mix": "أندريه مينا",
+   "master": "أندريه مينا",
+   "confidence": "high"
+  },
+  "قالوا عني ايه - محمد حماقي": {
+   "mix": "أمير محروس",
+   "master": "أمير محروس",
+   "confidence": "high"
+  },
+  "قلب في الدفاتر - مُسلِم": {
+   "mix": "إسلام الأزرق",
+   "master": "إسلام الأزرق",
+   "confidence": "high"
+  },
+  "مستني ايه - تامر حسني": {
+   "mix": "أحمد عبد السلام",
+   "master": "أحمد عبد السلام",
+   "confidence": "high"
+  },
+  "معايا (من فيلم و لنا في الخيال حب) - بهاء سلطان_2": {
+   "mix": "عمار خاطر",
+   "master": null,
+   "confidence": "high"
+  },
+  "نهايات الحكاوى - مسار اجباري": {
+   "mix": "محمد صقر",
+   "master": "محمد صقر",
+   "confidence": "high"
+  },
+  "هو انت مين - أنغام": {
+   "mix": "طارق مدكور",
+   "master": "طارق مدكور",
+   "confidence": "high"
+  }
+ },
+ "mix_engineer_counts": {
+  "أمير محروس": 3,
+  "شريف مصطفى": 1,
+  "توما": 1,
+  "وسام عبد المنعم": 1,
+  "أسامة الهندي": 1,
+  "أندريه مينا": 1,
+  "إسلام الأزرق": 1,
+  "أحمد عبد السلام": 1,
+  "عمار خاطر": 1,
+  "محمد صقر": 1,
+  "طارق مدكور": 1
+ },
+ "largest_group": {
+  "engineer": "أمير محروس",
+  "songs": [
+   "اتأخر عتابنا - عمرو دياب",
+   "ايامي - رامي صبري",
+   "قالوا عني ايه - محمد حماقي"
+  ],
+  "n": 3
+ },
+ "mantel": {
+  "same_pairs": 3,
+  "total_pairs": 78,
+  "closer_by_db": 9.61,
+  "null_mean": -0.0,
+  "null_sd": 5.38,
+  "p": 0.0202
+ },
+ "triple_enumeration": {
+  "n_triples": 286,
+  "group_mean_pairwise_db": 12.26,
+  "rank": 6,
+  "p": 0.021,
+  "floor_db": 9.99,
+  "median_db": 21.12
+ },
+ "register_control": {
+  "closer_by_db": 15.71,
+  "p": 0.0442,
+  "lowest_f0_triple": {
+   "songs": [
+    "انا فاضل - كايروكي",
+    "بيكلموني - رامي جمال",
+    "نهايات الحكاوى - مسار اجباري"
+   ],
+   "rank": 204,
+   "p": 0.7133,
+   "note": "if this were also tight, the effect would just be 'a low voice'"
+  },
+  "group_f0_spread_hz": 39.0
+ },
+ "granularity": {
+  "raw_distance": {
+   "value": 12.26,
+   "z": -1.78,
+   "p": 0.0217
+  },
+  "offset_removed": {
+   "value": 10.41,
+   "p": 0.0279,
+   "z": -1.8
+  },
+  "slope_only": {
+   "value": 13.4,
+   "p": 0.143,
+   "z": -1.08
+  },
+  "band_z_correlation": {
+   "value": -0.06,
+   "p": 0.4497
+  },
+  "reading": "broad balance clusters; fine detail does not"
+ },
+ "per_band": {
+  "rows": [
+   {
+    "band": 200,
+    "group_db": 5.6,
+    "all_db": 10.49,
+    "variance_reduction": 0.466,
+    "p_uncorrected": 0.2327,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 250,
+    "group_db": 6.8,
+    "all_db": 10.7,
+    "variance_reduction": 0.365,
+    "p_uncorrected": 0.2157,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 315,
+    "group_db": 8.68,
+    "all_db": 11.85,
+    "variance_reduction": 0.268,
+    "p_uncorrected": 0.3189,
+    "q_bh": 0.41
+   },
+   {
+    "band": 400,
+    "group_db": 11.51,
+    "all_db": 13.97,
+    "variance_reduction": 0.176,
+    "p_uncorrected": 0.3022,
+    "q_bh": 0.41
+   },
+   {
+    "band": 500,
+    "group_db": 10.28,
+    "all_db": 17.17,
+    "variance_reduction": 0.401,
+    "p_uncorrected": 0.2282,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 630,
+    "group_db": 10.08,
+    "all_db": 17.13,
+    "variance_reduction": 0.412,
+    "p_uncorrected": 0.2092,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 800,
+    "group_db": 2.16,
+    "all_db": 9.74,
+    "variance_reduction": 0.778,
+    "p_uncorrected": 0.0462,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 1000,
+    "group_db": 4.08,
+    "all_db": 6.95,
+    "variance_reduction": 0.413,
+    "p_uncorrected": 0.2137,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 1250,
+    "group_db": 3.42,
+    "all_db": 4.79,
+    "variance_reduction": 0.286,
+    "p_uncorrected": 0.2859,
+    "q_bh": 0.41
+   },
+   {
+    "band": 1600,
+    "group_db": 2.03,
+    "all_db": 6.72,
+    "variance_reduction": 0.698,
+    "p_uncorrected": 0.0417,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 2000,
+    "group_db": 1.77,
+    "all_db": 3.83,
+    "variance_reduction": 0.538,
+    "p_uncorrected": 0.166,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 2500,
+    "group_db": 2.03,
+    "all_db": 2.76,
+    "variance_reduction": 0.266,
+    "p_uncorrected": 0.4216,
+    "q_bh": 0.4743
+   },
+   {
+    "band": 3150,
+    "group_db": 4.66,
+    "all_db": 3.95,
+    "variance_reduction": -0.181,
+    "p_uncorrected": 0.6926,
+    "q_bh": 0.6926
+   },
+   {
+    "band": 4000,
+    "group_db": 1.39,
+    "all_db": 2.15,
+    "variance_reduction": 0.356,
+    "p_uncorrected": 0.2354,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 5000,
+    "group_db": 1.49,
+    "all_db": 2.11,
+    "variance_reduction": 0.292,
+    "p_uncorrected": 0.3574,
+    "q_bh": 0.4289
+   },
+   {
+    "band": 6300,
+    "group_db": 1.37,
+    "all_db": 3.7,
+    "variance_reduction": 0.63,
+    "p_uncorrected": 0.1237,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 8000,
+    "group_db": 1.05,
+    "all_db": 3.47,
+    "variance_reduction": 0.697,
+    "p_uncorrected": 0.0715,
+    "q_bh": 0.3852
+   },
+   {
+    "band": 10000,
+    "group_db": 3.05,
+    "all_db": 3.25,
+    "variance_reduction": 0.061,
+    "p_uncorrected": 0.5669,
+    "q_bh": 0.6002
+   }
+  ],
+  "summary": {
+   "uncorrected_p_lt_005": 2,
+   "expected_by_chance": 0.9,
+   "survive_bh_fdr_005": [],
+   "regions_variance_reduction": {
+    "body_200_500": 0.587,
+    "presence_500_2k": 0.466,
+    "harsh_2k_5k": 0.496,
+    "air_5k_12k": 0.595
+   }
+  }
+ },
+ "sensitivity_master_included": {
+  "songs": [
+   "اتأخر عتابنا - عمرو دياب",
+   "ايامي - رامي صبري",
+   "جدع - تامر عاشور",
+   "قالوا عني ايه - محمد حماقي"
+  ],
+  "value": 15.06,
+  "p": 0.0488
+ },
+ "limits": [
+  "13 songs, 11 mix engineers, only one engineer appears more than twice (أمير محروس, n=3); the exact permutation space for a triple is 286",
+  "a single testable group means no cross-validation: the result cannot be shown to generalise",
+  "هاني محروس — named by the user — has zero songs in this corpus, so his signature is untested",
+  "confounds: genre (all Egyptian pop), era (2018-2026), singer, label and production budget",
+  "null results for fine detail are NOT evidence that engineers do not differ; power is far too low"
+ ]
+}

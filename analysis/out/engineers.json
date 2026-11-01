@@ -1,0 +1,192 @@
+{
+  "note": "Mix/master credits researched from public sources (press, official artist accounts, Genius). Titles must match analysis/out/analysis.json exactly. 'mix' is the field used for the clustering test; 'master' is recorded separately because several songs split the two roles.",
+  "retrieved": "2026-11-01",
+  "songs": [
+    {
+      "title": "اتأخر عتابنا - عمرو دياب",
+      "artist": "عمرو دياب",
+      "album": "حبيتك (Sony, 2026-07-22)",
+      "arranger": "أسامة الهندي",
+      "mix": "أمير محروس",
+      "master": "أمير محروس",
+      "confidence": "high",
+      "sources": [
+        "https://www.youm7.com/story/2026/7/22/7489840",
+        "https://www.dostor.org/5643837",
+        "https://genius.com/Amr-diab-etakhar-etabna-lyrics"
+      ],
+      "note": "Press covering the album states Amir Mahrous handled sound engineering, mixing and mastering for all 12 tracks."
+    },
+    {
+      "title": "انا فاضل - كايروكي",
+      "artist": "كايروكي",
+      "album": "سوبرنوڤا (2026-08-03)",
+      "arranger": "شريف مصطفى / أحمد متري (إنتاج موسيقي)",
+      "mix": "شريف مصطفى",
+      "master": "شريف مصطفى",
+      "confidence": "medium",
+      "sources": [
+        "https://genius.com/Cairokee-ana-fadel-lyrics",
+        "https://www.elaosboa.com/2914905/"
+      ],
+      "note": "Genius credits Sherif Mostafa as Mastering Engineer and co-producer; no separate mix engineer is listed, so mix is inferred as the same person. Self-produced (Cairokee Productions) — plausible but INFERRED, not stated."
+    },
+    {
+      "title": "ايامي - رامي صبري",
+      "artist": "رامي صبري",
+      "album": "القمر (2026)",
+      "arranger": "أحمد أمين",
+      "mix": "أمير محروس",
+      "master": "أمير محروس",
+      "confidence": "high",
+      "sources": [
+        "https://www.tiktok.com/discover/ايامي-رامي-صبري",
+        "https://www.soutalomam.net/"
+      ],
+      "note": "M Sound 2 studio; assistant Gorgyous Beshara. Posted by Amir Mahrous himself."
+    },
+    {
+      "title": "بتمنى أنساك - شيرين عبدالوهاب",
+      "artist": "شيرين عبد الوهاب",
+      "album": "single (2024-08-14)",
+      "arranger": "توما",
+      "mix": "توما",
+      "master": "توما",
+      "confidence": "high",
+      "sources": [
+        "https://www.youtube.com/watch?v=IjKWuiFi2W0",
+        "https://x.com/Sherinthesinger/status/1823514538307690675",
+        "https://www.alfajr-news.net/details/شيرين-عبد-الوهاب-تطرح-هنحتفل-على-يوتيوب-وx"
+      ],
+      "note": "Taken verbatim from Sherine's own X post and the official video description: توزيع موسيقي/ توما — ميكس وماستر / توما."
+    },
+    {
+      "title": "بيكلموني - رامي جمال",
+      "artist": "رامي جمال",
+      "album": "single",
+      "arranger": "وسام عبد المنعم",
+      "mix": "وسام عبد المنعم",
+      "master": "وسام عبد المنعم",
+      "confidence": "medium",
+      "sources": [
+        "https://www.elwatannews.com/"
+      ],
+      "note": "CONFLICT: most sources give وسام عبد المنعم for توزيع+ميكس+ماستر; one outlet (elwatannews) credits أحمد إبراهيم. Kept as Wessam with medium confidence; the conflict does not change any test result because this song is a singleton in every grouping."
+    },
+    {
+      "title": "جدع - تامر عاشور",
+      "artist": "تامر عاشور",
+      "album": "مراية الحب",
+      "arranger": "أحمد إبراهيم",
+      "mix": "أسامة الهندي",
+      "master": "أمير محروس",
+      "confidence": "high",
+      "sources": [
+        "https://www.masrtrends.com/tamer-ashour-gada3-294a/",
+        "https://www.lyrics-arabic.com/2026/07/lyrics-gada3-tamer-ashour.html"
+      ],
+      "note": "Sout El Hob Studios, engineer محمد عدس. KEY CASE: mix and master are different people, so this song is NOT in the Amir Mahrous mix group."
+    },
+    {
+      "title": "غروب - حمزة نمرة",
+      "artist": "حمزة نمرة",
+      "album": "رايق (2023-07-26)",
+      "arranger": "أندريه مينا",
+      "mix": "أندريه مينا",
+      "master": "أندريه مينا",
+      "confidence": "high",
+      "sources": [
+        "https://genius.com/Hamza-namira-ghoroub-lyrics",
+        "https://play.samaanetwork.net/music/ghoroub/",
+        "https://www.elaosboa.com/1033699/"
+      ],
+      "note": "Genius lists Andre Mina as Arranger + Mixing Engineer + Mastering Engineer. Recording: م. ياسر حسين, ستوديو الرسالة."
+    },
+    {
+      "title": "قالوا عني ايه - محمد حماقي",
+      "artist": "محمد حماقي",
+      "album": "سمعوني",
+      "arranger": "أحمد إبراهيم",
+      "mix": "أمير محروس",
+      "master": "أمير محروس",
+      "confidence": "high",
+      "sources": [
+        "https://www.almasryalyoum.com/news/details/4276378",
+        "https://www.mobtada.com/culture/1617231/",
+        "https://www.dostor.org/5566309"
+      ],
+      "note": "Three independent outlets agree on ميكس وماستر أمير محروس."
+    },
+    {
+      "title": "قلب في الدفاتر - مُسلِم",
+      "artist": "مُسلِم",
+      "album": "single (2022-12-22)",
+      "arranger": "إسلام الأزرق",
+      "mix": "إسلام الأزرق",
+      "master": "إسلام الأزرق",
+      "confidence": "high",
+      "sources": [
+        "https://www.filfan.com/videos/48238",
+        "https://www.tahiamasr.com/749616",
+        "https://www.almasryalyoum.com/news/details/2774578"
+      ],
+      "note": "توزيع وميكس وماستر إسلام الأزرق."
+    },
+    {
+      "title": "مستني ايه - تامر حسني",
+      "artist": "تامر حسني",
+      "album": "لينا معاد",
+      "arranger": "أحمد عبد السلام",
+      "mix": "أحمد عبد السلام",
+      "master": "أحمد عبد السلام",
+      "confidence": "high",
+      "sources": [
+        "https://www.youtube.com/watch?v=6vm4Ok1K0QA",
+        "https://www.e3lam.com/705121/"
+      ],
+      "note": "Official YouTube description. Same album splits mixes across أحمد عبد السلام / هاني محروس / علي فتح الله / جلال فهمي — evidence that one album is NOT one engineer."
+    },
+    {
+      "title": "معايا (من فيلم و لنا في الخيال حب) - بهاء سلطان_2",
+      "artist": "بهاء سلطان",
+      "album": "single from فيلم ولنا في الخيال حب (2025-11-19)",
+      "arranger": "نادر حمدي",
+      "mix": "عمار خاطر",
+      "master": null,
+      "confidence": "high",
+      "sources": [
+        "https://www.e3lam.com/707661/",
+        "https://www.vetogate.com/5550927",
+        "https://www.trendreel.ae/27249"
+      ],
+      "note": "كلمات وألحان عزيز الشافعي، توزيع نادر حمدي، ميكس عمار خاطر. Master engineer not reported by any source. Spelling varies: عمار خاطر / عمار خطار."
+    },
+    {
+      "title": "نهايات الحكاوى - مسار اجباري",
+      "artist": "مسار إجباري",
+      "album": "الألبوم (2018-10-16)",
+      "arranger": "مسار إجباري / أحمد مصطفى صالح",
+      "mix": "محمد صقر",
+      "master": "محمد صقر",
+      "confidence": "high",
+      "sources": [
+        "https://genius.com/Massar-egbari-nehayat-el-hakawy-lyrics"
+      ],
+      "note": "Genius: Mixing + Mastering = Mohamed Sakr; Recording = أيمن مسعود."
+    },
+    {
+      "title": "هو انت مين - أنغام",
+      "artist": "أنغام",
+      "album": "تيجي نسيب (2024-07-28)",
+      "arranger": "طارق مدكور",
+      "mix": "طارق مدكور",
+      "master": "طارق مدكور",
+      "confidence": "high",
+      "sources": [
+        "https://www.youm7.com/story/2024/7/28/6655255",
+        "https://genius.com/Angham-howa-enta-meen-lyrics"
+      ],
+      "note": "طارق مدكور = توزيع + ميكس + ماستر + تسجيل. Label Soot Masr. Other tracks on the same album use أمير محروس."
+    }
+  ]
+}
