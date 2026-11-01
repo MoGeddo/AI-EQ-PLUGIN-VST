@@ -83,12 +83,24 @@ public:
     void processBlock(float* left, float* right, int n) {
         if (n <= 0) return;
 
-        // 1. feed the analyser a mono view (vocal is essentially mono)
+        // 0. pick up any correction solved in the background.  Coefficients are
+        //    only ever *applied* here, on the audio thread, so the processing
+        //    objects are never written from another thread.
+        pollAndApply();
+
+        // 1. feed the analyser a mono view (vocal is essentially mono).
+        //    The analyser is shared with the background solver, so we take the
+        //    lock only if it is free: if the solver happens to be reading, we
+        //    drop this block.  These are long-term statistics, so a dropped
+        //    block changes nothing and the audio thread never waits.
         if (settings_.learn && !settings_.bypass) {
             for (int i = 0; i < n; ++i)
                 scratch_[i] = 0.5f * (left[i] + (right ? right[i] : left[i]));
-            analyzer_.processBlock(scratch_.data(), n);
-            learnProgress_ = analyzer_.activeFraction();
+            std::unique_lock<std::mutex> lk(analyzeMx_, std::try_to_lock);
+            if (lk.owns_lock()) {
+                analyzer_.processBlock(scratch_.data(), n);
+                learnProgress_ = analyzer_.activeFraction();
+            }
         }
 
         if (settings_.bypass) return;
@@ -115,6 +127,13 @@ public:
     // ------------------------------------------------------------- analysis
     // Call from a timer (message/timer thread) - never from the audio thread.
     void refresh() {
+        std::lock_guard<std::mutex> lk(analyzeMx_);
+        refreshLocked();
+    }
+
+    // Which blocks may call refresh(): the background thread (plugin) or the
+    // main thread (CLI).  Never the audio thread - that is what pollAndApply is.
+    void refreshLocked() {
         if (!analyzer_.ready()) return;
         Measurements m;
         m.freqs = analyzer_.grid().f;
@@ -216,7 +235,32 @@ public:
             state_.valid = true;
             measurements_ = m;
         }
-        updateBands();
+
+        // hand the solution to the audio thread; it applies it at the top of the
+        // next block, so no processing object is ever written from here
+        {
+            std::lock_guard<std::mutex> lk(pendingMx_);
+            pendingBands_ = activeBandsLocked();
+            pendingHpf_ = corner;
+            pendingDeEssOn_ = deGr > 0.05;
+            pendingDeThr_ = deThr;
+            pendingDeGr_ = deGr;
+            ++pendingVersion_;
+        }
+        pendingSeen_.store(false);
+    }
+
+    // apply a pending correction (audio thread, called from processBlock)
+    void pollAndApply() {
+        if (pendingSeen_.load(std::memory_order_acquire)) return;
+        std::unique_lock<std::mutex> lk(pendingMx_, std::try_to_lock);
+        if (!lk.owns_lock()) return;                 // solver is writing; try again next block
+        eqLeft_.setBands(pendingBands_, fs_);
+        eqRight_.setBands(pendingBands_, fs_);
+        hpf_.set(pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
+        deEsser_.setEnabled(pendingDeEssOn_);
+        deEsser_.setParameters(pendingDeThr_, pendingDeGr_);
+        pendingSeen_.store(true, std::memory_order_release);
     }
 
     // ------------------------------------------------------------- settings
@@ -237,6 +281,10 @@ public:
     // the full correction that is actually running (for the UI curve / delta)
     std::vector<BandSpec> activeBands() const {
         std::lock_guard<std::mutex> lk(stateMx_);
+        return activeBandsLocked();
+    }
+
+    std::vector<BandSpec> activeBandsLocked() const {
         std::vector<BandSpec> out = state_.corrective;
         out.insert(out.end(), state_.resonance.begin(), state_.resonance.end());
         if (std::abs(settings_.airTrimDb) > 0.01)
@@ -296,6 +344,13 @@ private:
     double outGain_ = 1.0;
 
     mutable std::mutex stateMx_;
+    std::mutex analyzeMx_;                    // guards Analyzer (audio <-> solver)
+    std::mutex pendingMx_;                    // guards the hand-off below
+    std::vector<BandSpec> pendingBands_;
+    double pendingHpf_ = 70.0, pendingDeThr_ = -30.0, pendingDeGr_ = 0.0;
+    bool pendingDeEssOn_ = false;
+    std::atomic<bool> pendingSeen_{true};
+    std::atomic<long> pendingVersion_{0};
     RestoreState state_;
     Measurements measurements_;
 };

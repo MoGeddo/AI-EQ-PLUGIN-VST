@@ -1,0 +1,44 @@
+=== AEQ Restore - acceptance gates (g++ -O2, no JUCE) ===
+
+===== AEQ RESTORE - acceptance gates =====
+
+[G1] biquad response
+  ok   peaking +6 dB at its centre                             6.000 (want 6.000 +-0.010)
+  ok   24 dB/oct HPF: -3 dB at the corner                     -3.010 (want -3.000 +-0.600)
+  ok   24 dB/oct HPF: >45 dB down two octaves below          -72.249 (want -48.000 +-10.000)
+  ok   high shelf -6 dB asymptote                             -5.921 (want -6.000 +-0.600)
+
+[G2] analyser
+  ok   white noise is flat over 0.5-8 kHz (spread)             0.000 (want 0.000 +-4.000)
+  ok   no pitch on noise                                       0.000 (want 0.000 +-1.000)
+  ok   YIN: 220 Hz source measured                           210.000 (want 220.000 +-13.200)
+
+[G3] fault detection on a synthetic take
+  (injected: +8 dB Q12 @3150, +7 dB shelf below 150, +4 dB @2800)
+  ok   detects the 3.15 kHz room resonance
+  ok   detects the missing low cut
+  ok   detects the harsh 2-4 kHz region
+       resonance reported at 3044 Hz, correction -4.9 dB
+
+[G4] correction effectiveness
+  ok   resonance band reduced by >3 dB                         5.769 (want 8.000 +-5.000)
+  ok   sub energy reduced by >6 dB (HPF)                      17.930 (want 12.000 +-8.000)
+  ok   HPF corner stays in a sane range
+       HPF 130 Hz, 3 corrective bands, 2 notches
+
+[G5] convergence over repeated passes
+       pass 1: proposes  24.50 dB, measured excess 14.91 dB RMS
+       pass 2: proposes  21.00 dB, measured excess 12.41 dB RMS
+       pass 3: proposes  23.36 dB, measured excess 10.54 dB RMS
+  ok   measured excess falls on every pass
+  ok   proposal never exceeds the configured caps             24.500 (want 31.500 +-31.500)
+
+[G6] determinism
+  ok   two runs produce identical output                       0.000 (want 0.000 +-0.000)
+
+[G7] numerical safety
+  ok   silence in -> finite output
+  ok   0 dBFS sine does not blow up                            1.145 (want 1.000 +-0.300)
+
+===== 18 passed, 0 failed =====
+
