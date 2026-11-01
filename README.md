@@ -1,1 +1,87 @@
-# AI-EQ-PLUGIN-VST
+# AEQ Standard — AI EQ / VST3
+
+دراسة قياسية لصوت غنائي في 13 ميكس مصري/عربي، ومنها بناء **بلجِن VST3** يطلّع الصوت
+نفس البصمة — بمنهج قابل للقياس، مش صندوق أسود.
+
+A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
+
+---
+
+## ليه المشروع ده مختلف
+
+معظم «AI EQ» بيتعلم متوسط منحنيات من أغاني مخلوطة. القياس في الريبو ده بيوضح إن
+**«لمعان» الصوت مرتبط بدرجة صوت المغني بمعامل r = +0.81** — يعني الموديل بيتعلم
+فسيولوجيا الحنجرة، مش قرارات المهندس.
+
+فالمشروع هنا بيبدأ بـ:
+1. **فصل تأثير الصوت** (register model) قبل أي استنتاج عن الميكس.
+2. **منحنى هدف إحصائي** بفترة ثقة، مش رقم واحد مبهّم.
+3. **محاور ذوق** (PCA) تتحوّل لمقابض في البلجِن.
+4. **بوابات قبول قابلة للتشغيل** قبل كتابة أي سطر DSP.
+
+---
+
+## المحتوى
+
+| ملف | إيه فيه |
+|---|---|
+| `docs/01_CORPUS_STUDY_AR.md` | الدراسة الكاملة: المنهج، الأرقام، الرسومات، **وحدود القياس** |
+| `docs/02_TARGET_AND_PRESETS_AR.md` | منحنى الهدف + بريستات جاهزة تستخدمها النهاردة |
+| `docs/03_PLUGIN_ARCHITECTURE_AR.md` | معمارية الـVST3، بوابات القبول، خريطة الطريق |
+| `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
+| `analysis/scripts/` | تشغيل الكوربس والتحليل |
+| `analysis/out/` | المخرجات: `analysis.json`، `target_curve.csv`، البريستات، 8 رسومات |
+
+---
+
+## أهم النتائج
+
+| القياس | القيمة |
+|---|---|
+| HPF | **172 Hz** (median) |
+| ميل 100 Hz–8 kHz | **−3.47 dB/oct** (و r=+0.81 مع درجة الصوت) |
+| ميل بعد إزالة تأثير الصوت | **−2.78 dB/oct**، والفرق بين الأغاني **±1.06** فقط |
+| dip ثابت | **4.34 kHz** في **11/13** أغنية (median 3.7 dB) |
+| wet/dry | **−13.8 dB** · لون الإرسال **−5 dB @6.3k** |
+| PLR / LRA | **11.8 dB / 7.5 LU** |
+| side/mid | **−12.1 dB** (شبه مونو) |
+| سقف القياس | **14.7 kHz** (lowpass الـMP3) |
+
+---
+
+## تشغيل التحليل
+
+```bash
+pip install numpy scipy soundfile av matplotlib
+
+# 1) قياس الكوربس (يحتاج الملفات في google_drive/)
+python3 analysis/scripts/run_corpus.py
+
+# 2) التحليل والرسومات والبريستات
+python3 analysis/scripts/analyze.py
+```
+
+المخرجات في `analysis/out/`: `analysis.json`، `target_curve.csv`، `axis_pc1_positive.csv`،
+`axis_pc2_positive.csv`، وثمانية رسومات.
+
+> **الملفات الصوتية مش في الريبو** (حقوق ملكية) — `.gitignore` بيستثنيها. الكود والأرقام والرسومات بس.
+
+---
+
+## حالة المشروع
+
+- [x] **المرحلة 0 — تحقق:** دراسة الكوربس، منحنى الهدف، المحاور، حدود القياس
+- [ ] **المرحلة 1 — نواة DSP:** Biquad/HPF/Analyzer/Solver في C++ (بوابات G1–G4)
+- [ ] **المرحلة 2 — بلجِن:** VST3 + UI + A/B (بوابات G5–G8)
+- [ ] **المرحلة 3 — ذوق:** مقابض PC1/PC2 (بوابة G9: اختبار أعمى)
+
+## المراجع المنهجية
+
+- [`Leonxlnx/unlazy`](https://github.com/Leonxlnx/unlazy) — انضباط البوابات: اكتب معيار النجاح الأول، وبلّغ بس اللي الدليل بيدعمه.
+- [`morluto/rea`](https://github.com/morluto/rea) — منهج الهندسة العكسية للتحقق من أصل الملفات وطبيعتها.
+
+## المراجع العلمية
+
+ITU-R BS.1770-4 · EBU R128 · IEC 61260 (1/3 octave) · RBJ Audio EQ Cookbook ·
+de Cheveigné & Kawahara, *YIN*, JASA 111(5), 2002 · Byrne et al., *An international
+comparison of long-term average speech spectra*, JASA 96(4), 1994 · ISO 3382 (room acoustics)

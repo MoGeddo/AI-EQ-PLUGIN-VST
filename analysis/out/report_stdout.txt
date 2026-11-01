@@ -1,0 +1,99 @@
+=== corpus: 13 songs, 53 min of solo vocal ===
+median F0 (stacks)       : 261 Hz  (149-317)
+tilt 100 Hz-8 kHz        : -3.47 dB/oct (p10 -5.50, p90 -1.25)
+corr(tilt, log F0)       : +0.81  <- brightness is mostly the voice
+PLR / LRA                : 11.8 dB / 7.5 LU
+HPF corner (3 dB)        : 172 Hz (p10 129, p90 216)
+air 10 k vs 3.15 k       : -12.1 dB
+sibilance 5-10 k / 1-4 k : median -10.2 dB, p90 -2.6 dB
+wet / dry                : -13.8 dB (-17.4 .. -5.3)
+side / mid               : -12.1 dB   aperiodicity 0.14
+codec low-pass (18 dB down): median 14.7 kHz (14.3-15.2) -> HF claims limited to 16 kHz
+
+--- consensus target: 1/3-oct, dB re 1 kHz, pitch-corrected ---
+     Hz  target  between-song sd    SEM
+     40   -30.4              9.2    2.5
+     50   -30.7              9.2    2.5
+     63   -29.2             10.1    2.8
+     80   -25.3             12.0    3.3
+    100   -21.5             14.8    4.1
+    125   -14.6             14.7    4.1
+    160    -1.6              8.5    2.4
+    200    +4.2              6.1    1.7
+    250    +8.5              4.0    1.1
+    315    +8.8              5.8    1.6
+    400    +5.8              3.3    0.9
+    500    +6.0              2.4    0.7
+    630    +6.6              3.3    0.9
+    800    +2.7              1.9    0.5
+   1000    +0.0              1.9    0.5
+   1250    -2.3              3.3    0.9
+   1600    -3.0              3.0    0.8
+   2000    -6.3              2.9    0.8
+   2500    -9.4              3.6    1.0
+   3150   -13.6              5.3    1.5
+   4000   -15.2              4.5    1.3
+   5000   -17.4              3.7    1.0
+   6300   -19.1              3.2    0.9
+   8000   -21.0              3.0    0.8
+  10000   -22.7              3.8    1.1
+  12500   -28.1              3.3    0.9
+  16000   -38.4              3.7    1.0
+
+--- brightness (dB/oct over 100 Hz-8 kHz), register removed ---
+consensus = -2.78 dB/oct ; spread +-1.06 dB/oct
+song                        tilt   vs std
+مستني ايه                  -4.26    -1.49
+غروب                       -3.77    -1.00
+اتأخر عتابنا               -3.67    -0.89
+نهايات الحكاوى             -3.65    -0.87
+بيكلموني                   -3.58    -0.80
+انا فاضل                   -3.27    -0.49
+قالوا عني ايه              -2.89    -0.11
+قلب في الدفاتر             -2.86    -0.08
+هو انت مين                 -2.00    +0.78
+جدع                        -1.94    +0.84
+معايا (من فيلم و لنا ف     -1.90    +0.88
+ايامي                      -1.68    +1.10
+بتمنى أنساك                -0.65    +2.13
+
+--- taste axes (PCA of per-song deviation, 1/3-oct) ---
+variance explained: PC1 44%, PC2 23%, PC3 14%, PC4 7%
+
+PC1 (44 %): darkest/low  <-  -> bright/high
+    قلب في الدفاتر         -5.32
+    جدع                    -4.15
+    بتمنى أنساك            -3.21
+    ...
+    مستني ايه              +2.55
+    انا فاضل               +4.08
+    بيكلموني               +6.67
+    strongest bands: 160Hz +6.3dB, 315Hz +4.0dB, 4000Hz +3.7dB, 3150Hz +3.1dB, 10000Hz +3.0dB, 6300Hz +2.6dB
+    +1 SD preset (RMS 0.36 dB): peak 160Hz +7.4dB; lowshelf 226Hz -2.7dB; highshelf 289Hz +1.0dB; peak 315Hz +3.1dB; peak 5981Hz +2.0dB
+
+PC2 (23 %): darkest/low  <-  -> bright/high
+    بيكلموني               -3.36
+    اتأخر عتابنا           -2.39
+    غروب                   -2.33
+    ...
+    بتمنى أنساك            +2.30
+    نهايات الحكاوى         +3.85
+    انا فاضل               +5.18
+    strongest bands: 200Hz -5.4dB, 160Hz -3.3dB, 315Hz +2.7dB, 3150Hz +2.6dB, 250Hz -2.5dB, 5000Hz +1.8dB
+    +1 SD preset (RMS 0.39 dB): peak 189Hz -7.2dB; lowshelf 203Hz +3.8dB; highshelf 208Hz -0.7dB; peak 314Hz +4.6dB; peak 2167Hz +2.5dB
+
+--- narrow spectral dips ---
+     4337 Hz  in 11/13 songs, median depth 3.7 dB
+     7840 Hz  in  6/13 songs, median depth 1.8 dB
+     6177 Hz  in  5/13 songs, median depth 2.0 dB
+     3442 Hz  in  3/13 songs, median depth 2.7 dB
+  primary dip frequency vs pitch: r = -0.25 (~0 => fixed in frequency, not formant scaling)
+male   n=11 mean deviation at 250/400/1.6k/2.5k/8k: -0.2  -0.3  +0.7  -0.0  +0.2
+female n= 2 mean deviation at 250/400/1.6k/2.5k/8k: +0.9  +1.7  -3.9  +0.1  -1.0
+male vs female deviation pattern (200-8000 Hz): r = -1.00, mean |diff| = 2.2 dB  <- INCONCLUSIVE: only 2 female songs; reported, not relied on
+
+--- space ---
+wet/dry -13.8 dB; RT60 resolvable in 2/13 songs - too few, low confidence
+send colour (wet - dry, dB re 1 k): 100:-0.5  200:-2.7  400:-0.9  800:-0.2  1600:-0.4  3150:-2.1  6300:-5.0  10000:-5.9  16000:-5.3
+
+wrote analysis.json, target_curve.csv, axis_pc*.csv + figures

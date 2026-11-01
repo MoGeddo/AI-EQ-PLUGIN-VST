@@ -1,0 +1,12 @@
+# audio corpus (copyrighted, never commit)
+google_drive/
+*.mp3
+*.mp4
+*.wav
+*.flac
+analysis/out/audio/
+__pycache__/
+*.pyc
+.venv/
+_refs/
+analysis/out/cache/
