@@ -28,6 +28,7 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/01_CORPUS_STUDY_AR.md` | الدراسة الكاملة: المنهج، الأرقام، الرسومات، **وحدود القياس** |
 | `docs/02_TARGET_AND_PRESETS_AR.md` | منحنى الهدف + بريستات جاهزة تستخدمها النهاردة |
 | `docs/03_PLUGIN_ARCHITECTURE_AR.md` | معمارية الـVST3، بوابات القبول، خريطة الطريق |
+| `docs/05_CORRECTIONS_AR.md` | **محاسبة**: التون/المقام، وأرقام كنت قايمها بزيادة، واختبارات p-value |
 | `docs/04_PLUGIN_GUIDE_AR.md` | **دليل الأداة**: إيه اللي بتعمله، البناء على ويندوز، الأدلة، الحدود |
 | `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + 18 بوابة قبول |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
@@ -43,7 +44,9 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | HPF | **172 Hz** (median) |
 | ميل 100 Hz–8 kHz | **−3.47 dB/oct** (و r=+0.81 مع درجة الصوت) |
 | ميل بعد إزالة تأثير الصوت | **−2.78 dB/oct**، والفرق بين الأغاني **±1.06** فقط |
-| dip ثابت | **4.34 kHz** في **11/13** أغنية (median 3.7 dB) |
+| dip ثابت | **4.34 kHz** في **7/13** أغنية كـdip أساسي (p = 9.5e-5) |
+| البصمة المشتركة | PC1 = 57.5% من التباين مقابل 10.7% بالصدفة (p = 0.0005) |
+| ثبات المنحنى | ±2.67 dB لو شيلت أغنية واحدة → **prior مش قانون** |
 | wet/dry | **−13.8 dB** · لون الإرسال **−5 dB @6.3k** |
 | PLR / LRA | **11.8 dB / 7.5 LU** |
 | side/mid | **−12.1 dB** (شبه مونو) |
