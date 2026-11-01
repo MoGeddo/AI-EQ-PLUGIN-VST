@@ -1,0 +1,799 @@
+{
+ "n_files": 39,
+ "n_songs": 13,
+ "songs": {
+  "اتأخر عتابنا - عمرو دياب": {
+   "variants": {
+    "dry": {
+     "file": "اتأخر عتابنا - عمرو دياب (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "اتأخر عتابنا - عمرو دياب (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "اتأخر عتابنا - عمرو دياب (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 220.915,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 9742336,
+     "sha1_1k": "2a56681df011"
+    },
+    "reverb": {
+     "dur_s": 220.915,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 9742336,
+     "sha1_1k": "70d9a27eea33"
+    },
+    "raw": {
+     "dur_s": 220.915,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 9742336,
+     "sha1_1k": "238ac8e167be"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.17,
+   "alpha_median": 1.676,
+   "raw_vs_dry_rms_usable_db": 0.18,
+   "raw_vs_dry_max_usable_db": 0.3,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "انا فاضل - كايروكي": {
+   "variants": {
+    "dry": {
+     "file": "انا فاضل - كايروكي (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "انا فاضل - كايروكي (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "انا فاضل - كايروكي (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 281.681,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12422144,
+     "sha1_1k": "be554c64e8ad"
+    },
+    "reverb": {
+     "dur_s": 281.681,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12422144,
+     "sha1_1k": "b427e2524436"
+    },
+    "raw": {
+     "dur_s": 281.681,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12422144,
+     "sha1_1k": "459a4253082e"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.25,
+   "alpha_median": 2.532,
+   "raw_vs_dry_rms_usable_db": 0.24,
+   "raw_vs_dry_max_usable_db": 0.43,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "ايامي - رامي صبري": {
+   "variants": {
+    "dry": {
+     "file": "ايامي - رامي صبري (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "ايامي - رامي صبري (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "ايامي - رامي صبري (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 274.46,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12103680,
+     "sha1_1k": "013e071e188c"
+    },
+    "reverb": {
+     "dur_s": 274.46,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12103680,
+     "sha1_1k": "895c0b49eb26"
+    },
+    "raw": {
+     "dur_s": 274.46,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12103680,
+     "sha1_1k": "741850558f27"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.96,
+   "alpha_median": 1.535,
+   "raw_vs_dry_rms_usable_db": 1.08,
+   "raw_vs_dry_max_usable_db": 1.61,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "بتمنى أنساك - شيرين عبدالوهاب": {
+   "variants": {
+    "dry": {
+     "file": "بتمنى أنساك - شيرين عبدالوهاب (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "بتمنى أنساك - شيرين عبدالوهاب (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "بتمنى أنساك - شيرين عبدالوهاب (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 172.71,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 7616512,
+     "sha1_1k": "4dda7890773b"
+    },
+    "reverb": {
+     "dur_s": 172.71,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 7616512,
+     "sha1_1k": "553e3f88f4fc"
+    },
+    "raw": {
+     "dur_s": 172.71,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 7616512,
+     "sha1_1k": "f92deee29df5"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.43,
+   "alpha_median": 2.302,
+   "raw_vs_dry_rms_usable_db": 0.42,
+   "raw_vs_dry_max_usable_db": 1.01,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "بيكلموني - رامي جمال": {
+   "variants": {
+    "dry": {
+     "file": "بيكلموني - رامي جمال (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "بيكلموني - رامي جمال (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "بيكلموني - رامي جمال (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 316.309,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13949241,
+     "sha1_1k": "95a7c04a6332"
+    },
+    "reverb": {
+     "dur_s": 316.309,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13949241,
+     "sha1_1k": "d7cd2f10e55c"
+    },
+    "raw": {
+     "dur_s": 316.309,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13949241,
+     "sha1_1k": "8b236fa244e6"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.15,
+   "alpha_median": 1.545,
+   "raw_vs_dry_rms_usable_db": 0.22,
+   "raw_vs_dry_max_usable_db": 0.32,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "جدع - تامر عاشور": {
+   "variants": {
+    "reverb": {
+     "file": "جدع - تامر عاشور (Vocals) (BS-RoFormer) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "BS-RoFormer",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "dry": {
+     "file": "جدع - تامر عاشور (Vocals) (BS-RoFormer) - Part_1 (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "BS-RoFormer",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": "Part_1",
+     "canonical": true
+    },
+    "raw": {
+     "file": "جدع - تامر عاشور (Vocals) (BS-RoFormer).mp3",
+     "models": [
+      "BS-RoFormer"
+     ],
+     "part": null,
+     "canonical": false
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "reverb": {
+     "dur_s": 230.635,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10170989,
+     "sha1_1k": "0959b191e4e8"
+    },
+    "dry": {
+     "dur_s": 50.083,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 2208674,
+     "sha1_1k": "ed7f1d53ad65"
+    },
+    "raw": {
+     "dur_s": 230.635,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10170989,
+     "sha1_1k": "147ee69d1a33"
+    }
+   },
+   "frames_equal": false,
+   "models_match": false
+  },
+  "غروب - حمزة نمرة": {
+   "variants": {
+    "raw": {
+     "file": "غروب - حمزة نمرة (Vocals) (Mel-RoFormer by Gabox).mp3",
+     "models": [
+      "Mel-RoFormer by Gabox"
+     ],
+     "part": null,
+     "canonical": false
+    },
+    "dry": {
+     "file": "غروب - حمزة نمرة (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "غروب - حمزة نمرة (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "raw": {
+     "dur_s": 236.936,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10448896,
+     "sha1_1k": "4931f60f1ce3"
+    },
+    "dry": {
+     "dur_s": 236.936,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10448896,
+     "sha1_1k": "3e4e61a0889f"
+    },
+    "reverb": {
+     "dur_s": 236.936,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10448896,
+     "sha1_1k": "96124725464a"
+    }
+   },
+   "frames_equal": true,
+   "models_match": false,
+   "reverb_added_db": 0.58,
+   "alpha_median": 4.555,
+   "raw_vs_dry_rms_usable_db": 0.61,
+   "raw_vs_dry_max_usable_db": 0.81,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "قالوا عني ايه - محمد حماقي": {
+   "variants": {
+    "dry": {
+     "file": "قالوا عني ايه - محمد حماقي (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "قالوا عني ايه - محمد حماقي (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "قالوا عني ايه - محمد حماقي (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 300.651,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13258695,
+     "sha1_1k": "a310fd68ca3f"
+    },
+    "reverb": {
+     "dur_s": 300.651,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13258695,
+     "sha1_1k": "283612f21e1c"
+    },
+    "raw": {
+     "dur_s": 300.651,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13258695,
+     "sha1_1k": "cdab8bfbf94a"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 1.95,
+   "alpha_median": 1.268,
+   "raw_vs_dry_rms_usable_db": 2.48,
+   "raw_vs_dry_max_usable_db": 3.74,
+   "raw_vs_dry_bands_over_deadzone": 8
+  },
+  "قلب في الدفاتر - مُسلِم": {
+   "variants": {
+    "dry": {
+     "file": "قلب في الدفاتر - مُسلِم (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "قلب في الدفاتر - مُسلِم (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "قلب في الدفاتر - مُسلِم (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 306.411,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13512704,
+     "sha1_1k": "d31f19c9aad1"
+    },
+    "reverb": {
+     "dur_s": 306.411,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13512704,
+     "sha1_1k": "53930ae68a8d"
+    },
+    "raw": {
+     "dur_s": 306.411,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 13512704,
+     "sha1_1k": "df6b1c729117"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.15,
+   "alpha_median": 2.657,
+   "raw_vs_dry_rms_usable_db": 0.17,
+   "raw_vs_dry_max_usable_db": 0.34,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "مستني ايه - تامر حسني": {
+   "variants": {
+    "dry": {
+     "file": "مستني ايه - تامر حسني (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "مستني ايه - تامر حسني (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "مستني ايه - تامر حسني (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 235.52,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10386432,
+     "sha1_1k": "314472dc360d"
+    },
+    "reverb": {
+     "dur_s": 235.52,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10386432,
+     "sha1_1k": "5bb9bf71f170"
+    },
+    "raw": {
+     "dur_s": 235.52,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 10386432,
+     "sha1_1k": "314976d4c000"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.6,
+   "alpha_median": 1.601,
+   "raw_vs_dry_rms_usable_db": 0.56,
+   "raw_vs_dry_max_usable_db": 0.86,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "معايا (من فيلم و لنا في الخيال حب) - بهاء سلطان_2": {
+   "variants": {
+    "dry": {
+     "file": "معايا (من فيلم و لنا في الخيال حب) - بهاء سلطان_2 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "معايا (من فيلم و لنا في الخيال حب) - بهاء سلطان_2 (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "معايا (من فيلم و لنا في الخيال حب) - بهاء سلطان_2 (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 192.354,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 8482816,
+     "sha1_1k": "5aa3d0f2d6ce"
+    },
+    "reverb": {
+     "dur_s": 192.354,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 8482816,
+     "sha1_1k": "d39326d2c765"
+    },
+    "raw": {
+     "dur_s": 192.354,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 8482816,
+     "sha1_1k": "cd04460c7be7"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.24,
+   "alpha_median": 1.606,
+   "raw_vs_dry_rms_usable_db": 0.26,
+   "raw_vs_dry_max_usable_db": 0.44,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "نهايات الحكاوى - مسار اجباري": {
+   "variants": {
+    "dry": {
+     "file": "نهايات الحكاوى - مسار اجباري (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "نهايات الحكاوى - مسار اجباري (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "نهايات الحكاوى - مسار اجباري (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 160.218,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 7065600,
+     "sha1_1k": "174e7925aeb6"
+    },
+    "reverb": {
+     "dur_s": 160.218,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 7065600,
+     "sha1_1k": "5b355efd9675"
+    },
+    "raw": {
+     "dur_s": 160.218,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 7065600,
+     "sha1_1k": "e06abf002e95"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.25,
+   "alpha_median": 4.566,
+   "raw_vs_dry_rms_usable_db": 0.32,
+   "raw_vs_dry_max_usable_db": 0.49,
+   "raw_vs_dry_bands_over_deadzone": 0
+  },
+  "هو انت مين - أنغام": {
+   "variants": {
+    "dry": {
+     "file": "هو انت مين - أنغام (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "reverb": {
+     "file": "هو انت مين - أنغام (Vocals) (Mel-Roformer deux by becruily) (Reverb) (BS-RoFormer by playdasegunda).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily",
+      "BS-RoFormer by playdasegunda"
+     ],
+     "part": null,
+     "canonical": true
+    },
+    "raw": {
+     "file": "هو انت مين - أنغام (Vocals) (Mel-Roformer deux by becruily).mp3",
+     "models": [
+      "Mel-Roformer deux by becruily"
+     ],
+     "part": null,
+     "canonical": true
+    }
+   },
+   "has_all_three": true,
+   "meta": {
+    "dry": {
+     "dur_s": 281.194,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12400640,
+     "sha1_1k": "cf98db8882a5"
+    },
+    "reverb": {
+     "dur_s": 281.194,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12400640,
+     "sha1_1k": "1c399f691e3a"
+    },
+    "raw": {
+     "dur_s": 281.194,
+     "sr": 44100,
+     "ch": 2,
+     "frames": 12400640,
+     "sha1_1k": "d2e05846dacf"
+    }
+   },
+   "frames_equal": true,
+   "models_match": true,
+   "reverb_added_db": 0.42,
+   "alpha_median": 1.212,
+   "raw_vs_dry_rms_usable_db": 0.51,
+   "raw_vs_dry_max_usable_db": 0.73,
+   "raw_vs_dry_bands_over_deadzone": 0
+  }
+ },
+ "problems": [
+  "جدع - تامر عاشور: LENGTH MISMATCH frames={'raw': 10170989, 'reverb': 10170989, 'dry': 2208674} -> 360.5% difference",
+  "جدع - تامر عاشور: variants come from different separation models",
+  "غروب - حمزة نمرة: variants come from different separation models"
+ ]
+}
