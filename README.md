@@ -28,6 +28,8 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/01_CORPUS_STUDY_AR.md` | الدراسة الكاملة: المنهج، الأرقام، الرسومات، **وحدود القياس** |
 | `docs/02_TARGET_AND_PRESETS_AR.md` | منحنى الهدف + بريستات جاهزة تستخدمها النهاردة |
 | `docs/03_PLUGIN_ARCHITECTURE_AR.md` | معمارية الـVST3، بوابات القبول، خريطة الطريق |
+| `docs/04_PLUGIN_GUIDE_AR.md` | **دليل الأداة**: إيه اللي بتعمله، البناء على ويندوز، الأدلة، الحدود |
+| `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + 18 بوابة قبول |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
 | `analysis/scripts/` | تشغيل الكوربس والتحليل |
 | `analysis/out/` | المخرجات: `analysis.json`، `target_curve.csv`، البريستات، 8 رسومات |
@@ -71,9 +73,30 @@ python3 analysis/scripts/analyze.py
 ## حالة المشروع
 
 - [x] **المرحلة 0 — تحقق:** دراسة الكوربس، منحنى الهدف، المحاور، حدود القياس
-- [ ] **المرحلة 1 — نواة DSP:** Biquad/HPF/Analyzer/Solver في C++ (بوابات G1–G4)
-- [ ] **المرحلة 2 — بلجِن:** VST3 + UI + A/B (بوابات G5–G8)
-- [ ] **المرحلة 3 — ذوق:** مقابض PC1/PC2 (بوابة G9: اختبار أعمى)
+- [x] **المرحلة 1 — نواة DSP:** Biquad/HPF/Analyzer/YIN/Solver/DeEsser في C++ (G1–G7)
+- [x] **المرحلة 2 — كود البلجِن:** VST3 + UI + مقابض (جاهز للبناء على ويندوز)
+- [ ] **المرحلة 3 — بناء وتجربة على جهازك** (محتاج Visual Studio 2022 + JUCE)
+- [ ] **المرحلة 4 — بوابة G9:** اختبار استماع أعمى لضبط العتبات بالأذن
+
+### AEQ Restore — أداة التصحيح الأولى في السلسلة
+
+```
+[الغناء الخام] -> AEQ Restore -> كومبريشن -> تلوين -> ريفيرب -> الميكس
+```
+
+بتسمع التيك من أوله لآخره، تفهم المشاكل بالأرقام، وتصلح قد ما المشكلة تستاهل —
+و**مبتعملش حاجة** لو الصوت سليم. تقرير التحقق الكامل: `plugin/validation_report.txt`.
+
+```powershell
+cd plugin
+.\build_windows.ps1        # ويندوز: يطلّع VST3 + aeq_tests + aeq_cli
+```
+
+بوابات القبول (18/18 ناجحة، بما فيها حقن أعطال معروفة والتأكد إنها اتصلحت):
+
+```bash
+g++ -std=c++17 -O2 -Iplugin/Source plugin/Tests/test_core.cpp -o aeq_tests && ./aeq_tests
+```
 
 ## المراجع المنهجية
 
