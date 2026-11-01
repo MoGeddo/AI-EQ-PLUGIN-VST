@@ -31,6 +31,7 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/05_CORRECTIONS_AR.md` | **محاسبة**: التون/المقام، وأرقام كنت قايمها بزيادة، واختبارات p-value |
 | `docs/04_PLUGIN_GUIDE_AR.md` | **دليل الأداة**: إيه اللي بتعمله، البناء على ويندوز، الأدلة، الحدود |
 | `docs/06_ENGINEERS_AR.md` | **بصمة المهندس**: اعتمادات الـ13 أغنية بالمصادر + اختبار إحصائي (Mantel، تعداد كامل، تحكم في الطبقة) |
+| `docs/07_AMIR_MAHROUS_SET_AR.md` | **مجموعة أمير محروس**: عدد الأغاني المناسب (12، مبني على power analysis) + الأغاني المحددة + بروتوكول التسليم |
 | `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + 18 بوابة قبول |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
 | `analysis/scripts/` | تشغيل الكوربس والتحليل |
