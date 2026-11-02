@@ -210,6 +210,32 @@ int main(int argc, char** argv) {
     }
     stage("probe: components done");
 
+    // ---- probe 4: the real report, one card at a time -----------------------
+    // The list crashes with the real problems and not with three invented ones.
+    // Each card is rendered alone, with its numbers in the log, so the one that
+    // dies names its own data.
+    {
+        const auto probs = proc.core().state().problems;
+        stage((juce::String ("real problems: ") + juce::String (int (probs.size()))).toRawUTF8());
+        for (size_t i = 0; i < probs.size(); ++i) {
+            const auto& pp = probs[i];
+            stage((juce::String ("card ") + juce::String (int (i))
+                   + " action=" + juce::String (int (pp.action))
+                   + " f=" + juce::String (pp.freq, 1)
+                   + " q=" + juce::String (pp.q, 3)
+                   + " g=" + juce::String (pp.gainDb, 2)
+                   + " sev=" + juce::String (pp.severity, 3)
+                   + " label=" + juce::String (int (pp.labelAr.size())) + "B"
+                   + " detail=" + juce::String (int (pp.detailAr.size())) + "B").toRawUTF8());
+            aeq::ui::ProblemList one;
+            one.setSize (336, 400);
+            one.setProblems (std::vector<aeq::Problem> { pp });
+            savePng (one.createComponentSnapshot (one.getLocalBounds(), false, 1.0f),
+                     dir.getChildFile ("probe-card-" + juce::String (int (i)) + ".png"));
+        }
+        stage("all cards survived");
+    }
+
     stage("analysis fed");
     std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
     if (editor == nullptr) { stage("no editor"); return 1; }
