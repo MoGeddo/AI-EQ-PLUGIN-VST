@@ -38,11 +38,11 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/11_VST3_BUILD_AR.md` | **إيه المطلوب للـVST3**: متطلبات ويندوز، اللي اتصلح واللي لسه، والتحقق بـpluginval |
 | `docs/12_INSTALLER_AR.md` | **الـInstaller**: ملف `.exe` واحد Next/Next، المسارات، الـUninstall، والتوقيع |
 | `docs/13_MARKET_TEARDOWN_AR.md` | **تفكيك السوق**: 120 بلجن = 6 معماريات، الفراغ المقاس، وتصميم Performance-Domain |
-| `docs/14_HARMONIC_ENVELOPE_AR.md` | **المظروف الهرموني**: الشرح + القياس على الـ15 (فايدة 1.9× في 110 Hz–1.3 kHz) + **حالة التنفيذ في الـC++** (اعمل/لسه) |
+| `docs/14_HARMONIC_ENVELOPE_AR.md` | **المظروف الهرموني**: الشرح + القياس على الـ15 + **القرار بقى بيستخدمه** (هدف وسماحية في نفس الإحداثيات، صفر إنذار كاذب، وحدود الطريقة) |
 | `GATES.md` | بوابات القبول المكتوبة قبل الكود (6/6 ناجحة) — طريقة العمل: تعريف النجاح الأول |
 | `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + **22 تأكيد قبول** (منها بوابة المظروف) |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
-| `analysis/scripts/` | تشغيل الكوربس والتحليل |
+| `analysis/scripts/` | تشغيل الكوربس والتحليل، `env_target.py` (هدف المظروف)، `calibrate_env.py` (العتبات من البرنامج نفسه)، `audit_decisions.py` (صفر إنذار كاذب) |
 | `analysis/out/` | المخرجات: `analysis.json`، `target_curve.csv`، البريستات، 8 رسومات |
 
 ---

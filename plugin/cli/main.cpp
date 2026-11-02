@@ -122,6 +122,23 @@ static void printReport(aeq::RestoreCore& core) {
     }
 
     std::printf("\n--- problems found (%zu) ---\n", st.problems.size());
+    // machine-readable line, one per problem, so a whole-corpus run can be counted
+    // without parsing Arabic.  `id` is stable, `sev` is 0..1, `gain` is what the
+    // plugin would apply.
+    for (const auto& p : st.problems)
+        std::printf("PROBLEM %s %.2f %.0f %.1f\n", p.id.c_str(), p.severity, p.freq, p.gainDb);
+    // the raw evidence behind every region decision, in both domains.  This is what
+    // analysis/scripts/calibrate_env.py reads to derive the thresholds, so the
+    // constants can never drift away from the measurement they came from.
+    {
+        const struct { const char* id; double lo, hi; } regs[] = {
+            {"boom", 110, 260}, {"mud", 260, 520}, {"box", 520, 850},
+            {"nasal", 850, 1300}, {"harsh", 2000, 4200}};
+        for (const auto& r : regs)
+            std::printf("EXCESS %s raw %+.2f env %+.2f\n", r.id,
+                        aeq::excessVsTarget(m, r.lo, r.hi),
+                        aeq::excessVsTargetEnv(m, r.lo, r.hi));
+    }
     for (const auto& p : st.problems) {
         const char* act = "warn";
         switch (p.action) {

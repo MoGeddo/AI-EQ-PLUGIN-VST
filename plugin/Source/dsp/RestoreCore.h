@@ -151,6 +151,9 @@ public:
         analyzer_.excessStats(m.excessMean, m.excessSd, tmpCount_);
         m.envDb = analyzer_.envelopeLevelsDb();
         m.envSdDb = analyzer_.envelopeSdDb();
+        m.envFrames.resize(m.freqs.size());
+        for (size_t i = 0; i < m.freqs.size(); ++i)
+            m.envFrames[i] = analyzer_.envelopeFrames(static_cast<int>(i));
         analyzer_.sibilance(m.sibMed, m.sibP90);
         m.medianF0 = analyzer_.medianF0();
         m.dynamicRange = analyzer_.dynamicRangeDb();
