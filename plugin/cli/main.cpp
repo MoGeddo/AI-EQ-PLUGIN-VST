@@ -132,12 +132,38 @@ static void printReport(aeq::RestoreCore& core) {
     // constants can never drift away from the measurement they came from.
     {
         const struct { const char* id; double lo, hi; } regs[] = {
-            {"boom", 110, 260}, {"mud", 260, 520}, {"box", 520, 850},
+            {"mud", 260, 520}, {"box", 520, 850},
             {"nasal", 850, 1300}, {"harsh", 2000, 4200}};
         for (const auto& r : regs)
             std::printf("EXCESS %s raw %+.2f env %+.2f\n", r.id,
                         aeq::excessVsTarget(m, r.lo, r.hi),
                         aeq::excessVsTargetEnv(m, r.lo, r.hi));
+        // "boom" is pitch-relative now, so it has no raw counterpart: the raw
+        // spectrum below 1.5*F0 measured nothing at all on this corpus (0/15).
+        std::printf("EXCESS boomtilt raw %+.2f env %+.2f\n",
+                    -50.0, aeq::weightTilt(m));
+        // every measurable band of the envelope, re the 900-1150 Hz reference, in
+        // dB.  analysis/scripts/env_target.py averages exactly these numbers over the
+        // 15 takes to build the target - the target must come from the same binary
+        // that measures, or the z-scores compare two different statistics.
+        // where this take sits against the 15 that define the standard, in sigma,
+        // after matching the filter to the width of a real EQ fault.  Evidence, not
+        // an action: a 3 dB broad lift is inside the engineer's own range (his 15
+        // mixes span ~1 dB per band on the envelope), so the plugin reports the
+        // position and leaves the decision to the engineer.
+        if (const auto zs = aeq::scanZ(m, 3); zs.peakBand >= 0)
+            for (size_t i = 1; i + 1 < zs.smoothed.size(); ++i) {
+                const double f = m.freqs[i];
+                if (f < 240.0 || f > 2500.0 || !zs.usable[i]) continue;
+                if (zs.smoothed[i] <= zs.smoothed[i - 1] || zs.smoothed[i] <= zs.smoothed[i + 1]) continue;
+                if (zs.smoothed[i] < 1.5) continue;
+                std::printf("ZPEAK %.1f %+.2f\n", f, zs.smoothed[i]);
+            }
+        const double eref = aeq::envLevelBetween(m, 900.0, 1150.0);
+        if (eref > -119.0)
+            for (size_t i = 0; i < m.freqs.size(); ++i)
+                if (aeq::envUsable(m, i))
+                    std::printf("ENVLINE %.1f %+.3f\n", m.freqs[i], m.envDb[i] - eref);
     }
     for (const auto& p : st.problems) {
         const char* act = "warn";

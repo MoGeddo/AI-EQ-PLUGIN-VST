@@ -42,7 +42,7 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `GATES.md` | بوابات القبول المكتوبة قبل الكود (6/6 ناجحة) — طريقة العمل: تعريف النجاح الأول |
 | `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + **22 تأكيد قبول** (منها بوابة المظروف) |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
-| `analysis/scripts/` | تشغيل الكوربس والتحليل، `env_target.py` (هدف المظروف)، `calibrate_env.py` (العتبات من البرنامج نفسه)، `audit_decisions.py` (صفر إنذار كاذب) |
+| `analysis/scripts/` | `env_target.py` (هدف المظروف من البرنامج نفسه)، `calibrate_env.py` (الحدود)، `audit_decisions.py` (صفر إنذار كاذب)، `bench_faults.py` (حقن عطل والتأكد إنه بيتكشف) |
 | `analysis/out/` | المخرجات: `analysis.json`، `target_curve.csv`، البريستات، 8 رسومات |
 
 ---

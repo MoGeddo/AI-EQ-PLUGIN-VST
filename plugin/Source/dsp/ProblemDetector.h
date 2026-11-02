@@ -134,6 +134,113 @@ inline double excessVsTargetEnv(const Measurements& m, double lo, double hi) {
     return n >= 4 ? s / n : -50.0;
 }
 
+// Mean of (envelope level re 1 kHz, minus the corpus target) over a window.  The
+// envelope is usable down to 0.9*F0, which is the whole reason this can exist.
+inline double envRelMean(const Measurements& m, double lo, double hi, int* used = nullptr) {
+    const double ref = envLevelBetween(m, 900.0, 1150.0);
+    double s = 0.0; int n = 0;
+    if (ref > -119.0) {
+        for (size_t i = 0; i < m.freqs.size(); ++i) {
+            const double f = m.freqs[i];
+            if (f < lo || f >= hi || !envUsable(m, i)) continue;
+            s += (m.envDb[i] - ref) - EnvTargetCurve::at(f);
+            ++n;
+        }
+    }
+    if (used) *used = n;
+    return n ? s / n : -50.0;
+}
+
+// -------------------------------------------------------------------------
+// "Boom" cannot be a fixed band.
+//
+// The shipped detector scored 110-260 Hz after clamping the region to 1.5*F0.
+// On the 15 reference mixes the median F0 is 197-350 Hz, so the clamp removed
+// the *entire* region every time: the detector has never fired once, on anything,
+// and it looked like an absence of boomy voices rather than a blind measurement
+// (0/15 measurable - audited in analysis/scripts/audit_decisions.py).
+//
+// The fix is to stop naming frequencies, because a monophonic voice has no energy
+// below its own fundamental.  Instead: how heavy is the bottom of THIS voice
+// compared with its own body?
+//
+//     tilt = mean(deviation over 0.9-2.5 F0) - mean(deviation over 3-8 F0)
+//
+// both windows are multiples of the singer's fundamental, so the statistic cannot
+// move when the singer changes register, and each window is compared with the
+// corpus target *at its own frequencies*.  This is the same idea as the
+// pitch-tracked bands in the Antares EQ, used the other way round: they move an EQ
+// band with the voice, this moves a *measurement* window with it.
+// -------------------------------------------------------------------------
+inline double weightTilt(const Measurements& m, int* lowBands = nullptr, int* highBands = nullptr) {
+    const double f0 = m.medianF0;
+    if (!(f0 > 55.0 && f0 < 700.0)) { if (lowBands) *lowBands = 0; if (highBands) *highBands = 0; return -50.0; }
+    int nl = 0, nh = 0;
+    const double low = envRelMean(m, 0.9 * f0, 2.5 * f0, &nl);
+    const double high = envRelMean(m, 3.0 * f0, 8.0 * f0, &nh);
+    if (lowBands) *lowBands = nl;
+    if (highBands) *highBands = nh;
+    if (low <= -49.0 || high <= -49.0) return -50.0;
+    return low - high;
+}
+
+// -------------------------------------------------------------------------
+// Per-band z, smoothed the way a real fault is shaped.
+//
+// z(f) = (envelope level - target) / corpus spread, band by band.  On its own a
+// per-band test is close to useless: the corpus spread is ~1 dB, a +3 dB fault
+// gives z ~= 3, and with 71 bands x 15 takes a pure threshold of 3 fires by
+// chance (multiple comparisons).  But an EQ fault is *smooth in frequency* - a
+// bell or a shelf lifts several neighbouring bands by the same amount - while the
+// corpus noise is per-band and independent.  Averaging z over a window matched to
+// the width of a real fault divides the noise by sqrt(n) and leaves the fault
+// standing: 3 dB against 1 dB/sqrt(7) ~= 0.38 dB is z ~= 8.
+//
+// So the statistic is a matched filter, not a threshold on one band.
+// -------------------------------------------------------------------------
+struct ZScan {
+    std::vector<double> z;        // raw per-band z (0 where not measurable)
+    std::vector<double> smoothed; // matched-filtered
+    std::vector<bool>   usable;
+    int peakBand = -1;
+    double peakZ = 0.0;
+};
+
+inline ZScan scanZ(const Measurements& m, int halfBands = 3) {
+    ZScan s;
+    const size_t n = m.freqs.size();
+    s.z.assign(n, 0.0);
+    s.usable.assign(n, false);
+    const double ref = envLevelBetween(m, 900.0, 1150.0);
+    for (size_t i = 0; i < n; ++i) {
+        if (ref <= -119.0 || !envUsable(m, i)) continue;
+        const double sd = EnvTargetCurve::sdAt(m.freqs[i]);
+        if (!(sd > 0.15) || sd > 50.0) continue;       // no usable spread, no z
+        s.z[i] = ((m.envDb[i] - ref) - EnvTargetCurve::at(m.freqs[i])) / sd;
+        s.usable[i] = true;
+    }
+    s.smoothed.assign(n, 0.0);
+    for (size_t i = 0; i < n; ++i) {
+        if (!s.usable[i]) continue;
+        double acc = 0.0, wsum = 0.0;
+        for (int k = -halfBands; k <= halfBands; ++k) {
+            const long j = long(i) + k;
+            if (j < 0 || j >= long(n) || !s.usable[j]) continue;
+            // triangle kernel: weights 1, 2/3, 1/3 - a smooth fault keeps its shape,
+            // a single stray band is diluted instead of being amplified
+            const double w = 1.0 - std::abs(double(k)) / (halfBands + 1.0);
+            acc += w * s.z[j]; wsum += w;
+        }
+        s.smoothed[i] = acc / std::max(wsum, 1e-9);
+    }
+    for (size_t i = 1; i + 1 < n; ++i) {
+        if (!s.usable[i]) continue;
+        if (s.smoothed[i] <= s.smoothed[i - 1] || s.smoothed[i] <= s.smoothed[i + 1]) continue;
+        if (s.smoothed[i] > s.peakZ) { s.peakZ = s.smoothed[i]; s.peakBand = int(i); }
+    }
+    return s;
+}
+
 inline double excessBetween(const Measurements& m, double lo, double hi) {
     double s = 0.0; int n = 0;
     for (size_t i = 0; i < m.freqs.size(); ++i)
@@ -173,7 +280,8 @@ public:
         // 15 voices), 850-1300 Hz holds the 1 kHz reference so a fault there
         // cancels in both domains, and above 2 kHz the raw spectrum is the more
         // stable of the two (docs/14 section 5.2).
-        struct Region { const char* id; const char* label; double lo, hi, thr; bool env; };
+        enum class Mode { Raw, Env, Tilt };
+        struct Region { const char* id; const char* label; double lo, hi, thr; Mode mode; };
         // Thresholds are the engineer's own natural variation, not taste.  Each
         // one is a measured standard deviation of that region across the 15
         // mixes that define the target (analysis/out/amir15/tolerance.json), so
@@ -181,33 +289,53 @@ public:
         // The old fixed 2.2 dB sat *below* that spread (3.04 dB median per band)
         // and flagged the target material itself 6 times out of 15.
         const Region regions[] = {
-            {"boom",  "تخنة (Boom)",        110, 260, 2.5, false},  // SD 11 dB, F0-driven - see clamp
-            {"mud",   "عكارة (Mud)",         260, 520, EnvThresholds::mud, true},  // corpus max +4.88
-            {"box",   "صندوقية (Box)",       520, 850, EnvThresholds::box, true},  // corpus max +2.54
-            {"nasal", "خنّة (Nasal)",        850, 1300, 2.5, false}, // SD 1.28 (this band holds the 1 kHz reference)
-            {"harsh", "حدّة (Harsh)",       2000, 4200, 2.2, false}, // SD 2.06 - keep, it is the one region that behaves
+            {"boom",  "تخنة (Boom)",           0,   0, EnvThresholds::boom_tilt, Mode::Tilt},  // pitch-relative
+            {"mud",   "عكارة (Mud)",         260, 520, EnvThresholds::mud, Mode::Env},   // corpus max +4.88
+            {"box",   "صندوقية (Box)",       520, 850, EnvThresholds::box, Mode::Env},   // corpus max +2.54
+            {"nasal", "خنّة (Nasal)",        850, 1300, 2.5, Mode::Raw},  // holds the 1 kHz reference
+            {"harsh", "حدّة (Harsh)",       2000, 4200, 2.2, Mode::Raw},  // SD 2.06, the one that behaves
         };
         for (const auto& r : regions) {
-            const double ex = r.env ? excessVsTargetEnv(m, r.lo, r.hi)
-                                    : excessVsTarget(m, r.lo, r.hi);
+            double ex = 0.0, fc = 0.0, q = 1.0;
+            std::string detail;
+            switch (r.mode) {
+                case Mode::Raw:
+                    ex = excessVsTarget(m, r.lo, r.hi);
+                    detail = fmt("زيادة %.1f dB في %.0f–%.0f Hz", {ex, r.lo, r.hi});
+                    break;
+            case Mode::Env:
+                    ex = excessVsTargetEnv(m, r.lo, r.hi);
+                    detail = fmt("زيادة %.1f dB في %.0f–%.0f Hz (على مظروف الصوت)", {ex, r.lo, r.hi});
+                    break;
+                case Mode::Tilt: {
+                    int nl = 0, nh = 0;
+                    ex = weightTilt(m, &nl, &nh);
+                    fc = m.medianF0 > 0 ? 1.5 * m.medianF0 : 150.0;
+                    q  = 0.8;
+                    // the action is a broad shelf under the first formant, not a bell:
+                    // the fault is that the whole bottom is heavy, not one band
+                    detail = fmt("القاع أثقل من الجسم بـ %.1f dB (نسبي لطبقة %.0f Hz: تحت %.0f Hz أول %.0f هارمونيك)",
+                                 {ex, m.medianF0, 2.5 * m.medianF0, 2.5});
+                    break;
+                }
+            }
+            if (r.mode == Mode::Raw || r.mode == Mode::Env) {
+                fc = std::sqrt(r.lo * r.hi);
+                q  = std::max(fc / (r.hi - r.lo), 0.5);
+            }
             if (ex > r.thr) {
-                const double fc = std::sqrt(r.lo * r.hi);
-                const double q  = fc / (r.hi - r.lo);
-                Problem p{r.id, r.label,
-                          r.env ? fmt("زيادة %.1f dB في %.0f–%.0f Hz (على مظروف الصوت)",
-                                      {ex, r.lo, r.hi})
-                                : fmt("زيادة %.1f dB في %.0f–%.0f Hz", {ex, r.lo, r.hi}),
-                          sev(ex, r.thr, r.thr + 5.0), fc, std::max(q, 0.5),
+                Problem p{r.id, r.label, detail,
+                          sev(ex, r.thr, r.thr + 5.0), fc, q,
                           -std::min(ex * 0.75, 6.0), Action::CutBroad};
+                if (r.mode == Mode::Tilt) p.gainDb = -std::min(ex * 0.6, 4.0);
                 out.push_back(p);
-            } else if (r.env && ex > -49.0 && ex > r.thr * 0.7) {
+            } else if (r.mode != Mode::Raw && ex > -49.0 && ex > r.thr * 0.7) {
                 // near-miss on the envelope: reported as evidence, not as an action.
                 // The point of a tighter measurement is that we can *say* "this is
                 // 0.2 dB under the bar" instead of showing nothing at all.
                 out.push_back({std::string(r.id) + "_near", std::string(r.label) + " (قريب من الحد)",
-                               fmt("انحراف %.1f dB من أصل %.1f مسموح (مظروف)", {ex, r.thr}),
-                               sev(ex, r.thr * 0.7, r.thr), std::sqrt(r.lo * r.hi), 1.0,
-                               0.0, Action::None});
+                               fmt("انحراف %.1f dB من أصل %.1f مسموح", {ex, r.thr}),
+                               sev(ex, r.thr * 0.7, r.thr), fc, 1.0, 0.0, Action::None});
             }
         }
 
