@@ -1,0 +1,41 @@
+AEQ RESTORE - QUICK START
+=========================
+
+ARABIC
+------
+1. حط البلجن أول إدراج في شين الصوت (قبل أي كومبريسور أو كولور).
+2. شغّل الأغنية من أولها لآخرها مرة واحدة وسيبه يسمع. الواجهة بتكتب
+   "ANALYSING ... s listened" لحد ما يخلص (افتراضي 30 ثانية غناء فعلي).
+3. بعد كده الكيرف بيتطبق مرة واحدة. بص على:
+   - عدد الباندات
+   - الـ low cut
+   - "problems" و "fixed X dB RMS"
+4. اعمل A/B بالـ Bypass على نفس مستوى السمع.
+5. لو عايز تسمع من غير DAW: افتح النسخة Standalone.
+
+مش محتاج تعمل حاجة لو الصوت سليم: البلجن مبيصححش حاجة من غير سبب مقاس.
+
+
+ENGLISH
+-------
+1. Put the plugin first in the vocal chain, before any compressor or colour.
+2. Play the take from the beginning to the end once and let it listen. The
+   status line shows "ANALYSING ... s listened" until it has enough (30 s of
+   actually sung audio by default).
+3. The curve is applied once, after that. Read the report:
+   number of bands, low cut, problems, "fixed X dB RMS".
+4. A/B with Bypass at the same monitoring level.
+5. To listen without a DAW, use the standalone application.
+
+Nothing happens when the vocal is healthy - the plugin only acts on a measured
+reason.
+
+
+WHERE THINGS ARE
+----------------
+Plugin : C:\Program Files\Common Files\VST3\AEQ Restore.vst3
+App    : C:\Program Files\AEQ Restore\
+Uninstall: Settings > Apps > AEQ Restore   (or the Start menu shortcut)
+
+If the plugin does not show up in your DAW: close the DAW completely, open it
+again, and rescan plug-ins.

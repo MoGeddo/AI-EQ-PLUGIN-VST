@@ -36,6 +36,7 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/09_STEM_AUDIT_AR.md` | تشريح الـ39 stem: أي نسخة نستخدم، وأدلة raw مقابل Dry، وسلامة الملفات |
 | `docs/10_TARGET_VALIDATION_AR.md` | **التحقق على الـ15 أغنية**: الكيرف اتأكد بـ0.88 dB، وتشغيل البلجن الحقيقي على المادة الهدف، و3 أسباب لأخطاء اتصلحت |
 | `docs/11_VST3_BUILD_AR.md` | **إيه المطلوب للـVST3**: متطلبات ويندوز، اللي اتصلح واللي لسه، والتحقق بـpluginval |
+| `docs/12_INSTALLER_AR.md` | **الـInstaller**: ملف `.exe` واحد Next/Next، المسارات، الـUninstall، والتوقيع |
 | `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + 18 بوابة قبول |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
 | `analysis/scripts/` | تشغيل الكوربس والتحليل |
@@ -105,6 +106,15 @@ cd plugin
 
 محتاج بس: Visual Studio 2022 (workload "Desktop development with C++") + CMake 3.22+ + Git.
 أول build بينزّل JUCE مرة واحدة. **قائمة الشغل الكاملة للـVST3**: `docs/11_VST3_BUILD_AR.md`.
+
+للـinstaller (ملف `.exe` واحد بيتسطب Next/Next):
+
+```powershell
+winget install JRSoftware.InnoSetup        # مرة واحدة
+.\installer\build_installer.ps1            # -> dist\AEQ_Restore_Setup_1.0.0.exe
+```
+
+التفاصيل والرخصة والتوقيع: `docs/12_INSTALLER_AR.md`.
 
 بوابات القبول (18/18 ناجحة، بما فيها حقن أعطال معروفة والتأكد إنها اتصلحت):
 

@@ -1,0 +1,33 @@
+AEQ Restore - End User License Agreement
+version 1.0.0
+
+This is a template license. Read it, change what does not match how you want to
+distribute the plugin, and only then ship it.
+
+1. GRANT OF LICENSE
+   You are granted a personal, non-exclusive, non-transferable license to
+   install and use AEQ Restore on computers that you own or control, for as
+   many projects as you like.
+
+2. WHAT YOU KEEP
+   Everything you process with AEQ Restore stays yours. This license claims no
+   rights whatsoever over your recordings, your mixes or anything you export.
+
+3. RESTRICTIONS
+   You may not sell, rent, sublicense or redistribute the installer or the
+   plugin files, and you may not reverse engineer them except to the extent
+   that applicable law says you may despite this clause.
+
+4. NO WARRANTY
+   The software is provided "as is", without warranty of any kind. It is a
+   mixing tool: it makes suggestions about tone. You are responsible for
+   checking the result with your ears before you print anything.
+
+5. LIABILITY
+   To the maximum extent permitted by law, the author is not liable for any
+   damage arising from the use of this software, including lost sessions or
+   lost work.
+
+6. ACCEPTANCE
+   Pressing "I accept" and continuing the installation means you agree to the
+   terms above.

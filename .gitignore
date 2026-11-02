@@ -12,3 +12,7 @@ _refs/
 analysis/out/cache/
 *.whl
 analysis/out/*/cache/
+installer/staging/
+dist/
+installer/__pycache__/
+installer/_sizes_preview.png
