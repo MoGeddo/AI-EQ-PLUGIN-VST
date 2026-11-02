@@ -190,7 +190,7 @@ void AeqAudioProcessorEditor::paint(Graphics& g) {
     g.setFont(FontOptions(12.0f));
     if (lastState_.problems.empty()) {
         g.setColour(Colour(0xff7dcea0));
-        g.drawText(hasData_ ? "No problems found - this take is already clean. Leaving it alone."
+        g.drawText(haveData_ ? "No problems found - this take is already clean. Leaving it alone."
                             : "Waiting for audio...",
                    text, Justification::topLeft);
     } else {
