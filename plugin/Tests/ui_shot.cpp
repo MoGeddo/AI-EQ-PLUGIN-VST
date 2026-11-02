@@ -172,6 +172,43 @@ int main(int argc, char** argv) {
         savePng (probe, dir.getChildFile ("probe-font.png"));
     }
 
+    // ---- probe 3: the components, one at a time -----------------------------
+    // The editor as a whole crashed under createComponentSnapshot while a plain
+    // image and a shaped string did not, so the fault is in our own paint code.
+    // Each component is snapshotted on its own; the breadcrumb names the one that
+    // dies instead of leaving an access violation to guess about.
+    {
+        stage("probe: curve view");
+        aeq::ui::CurveView cv;
+        cv.setSize (846, 540);
+        {
+            aeq::ui::CurveView::Data d;
+            d.valid = true;
+            d.settled = true;
+            d.analysedSeconds = 21.4;
+            cv.setData (std::move (d));
+        }
+        savePng (cv.createComponentSnapshot (cv.getLocalBounds(), false, 1.0f),
+                 dir.getChildFile ("probe-curve-empty.png"));
+    }
+    {
+        stage("probe: problem list");
+        aeq::ui::ProblemList pl;
+        pl.setSize (330, 400);
+        std::vector<aeq::Problem> probs;
+        for (int i = 0; i < 3; ++i) {
+            aeq::Problem p;
+            p.labelAr = "زيادة في المنطقة المنخفضة";
+            p.detailAr = "قياس ٢٤٠ هرتز أعلى من المعيار بـ ٤ dB";
+            probs.push_back (p);
+        }
+        pl.setProblems (probs);
+        pl.setSize (330, juce::jmax (400, pl.contentHeight()));
+        savePng (pl.createComponentSnapshot (pl.getLocalBounds(), false, 1.0f),
+                 dir.getChildFile ("probe-problems.png"));
+    }
+    stage("probe: components done");
+
     stage("analysis fed");
     std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
     if (editor == nullptr) { stage("no editor"); return 1; }

@@ -124,13 +124,13 @@ if ($shot) {
 
     # a second attempt, relative to the repo root: the first one is the path the
     # editor will actually be run from, this covers a path-handling mistake
-    $pngs = Get-ChildItem -Path $shotDir -Filter "*.png" -ErrorAction SilentlyContinue
+    $pngs = Get-ChildItem -Path $shotDir -Filter "ui-*.png" -ErrorAction SilentlyContinue
     if (-not $pngs) {
         Push-Location (Split-Path $root -Parent)
         & $shot.FullName "dist\ui" *>&1 | Tee-Object -FilePath (Join-Path $shotDir "shot.log") -Append | Write-Host
         Write-Host "   retry exit: $LASTEXITCODE"
         Pop-Location
-        $pngs = Get-ChildItem -Path $shotDir -Filter "*.png" -ErrorAction SilentlyContinue
+        $pngs = Get-ChildItem -Path $shotDir -Filter "ui-*.png" -ErrorAction SilentlyContinue
     }
 
     if (-not $pngs) {
