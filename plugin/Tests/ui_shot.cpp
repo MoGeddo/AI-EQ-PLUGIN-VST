@@ -90,9 +90,18 @@ void savePng(const juce::Image& img, const juce::File& file) {
 int main(int argc, char** argv) {
     const juce::ScopedJuceInitialiser_GUI init;
 
-    juce::File dir = argc > 1 ? juce::File::getCurrentWorkingDirectory().getChildFile(argv[1])
-                              : juce::File::getCurrentWorkingDirectory();
+    juce::File dir = juce::File::getCurrentWorkingDirectory();
+    if (argc > 1) {
+        const juce::File given (juce::String::fromUTF8 (argv[1]));
+        dir = given.isAbsolute() ? given : dir.getChildFile (given.getFileName());
+    }
     dir.createDirectory();
+    {
+        const auto res = dir.createDirectory();
+        std::printf("output directory: %s (createDirectory: %d, exists: %d)\n",
+                    dir.getFullPathName().toRawUTF8(), (int) res.getErrorMessage().isNotEmpty(),
+                    (int) dir.isDirectory());
+    }
 
     AeqAudioProcessor proc;
     proc.prepareToPlay(48000.0, 512);
@@ -116,6 +125,12 @@ int main(int argc, char** argv) {
         }
     }
     proc.core().refresh();
+    std::printf("analysis: %d %.1f s, valid=%d settled=%d, %d bands\n",
+                (int) proc.core().state().problems.size(),
+                proc.core().state().analyzedSeconds,
+                (int) proc.core().state().valid,
+                (int) proc.core().state().settled,
+                (int) proc.core().activeBands().size());
 
     std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
     if (editor == nullptr) { std::printf("no editor\n"); return 1; }

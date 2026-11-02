@@ -113,7 +113,10 @@ $shot = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_shot.exe" | Select-O
 if ($shot) {
     $shotDir = Join-Path $root "dist\ui"
     New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
-    & $shot.FullName $shotDir 2>&1 | Write-Host
+    # The output is kept next to the images: when a renderer fails on a machine
+    # nobody can log into, the reason has to travel with the artifact.
+    & $shot.FullName $shotDir *>&1 |
+        Tee-Object -FilePath (Join-Path $shotDir "shot.log") | Write-Host
     if ($LASTEXITCODE -ne 0) {
         Write-Host "   aeq_shot exited $LASTEXITCODE - the screenshot is missing" -ForegroundColor Yellow
     }

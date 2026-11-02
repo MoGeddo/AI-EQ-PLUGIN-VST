@@ -76,7 +76,7 @@ jobs:
         if: always()
         with:
           name: AEQ_UI_Screenshot
-          path: dist/ui/*.png
+          path: dist/ui/*
           if-no-files-found: warn
 
       - uses: actions/upload-artifact@v4
