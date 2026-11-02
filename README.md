@@ -38,6 +38,7 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/11_VST3_BUILD_AR.md` | **إيه المطلوب للـVST3**: متطلبات ويندوز، اللي اتصلح واللي لسه، والتحقق بـpluginval |
 | `docs/12_INSTALLER_AR.md` | **الـInstaller**: ملف `.exe` واحد Next/Next، المسارات، الـUninstall، والتوقيع |
 | `docs/13_MARKET_TEARDOWN_AR.md` | **تفكيك السوق**: 120 بلجن = 6 معماريات، الفراغ المقاس، وتصميم Performance-Domain |
+| `docs/14_HARMONIC_ENVELOPE_AR.md` | **المظروف الهرموني**: الشرح الكامل + القياس على الـ15 (فايدة 1.9× في نطاق التصميم) |
 | `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + 18 بوابة قبول |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
 | `analysis/scripts/` | تشغيل الكوربس والتحليل |
