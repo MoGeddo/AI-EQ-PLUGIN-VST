@@ -103,3 +103,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
       before it printed a line (found with -fsanitize=address)
   CHECK: build/aeq_tests
   EXPECT: no leftover %% in any report line
+
+- [x] G17: the gate binary runs inside 512 KB of stack, because Windows gives 1 MB and
+  EVIDENCE: automatic-evidence=v1; definition-sha256=97e028208a0b8c75d00047bdfd22acdb8a746e24d751149761a483aad14dd1ec; exit=0; EXPECT=matched; output-sha256=a5571205f49e9f79f4f3f055d256495696e78939272df0bbc4fb6890ba376d0d; output-bytes=2649; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      a 210 KB RestoreCore on the stack (three 8192-point double arrays in the analyser)
+      plus ten of them in one function killed the MSVC build with 0xC00000FD before it
+      printed a line
+  CHECK: sh -c 'ulimit -s 512; build/aeq_tests'
+  EXPECT: 24 passed, 0 failed

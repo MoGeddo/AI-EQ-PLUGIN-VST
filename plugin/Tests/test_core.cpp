@@ -9,10 +9,19 @@
 #include <random>
 #include <string>
 #include <algorithm>
+#include <memory>
 
 #include "../Source/dsp/RestoreCore.h"
 
 using namespace aeq;
+
+// RestoreCore is ~210 KB (the analyser keeps three 8192-point double arrays), so
+// ten of them on one stack is more than MSVC's 1 MB default - which is exactly how
+// the Windows gate binary died, with 0xC00000FD and not one line of output.  The
+// tests run long, sequential pipelines, so everything goes on the heap.
+static std::unique_ptr<aeq::RestoreCore> makeCore() {
+    return std::make_unique<aeq::RestoreCore>();
+}
 
 // Measurements is the struct RestoreCore hands to the UI and the tests
 typedef Measurements Measures;
@@ -148,6 +157,7 @@ static std::vector<float> runPipeline(const std::vector<float>& in, RestoreCore&
 }
 
 int main() {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);   // a crash must not swallow the log
     std::printf("\n===== AEQ RESTORE - acceptance gates =====\n");
 
     // ---------------- G1: biquad maths --------------------------------
@@ -204,9 +214,9 @@ int main() {
 
     {
         RestoreSettings s; s.learn = true;
-        RestoreCore core;
-        runPipeline(bad, core, s, true);
-        const auto st = core.state();
+        auto core = makeCore();
+        runPipeline(bad, *core, s, true);
+        const auto st = core->state();
         bool foundReso = false, foundRumble = false, foundHarsh = false;
         double resoF = 0, resoGain = 0;
         for (const auto& p : st.problems) {
@@ -229,9 +239,9 @@ int main() {
     std::printf("\n[G16] every problem line has its numbers substituted\n");
     {
         RestoreSettings s; s.learn = true;
-        RestoreCore core;
-        runPipeline(bad, core, s, true);
-        const auto st = core.state();
+        auto core = makeCore();
+        runPipeline(bad, *core, s, true);
+        const auto st = core->state();
         int unsubstituted = 0;
         for (const auto& p : st.problems) {
             if (p.labelAr.empty() || p.detailAr.find('%') != std::string::npos) {
@@ -255,8 +265,8 @@ int main() {
     {
         RestoreSettings s; s.learn = true;
         auto measure = [&](double f0, Measures& out) {
-            RestoreCore c; runPipeline(formantVoice(f0, 6.0), c, s, true);
-            out = c.measurements();
+            auto c = makeCore(); runPipeline(formantVoice(f0, 6.0), *c, s, true);
+            out = c->measurements();
         };
         Measures a, b;
         measure(150.0, a);          // male-ish
@@ -294,10 +304,10 @@ int main() {
                     "(both fine; the raw one is used there)\n", rawHigh, envHigh);
 
         // determinism
-        RestoreCore c1, c2;
-        runPipeline(formantVoice(220.0, 3.0), c1, s, true);
-        runPipeline(formantVoice(220.0, 3.0), c2, s, true);
-        const auto e1 = c1.measurements().envDb, e2 = c2.measurements().envDb;
+        auto c1 = makeCore(), c2 = makeCore();
+        runPipeline(formantVoice(220.0, 3.0), *c1, s, true);
+        runPipeline(formantVoice(220.0, 3.0), *c2, s, true);
+        const auto e1 = c1->measurements().envDb, e2 = c2->measurements().envDb;
         double d = 0.0;
         for (size_t i = 0; i < e1.size() && i < e2.size(); ++i) d = std::max(d, std::abs(e1[i] - e2[i]));
         checkTrue(d < 1e-9, "envelope is deterministic");
@@ -307,9 +317,9 @@ int main() {
     std::printf("\n[G4] correction effectiveness\n");
     {
         RestoreSettings s; s.learn = true;
-        RestoreCore core;
-        std::vector<float> fixed = runPipeline(bad, core, s);
-        const auto st = core.state();
+        auto core = makeCore();
+        std::vector<float> fixed = runPipeline(bad, *core, s);
+        const auto st = core->state();
 
         const double rBad = rmsBand(bad, 2900.0, 3400.0);
         const double rFix = rmsBand(fixed, 2900.0, 3400.0);
@@ -333,8 +343,8 @@ int main() {
     {
         RestoreSettings s; s.learn = true;
         auto planned = [&](const std::vector<float>& in) {
-            RestoreCore c; runPipeline(in, c, s, true);
-            const auto st = c.state();
+            auto c = makeCore(); runPipeline(in, *c, s, true);
+            const auto st = c->state();
             double t = 0.0;
             for (const auto& b : st.corrective) t += std::abs(b.gainDb);
             for (const auto& b : st.resonance) t += std::abs(b.gainDb);
@@ -350,7 +360,7 @@ int main() {
             if (pr.second >= prevExcess) falling = false;
             prevExcess = pr.second;
             maxProposal = std::max(maxProposal, pr.first);
-            RestoreCore c; x = runPipeline(x, c, s);
+            auto c = makeCore(); x = runPipeline(x, *c, s);
         }
         // the correction is capped, so a broken take converges over passes rather
         // than being flattened in one go - that is the safe behaviour
@@ -364,9 +374,9 @@ int main() {
     std::printf("\n[G6] determinism\n");
     {
         RestoreSettings s; s.learn = true;
-        RestoreCore a, b;
-        auto o1 = runPipeline(bad, a, s);
-        auto o2 = runPipeline(bad, b, s);
+        auto a = makeCore(), b = makeCore();
+        auto o1 = runPipeline(bad, *a, s);
+        auto o2 = runPipeline(bad, *b, s);
         double diff = 0.0;
         for (size_t i = 0; i < o1.size(); ++i) diff = std::max(diff, std::abs(double(o1[i] - o2[i])));
         check(diff < 1e-6, "two runs produce identical output", diff, 0.0, 1e-6);
@@ -376,17 +386,17 @@ int main() {
     std::printf("\n[G7] numerical safety\n");
     {
         RestoreSettings s; s.learn = true;
-        RestoreCore core;
+        auto core = makeCore();
         std::vector<float> silent(2 * int(sr), 0.f);
-        auto out = runPipeline(silent, core, s);
+        auto out = runPipeline(silent, *core, s);
         bool finite = true;
         for (auto v : out) if (!std::isfinite(v)) finite = false;
         checkTrue(finite, "silence in -> finite output");
 
         std::vector<float> loud(int(2 * sr));
         for (size_t i = 0; i < loud.size(); ++i) loud[i] = float(std::sin(2 * kPi * 1000.0 * i / sr));
-        RestoreCore c2;
-        auto o2 = runPipeline(loud, c2, s);
+        auto c2 = makeCore();
+        auto o2 = runPipeline(loud, *c2, s);
         double pk = 0; for (auto v : o2) pk = std::max(pk, std::abs(double(v)));
         check(pk <= 1.3, "0 dBFS sine does not blow up", pk, 1.0, 0.3);
     }
