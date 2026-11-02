@@ -1,0 +1,55 @@
+name: build-windows
+
+# Builds the VST3 on a real Windows machine and wraps it in the installer, so the
+# .exe comes out of CI instead of needing Visual Studio on a laptop.
+on:
+  push:
+    branches: ['arena/**', 'main']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # JUCE 8.0.4 is ~250 MB to fetch; caching makes a re-run start at the
+      # compile step instead of the download.
+      - name: Cache JUCE
+        uses: actions/cache@v4
+        with:
+          path: plugin/build/_deps/juce-src
+          key: juce-8.0.4-windows
+
+      - name: Configure
+        run: cmake -B plugin/build -S plugin -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build plugin/build --config Release --parallel
+
+      # The installer must never package a build whose DSP gates fail.
+      - name: Acceptance gates
+        run: |
+          $t = Get-ChildItem plugin/build -Recurse -Filter aeq_tests.exe | Select-Object -First 1
+          if (-not $t) { throw "aeq_tests.exe was not built" }
+          Write-Host "running $($t.FullName)"
+          & $t.FullName
+          if ($LASTEXITCODE -ne 0) { throw "the 18 gates did not pass" }
+
+      - name: Inno Setup
+        run: choco install innosetup --yes --no-progress
+
+      - name: Installer
+        run: ./installer/build_installer.ps1 -SkipBuild -Version 1.0.0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AEQ_Restore_Setup
+          path: |
+            dist/*.exe
+            dist/*.sha256
+          if-no-files-found: error
