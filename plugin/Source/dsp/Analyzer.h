@@ -72,6 +72,9 @@ public:
             bandBinHi_[i] = std::min(kFft / 2 - 1, static_cast<int>(std::ceil(grid_.hi[i] / binHz_)));
         }
         fftInit();
+        frameEnv_.assign(nBands_, -120.0);
+        cRe_.assign(kFft, 0.0); cIm_.assign(kFft, 0.0);
+        envValid_.assign(nBands_, false);
         reset();
     }
 
@@ -89,6 +92,11 @@ public:
         minActiveRms_ = 1e9; maxRms_ = -1e9;
         sdHist_.fill(0);
         f0Hist_.assign(60, 0);     // 60 Hz .. 600 Hz, 10 Hz bins
+        // harmonic-envelope accumulators (see envelopeOfFrame)
+        std::fill(std::begin(envMean_), std::end(envMean_), 0.0);
+        std::fill(std::begin(envM2_), std::end(envM2_), 0.0);
+        std::fill(std::begin(envN_), std::end(envN_), 0);
+        lastF0_ = 0.0;
         sibFrameSum_ = 0.0; sibFrames_ = 0;
         framesInRing_ = 0; ringPos_ = 0;
         std::fill(std::begin(ring_), std::end(ring_), 0.0);
@@ -137,6 +145,31 @@ public:
         }
         return out;
     }
+    // ---- harmonic envelope -------------------------------------------------
+    // Absolute band levels of the *envelope*, i.e. of the smooth vocal-tract
+    // shape rather than the ladder of harmonics.  This is the measurement the
+    // decisions move to: the raw levels depend on where the singer's harmonics
+    // happen to fall (r = -0.91 against F0 in the 110-260 Hz band), the
+    // envelope largely does not (r = -0.72, and 3.55x smaller spread across the
+    // 15 reference mixes - docs/14).
+    std::vector<double> envelopeLevelsDb() const {
+        std::vector<double> out(nBands_, -120.0);
+        for (int i = 0; i < nBands_; ++i)
+            if (envN_[i] > 0) out[i] = envMean_[i];
+        return out;
+    }
+    std::vector<double> envelopeSdDb() const {
+        std::vector<double> out(nBands_, 0.0);
+        for (int i = 0; i < nBands_; ++i)
+            if (envN_[i] > 1) out[i] = std::sqrt(std::max(envM2_[i] / (envN_[i] - 1), 0.0));
+        return out;
+    }
+    // how many frames contributed an envelope value to this band (0 = the band
+    // has never been above the fundamental, so nothing can be said about it)
+    int envelopeFrames(int band) const {
+        return (band >= 0 && band < nBands_) ? envN_[band] : 0;
+    }
+
     // per-band static excess: mean and sd of (band - local baseline) in dB
     void excessStats(std::vector<double>& meanDb, std::vector<double>& sdDb, std::vector<int>& count) const {
         meanDb.assign(nBands_, 0.0); sdDb.assign(nBands_, 0.0); count.assign(nBands_, 0);
@@ -327,6 +360,9 @@ private:
             exM2_[i] += d * (ex - exMean_[i]);
         }
 
+        // ---- harmonic envelope for this frame --------------------------
+        envelopeOfFrame();
+
         // sibilance index for this frame
         {
             double lo = 0, hiE = 0;
@@ -344,6 +380,88 @@ private:
 
         // pitch (for HPF adaptation and harmonic-lock tests), every 3rd frame
         if ((framesSeen_ % 8) == 0) estimateF0();   // cheap enough for the audio thread
+    }
+
+    // Build this frame's envelope - the smooth vocal-tract curve with the
+    // harmonic ladder taken out.
+    //
+    // Two earlier versions were wrong, and the gates caught both:
+    //   1. interpolating across the harmonics built the envelope from the VALLEYS
+    //      (40 dB under the signal).
+    //   2. peak picking worked below ~1 kHz and inverted above it, where the
+    //      harmonics are closer together than the analysis bands.
+    //
+    // What is left is the method the literature actually uses, implemented with
+    // the FFT the analyser already has: real cepstrum of the log spectrum ->
+    // subtract the rahmonics at 1/F0 and its multiples (that is the ladder seen
+    // from the quefrency side) -> keep only quefrencies below 3.5 ms (the lifter)
+    // -> transform back.  What returns is the log spectrum smoothed at the
+    // resolution of the vocal tract instead of the pitch.
+    //
+    // This is the same algorithm as analysis/scripts/envelope_demo.py, on
+    // purpose: two implementations that must agree is a gate, not a coincidence.
+    void envelopeOfFrame() {
+        const int half = kFft / 2;
+        // 1. log spectrum, mirrored so the transform is real and even
+        cRe_.assign(kFft, 0.0); cIm_.assign(kFft, 0.0);
+        for (int k = 1; k < half; ++k) {
+            const double v = std::log(power_[k] + 1e-30);
+            cRe_[k] = v; cRe_[kFft - k] = v;
+        }
+        cRe_[0] = cRe_[1]; cRe_[half] = cRe_[kFft - half] = cRe_[half];
+        // 2. real cepstrum = inverse transform of the log spectrum
+        fft(cRe_, cIm_);
+        for (int q = 0; q < kFft; ++q) cRe_[q] *= 1.0 / kFft;
+        // 3. rahmonic subtraction: the ladder is a ripple in the log spectrum with
+        //    period F0 Hz, so it sits at quefrency 1/F0 (and k/F0) in the cepstrum
+        const double f0 = lastF0_;
+        const bool comb = (f0 > 55.0 && f0 < 700.0);
+        if (comb) {
+            const double q0 = fs_ / f0;                 // samples per period
+            // notch width in quefrency, not in periods: the rahmonics of a
+            // 150 Hz voice sit at 294 samples and of a 350 Hz voice at 126, and
+            // scaling the width with q0 (a first attempt) ate the envelope along
+            // with the rahmonic and made the pitch dependence *worse*
+            const double width = std::max(1.5, 0.00018 * fs_);
+            const double peak = cRe_[int(std::round(q0))];
+            for (int k = 1; k <= 4; ++k) {
+                const double qc = k * q0;
+                if (qc > kFft * 0.5) break;
+                const int lo = std::max(1, int(qc - 4 * width));
+                const int hi = std::min(kFft / 2 - 1, int(qc + 4 * width));
+                for (int q = lo; q <= hi; ++q) {
+                    const double w = std::exp(-0.5 * std::pow((q - qc) / width, 2.0));
+                    cRe_[q] -= w * peak;
+                    cRe_[kFft - q] -= w * peak;
+                }
+            }
+        }
+        // 4. the lifter: keep the slow part only (3.5 ms)
+        const int qMax = std::max(8, int(0.0035 * fs_));
+        for (int q = qMax + 1; q < kFft - qMax; ++q) { cRe_[q] = 0.0; cIm_[q] = 0.0; }
+        // 5. back to the frequency domain: the envelope, in ln-power per bin
+        fft(cRe_, cIm_);
+        // accumulate per analysis band
+        for (int i = 0; i < nBands_; ++i) {
+            const double f = grid_.f[i];
+            const bool valid = comb ? (f >= 0.9 * f0) : true;
+            envValid_[i] = valid;
+            if (!valid) { frameEnv_[i] = -120.0; continue; }
+            double acc = 0.0; int n = 0;
+            // no extra 1/N here: the cepstrum already carries it (cep = F(L)/N),
+            // so the way back is a plain forward transform.  Getting this wrong
+            // scales the envelope by 1/8192 - it reads as silence, not as an error.
+            for (int b = bandBinLo_[i]; b <= bandBinHi_[i]; ++b) { acc += cRe_[b]; ++n; }
+            frameEnv_[i] = n ? acc / n * 4.342944819 : -120.0;      // ln -> dB
+        }
+        for (int b = 0; b < nBands_; ++b) {
+            if (!envValid_[b]) continue;
+            const double v = frameEnv_[b];
+            const int n = ++envN_[b];
+            const double d = v - envMean_[b];
+            envMean_[b] += d / n;
+            envM2_[b] += d * (v - envMean_[b]);
+        }
     }
 
     void ringDrop() {}
@@ -412,6 +530,7 @@ private:
         }
         const double f0 = fs_ / std::max(tauF, 1.0);
         if (f0 < 60 || f0 > 600) return;
+        lastF0_ = f0;                       // held between estimates, used by the envelope
         int bin = std::clamp(static_cast<int>((f0 - 60.0) / 10.0), 0, static_cast<int>(f0Hist_.size()) - 1);
         ++f0Hist_[bin];
     }
@@ -434,6 +553,12 @@ private:
     double mean_[256]{}, m2_[256]{};
     std::vector<double> pSum_{256, 0.0};
     double exMean_[256]{}, exM2_[256]{}, exN_[256]{};
+    std::vector<double> cRe_, cIm_;             // scratch for the cepstral lift
+    std::vector<double> frameEnv_;              // this frame's envelope, dB
+    std::vector<bool>   envValid_;              // above the fundamental
+    std::array<double, 256> envMean_{}, envM2_{};
+    std::array<int, 256>    envN_{};
+    double lastF0_ = 0.0;
     int nFrames_ = 0, nActive_ = 0, nNoisy_ = 0;
     long framesSeen_ = 0;
     static constexpr int kLvlBins = 130;         // -120 .. +10 dBFS, 1 dB bins

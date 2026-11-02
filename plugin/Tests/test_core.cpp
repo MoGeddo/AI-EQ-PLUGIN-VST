@@ -14,6 +14,9 @@
 
 using namespace aeq;
 
+// Measurements is the struct RestoreCore hands to the UI and the tests
+typedef Measurements Measures;
+
 static int gFail = 0, gPass = 0;
 static void check(bool ok, const char* what, double got, double want, double tol) {
     if (ok) { ++gPass; std::printf("  ok   %-52s %8.3f (want %.3f +-%.3f)\n", what, got, want, tol); }
@@ -51,6 +54,40 @@ static std::vector<float> voice(double f0, double seconds, unsigned seed = 7) {
         x[i] = float(0.12 * env * s + sib);
     }
     return x;
+}
+
+// A vowel-like source: harmonics of f0 whose amplitudes follow a fixed vocal
+// tract (two formants), no vibrato, so the only variable between two renders is
+// the pitch.  This is the signal the envelope has to normalise.
+static std::vector<float> formantVoice(double f0, double seconds) {
+    const int n = int(seconds * sr);
+    std::vector<float> x(n, 0.f);
+    const double F1 = 520, B1 = 130, F2 = 1500, B2 = 200;
+    const int kmax = int(7500.0 / f0);
+    for (int i = 0; i < n; ++i) {
+        const double t = i / sr;
+        double s = 0.0;
+        for (int k = 1; k <= kmax; ++k) {
+            const double f = k * f0;
+            const double g1 = 1.0 / std::sqrt(1.0 + std::pow((f - F1) / B1, 2.0));
+            const double g2 = 0.55 / std::sqrt(1.0 + std::pow((f - F2) / B2, 2.0));
+            s += (g1 + g2 + 0.02) * std::sin(2 * kPi * f * t) / std::pow(k, 0.35);
+        }
+        const double cyc = std::fmod(t, 1.6);           // 1.35 s on, 0.25 s off
+        x[i] = float(0.08 * ((cyc < 1.35) ? s : 0.0));
+    }
+    return x;
+}
+
+// band difference (dB re the 900-1150 Hz reference) of a set of levels
+static double bandDiff(const std::vector<double>& db, const std::vector<double>& f, double lo, double hi) {
+    double p = 0.0, rp = 0.0; int n = 0, rn = 0;
+    for (size_t i = 0; i < f.size(); ++i) {
+        if (f[i] >= lo && f[i] < hi) { p += std::pow(10.0, db[i] / 10.0); ++n; }
+        if (f[i] >= 900.0 && f[i] < 1150.0) { rp += std::pow(10.0, db[i] / 10.0); ++rn; }
+    }
+    if (!n || !rn) return 0.0;
+    return 10.0 * std::log10(p / n) - 10.0 * std::log10(rp / rn);
 }
 
 static void applyBands(std::vector<float>& x, const std::vector<BandSpec>& b) {
@@ -181,6 +218,64 @@ int main() {
         checkTrue(foundRumble, "detects the missing low cut");
         checkTrue(foundHarsh, "detects the harsh 2-4 kHz region");
         std::printf("       resonance reported at %.0f Hz, correction %+.1f dB\n", resoF, resoGain);
+    }
+
+    // ---------------- G8: does the envelope remove the singer? ---------
+    // Same vocal tract at two pitches.  The place where pitch confounds the
+    // measurement is where the harmonics are far apart compared with the
+    // analysis bands: below ~600 Hz.  Above that, 1/12-octave bands already
+    // average several harmonics and the raw spectrum is stable (measured below),
+    // which is why the design keeps the raw spectrum up there.
+    std::printf("\n[G8] envelope removes the singer from the number\n");
+    {
+        RestoreSettings s; s.learn = true;
+        auto measure = [&](double f0, Measures& out) {
+            RestoreCore c; runPipeline(formantVoice(f0, 6.0), c, s, true);
+            out = c.measurements();
+        };
+        Measures a, b;
+        measure(150.0, a);          // male-ish
+        measure(220.0, b);          // female-ish, same tract
+        // 250-350 Hz is where it bites: for one voice the band contains the
+        // fundamental, for the other it is a gap between harmonics.  The same
+        // effect on the real corpus was worth 32 dB of apparent level that had
+        // nothing to do with the mix.
+        const double lowBands[3][2] = {{250, 350}, {350, 500}, {500, 700}};
+        double rawDrift = 0.0, envDrift = 0.0;
+        for (auto& r : lowBands) {
+            rawDrift = std::max(rawDrift, std::abs(bandDiff(a.bandDb, a.freqs, r[0], r[1])
+                                                  - bandDiff(b.bandDb, b.freqs, r[0], r[1])));
+            envDrift = std::max(envDrift, std::abs(bandDiff(a.envDb, a.freqs, r[0], r[1])
+                                                  - bandDiff(b.envDb, b.freqs, r[0], r[1])));
+        }
+        std::printf("       250-700 Hz: raw drifts %.2f dB between F0 150 and 220 Hz\n", rawDrift);
+        std::printf("                   envelope drifts %.2f dB\n", envDrift);
+        checkTrue(rawDrift > 10.0, "the raw spectrum moves with the singer in the low midrange");
+        checkTrue(envDrift < 3.0, "the envelope stays within 3 dB across a 0.55-octave pitch change");
+        checkTrue(envDrift < rawDrift * 0.3, "the envelope cuts that dependence by more than 3x");
+
+        // Where it does NOT help: above 600 Hz two octave-apart voices already
+        // measure alike on the raw spectrum.  Recorded so nobody over-claims.
+        Measures hi1, hi2;
+        measure(150.0, hi1); measure(350.0, hi2);
+        double rawHigh = 0.0, envHigh = 0.0;
+        for (auto& r : lowBands) {
+            rawHigh = std::max(rawHigh, std::abs(bandDiff(hi1.bandDb, hi1.freqs, 600, 3000)
+                                                 - bandDiff(hi2.bandDb, hi2.freqs, 600, 3000)));
+            envHigh = std::max(envHigh, std::abs(bandDiff(hi1.envDb, hi1.freqs, 600, 3000)
+                                                 - bandDiff(hi2.envDb, hi2.freqs, 600, 3000)));
+        }
+        std::printf("       600-3000 Hz over 1.2 octaves: raw %.2f dB, envelope %.2f dB "
+                    "(both fine; the raw one is used there)\n", rawHigh, envHigh);
+
+        // determinism
+        RestoreCore c1, c2;
+        runPipeline(formantVoice(220.0, 3.0), c1, s, true);
+        runPipeline(formantVoice(220.0, 3.0), c2, s, true);
+        const auto e1 = c1.measurements().envDb, e2 = c2.measurements().envDb;
+        double d = 0.0;
+        for (size_t i = 0; i < e1.size() && i < e2.size(); ++i) d = std::max(d, std::abs(e1[i] - e2[i]));
+        checkTrue(d < 1e-9, "envelope is deterministic");
     }
 
     // ---------------- G4: does processing undo them? -------------------

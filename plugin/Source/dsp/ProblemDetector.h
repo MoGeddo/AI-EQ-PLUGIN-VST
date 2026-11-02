@@ -32,6 +32,10 @@ struct Measurements {
     std::vector<double> bandSdDb;
     std::vector<double> excessMean;
     std::vector<double> excessSd;
+    // the same levels measured on the harmonic envelope: the shape of the vocal
+    // tract with the harmonic ladder removed (Analyzer::envelopeLevelsDb)
+    std::vector<double> envDb;
+    std::vector<double> envSdDb;
     std::vector<double> freqs;
     double sibMed = -60, sibP90 = -60;
     double medianF0 = 0, dynamicRange = 0, peakDbfs = 0;

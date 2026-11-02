@@ -16,3 +16,4 @@ installer/staging/
 dist/
 installer/__pycache__/
 installer/_sizes_preview.png
+build/

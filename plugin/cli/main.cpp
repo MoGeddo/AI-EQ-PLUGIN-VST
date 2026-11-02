@@ -103,6 +103,24 @@ static void printReport(aeq::RestoreCore& core) {
     std::printf("median F0        : %.0f Hz\n", st.measuredF0);
     std::printf("peak             : %.1f dBFS   dynamic range %.1f dB\n", m.peakDbfs, m.dynamicRange);
     std::printf("sibilance median : %.1f dB   p90 %.1f dB\n", m.sibMed, m.sibP90);
+    // The envelope is printed, not just used: any claim about it can then be
+    // rechecked on the user's own material with this binary.
+    if (!m.envDb.empty()) {
+        const double refRaw = levelBetween(m, 900.0, 1150.0);
+        double p = 0.0; int n = 0;
+        for (size_t i = 0; i < m.freqs.size(); ++i)
+            if (m.freqs[i] >= 900.0 && m.freqs[i] < 1150.0) { p += std::pow(10.0, m.envDb[i] / 10.0); ++n; }
+        const double refEnv = n ? 10.0 * std::log10(p / n) : -120.0;
+        std::printf("\n--- harmonic envelope vs raw, dB re their own 1 kHz ---\n");
+        for (size_t i = 0; i < m.freqs.size(); ++i) {
+            const double f = m.freqs[i];
+            if (f < 195.0 || f > 1650.0) continue;
+            std::printf("  ENV  %6.0f Hz   envelope %+7.2f   raw %+7.2f   gap %+6.2f\n",
+                        f, m.envDb[i] - refEnv, m.bandDb[i] - refRaw,
+                        (m.envDb[i] - refEnv) - (m.bandDb[i] - refRaw));
+        }
+    }
+
     std::printf("\n--- problems found (%zu) ---\n", st.problems.size());
     for (const auto& p : st.problems) {
         const char* act = "warn";

@@ -149,6 +149,8 @@ public:
         m.bandDb = analyzer_.bandLevelsDb();
         m.bandSdDb = analyzer_.bandSdDb();
         analyzer_.excessStats(m.excessMean, m.excessSd, tmpCount_);
+        m.envDb = analyzer_.envelopeLevelsDb();
+        m.envSdDb = analyzer_.envelopeSdDb();
         analyzer_.sibilance(m.sibMed, m.sibP90);
         m.medianF0 = analyzer_.medianF0();
         m.dynamicRange = analyzer_.dynamicRangeDb();
