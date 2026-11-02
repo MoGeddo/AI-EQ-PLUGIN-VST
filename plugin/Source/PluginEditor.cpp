@@ -26,6 +26,7 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor(AeqAudioProcessor& p)
         {axis1_,  "axis_warm_presence", "Warm / Presence"},
         {axis2_,  "axis_body_air",      "Body / Air"},
         {air_,    "air_db",             "Air trim"},
+        {settle_, "settle_s",           "Analyze first"},
     };
     for (auto& k : knobs) {
         addAndMakeVisible(k.sl);
@@ -40,6 +41,7 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor(AeqAudioProcessor& p)
     aA1_     = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(s, "axis_warm_presence", axis1_);
     aA2_     = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(s, "axis_body_air", axis2_);
     aAir_    = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(s, "air_db", air_);
+    aSettle_ = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(s, "settle_s", settle_);
 
     addAndMakeVisible(mode_);
     mode_.addItemList({"Restore (fix problems)", "Match (corpus tone)"}, 1);
@@ -69,8 +71,9 @@ void AeqAudioProcessorEditor::resized() {
     amount_.setBounds(l1.removeFromLeft(l1.getWidth() / 3).reduced(2));
     hpf_.setBounds(l1.removeFromLeft(l1.getWidth() / 2).reduced(2));
     deEss_.setBounds(l1.reduced(2));
-    axis1_.setBounds(l2.removeFromLeft(l2.getWidth() / 2).reduced(2));
-    axis2_.setBounds(l2.reduced(2));
+    axis1_.setBounds(l2.removeFromLeft(l2.getWidth() / 3).reduced(2));
+    axis2_.setBounds(l2.removeFromLeft(l2.getWidth() / 2).reduced(2));
+    settle_.setBounds(l2.reduced(2));
     air_.setBounds(l3.removeFromLeft(l3.getWidth() / 2).reduced(2));
     status_.setBounds(l3.reduced(2));
 }
@@ -85,6 +88,8 @@ void AeqAudioProcessorEditor::timerCallback() {
           << (int)lastState_.hpfHz << " Hz   |   " << lastState_.corrective.size()
           << " bands   |   problems " << lastState_.problems.size()
           << "   |   fixed " << String(lastState_.fixBeforeDb - lastState_.fixAfterDb, 2) << " dB RMS";
+        if (!lastState_.settled)
+            s << "   |   ANALYSING " << String(lastState_.analyzedSeconds, 1) << " s listened";
         status_.setText(s, juce::dontSendNotification);
     } else {
         status_.setText("Play the take from the beginning - I learn as it plays", juce::dontSendNotification);

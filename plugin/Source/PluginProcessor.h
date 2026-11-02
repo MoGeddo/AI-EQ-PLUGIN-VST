@@ -46,9 +46,10 @@ public:
 
 private:
     void timerCallback() override;
+    void settingsFromParams();
 
     aeq::RestoreCore core_;
-    aeq::RestoreSettings settings_;
+    aeq::RestoreSettings settings_, lastPushed_;
     juce::AudioProcessorValueTreeState apvts_;
     std::atomic<bool> learning_{true}, resetRequested_{false};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AeqAudioProcessor)

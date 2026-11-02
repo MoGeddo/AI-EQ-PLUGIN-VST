@@ -40,6 +40,13 @@ struct RestoreSettings {
     // taste axes from the corpus study: warmth <-> presence, body <-> air
     double axis1 = 0.0;              // -1 .. +1
     double axis2 = 0.0;              // -1 .. +1
+
+    // How much sung audio to collect before the correction is allowed into the
+    // signal path.  0 = apply immediately (the CLI and the gates want this).
+    // The plugin sets ~30 s because a curve solved from four seconds of a verse
+    // is not a curve for the performance - and the first thing a mixer hears
+    // must be the answer, not a guess that keeps changing.
+    double settleSeconds = 0.0;
 };
 
 struct RestoreState {
@@ -52,6 +59,8 @@ struct RestoreState {
     double distBeforeDb = 0.0, distAfterDb = 0.0;
     double fixBeforeDb = 0.0, fixAfterDb = 0.0;   // over the regions we acted on
     double measuredF0 = 0.0;
+    double analyzedSeconds = 0.0;   // sung audio analysed so far
+    bool   settled = false;         // enough audio to trust the numbers
     bool   valid = false;
 };
 
@@ -232,6 +241,8 @@ public:
             state_.fixBeforeDb = fixBefore;
             state_.fixAfterDb = fixAfter;
             state_.measuredF0 = m.medianF0;
+            state_.analyzedSeconds = analyzer_.activeSeconds();
+            state_.settled = state_.analyzedSeconds >= settings_.settleSeconds;
             state_.valid = true;
             measurements_ = m;
         }
@@ -245,6 +256,7 @@ public:
             pendingDeEssOn_ = deGr > 0.05;
             pendingDeThr_ = deThr;
             pendingDeGr_ = deGr;
+            pendingSettled_ = state_.settled;
             ++pendingVersion_;
         }
         pendingSeen_.store(false);
@@ -255,11 +267,17 @@ public:
         if (pendingSeen_.load(std::memory_order_acquire)) return;
         std::unique_lock<std::mutex> lk(pendingMx_, std::try_to_lock);
         if (!lk.owns_lock()) return;                 // solver is writing; try again next block
-        eqLeft_.setBands(pendingBands_, fs_);
-        eqRight_.setBands(pendingBands_, fs_);
-        hpf_.set(pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
-        deEsser_.setEnabled(pendingDeEssOn_);
-        deEsser_.setParameters(pendingDeThr_, pendingDeGr_);
+        // Analyse-then-apply: until enough of the performance has been heard,
+        // only the manual taste moves reach the signal path.  The corrective
+        // curve would otherwise be a different filter every few seconds during
+        // the first pass, which is both audible and dishonest.
+        const bool settled = pendingSettled_ || settings_.settleSeconds <= 0.0;
+        std::vector<BandSpec> bands = settled ? pendingBands_ : manualBands();
+        eqLeft_.setBands(bands, fs_);
+        eqRight_.setBands(bands, fs_);
+        hpf_.set(settled && pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
+        deEsser_.setEnabled(settled && pendingDeEssOn_);
+        if (settled) deEsser_.setParameters(pendingDeThr_, pendingDeGr_);
         pendingSeen_.store(true, std::memory_order_release);
     }
 
@@ -284,9 +302,9 @@ public:
         return activeBandsLocked();
     }
 
-    std::vector<BandSpec> activeBandsLocked() const {
-        std::vector<BandSpec> out = state_.corrective;
-        out.insert(out.end(), state_.resonance.begin(), state_.resonance.end());
+    // the bands the *user* asked for, independent of any analysis (audio thread)
+    std::vector<BandSpec> manualBands() const {
+        std::vector<BandSpec> out;
         if (std::abs(settings_.airTrimDb) > 0.01)
             out.push_back({BandType::HighShelf, 9000.0, 0.7, settings_.airTrimDb});
         out.push_back({BandType::Peak, 250.0, 0.9, 2.5 * settings_.axis1});   // PC1 warm
@@ -294,6 +312,14 @@ public:
         out.push_back({BandType::Peak, 3500.0, 0.8, 1.2 * settings_.axis1});  // PC1 presence
         out.push_back({BandType::Peak, 200.0, 1.0, 2.0 * settings_.axis2});   // PC2 body
         out.push_back({BandType::Peak, 2200.0, 1.2, 1.5 * settings_.axis2});
+        return out;
+    }
+
+    std::vector<BandSpec> activeBandsLocked() const {
+        std::vector<BandSpec> out = state_.corrective;
+        out.insert(out.end(), state_.resonance.begin(), state_.resonance.end());
+        const auto man = manualBands();
+        out.insert(out.end(), man.begin(), man.end());
         return out;
     }
 
@@ -349,6 +375,7 @@ private:
     std::vector<BandSpec> pendingBands_;
     double pendingHpf_ = 70.0, pendingDeThr_ = -30.0, pendingDeGr_ = 0.0;
     bool pendingDeEssOn_ = false;
+    bool pendingSettled_ = true;
     std::atomic<bool> pendingSeen_{true};
     std::atomic<long> pendingVersion_{0};
     RestoreState state_;

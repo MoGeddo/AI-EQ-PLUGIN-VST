@@ -5,13 +5,20 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "")
 
-# JUCE 8 - fetched at configure time, no vendoring needed.
-include(FetchContent)
-FetchContent_Declare(JUCE
-    GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG        8.0.4
-    GIT_SHALLOW    TRUE)
-FetchContent_MakeAvailable(JUCE)
+# JUCE 8 - fetched at configure time, no vendoring needed.  If -DJUCE_PATH=<dir>
+# points at a JUCE checkout on disk it is used instead, which is what an offline
+# or repeatable build needs (the first FetchContent run needs github access).
+if(JUCE_PATH)
+    message(STATUS "AEQ: using JUCE from ${JUCE_PATH}")
+    add_subdirectory(${JUCE_PATH} ${CMAKE_BINARY_DIR}/JUCE EXCLUDE_FROM_ALL)
+else()
+    include(FetchContent)
+    FetchContent_Declare(JUCE
+        GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+        GIT_TAG        8.0.4
+        GIT_SHALLOW    TRUE)
+    FetchContent_MakeAvailable(JUCE)
+endif()
 
 juce_add_plugin(AEQRestore
     COMPANY_NAME              "AEQ"

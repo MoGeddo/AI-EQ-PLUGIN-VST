@@ -1,0 +1,27 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 22, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows-x64",
+      "displayName": "Windows x64 (Visual Studio 2022)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build"
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux (no VST3 signing, for CI only)",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-linux",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-release", "configurePreset": "windows-x64", "configuration": "Release", "jobs": 0 },
+    { "name": "linux-release",   "configurePreset": "linux-debug", "configuration": "Release" }
+  ],
+  "testPresets": [
+    { "name": "gates", "configurePreset": "windows-x64", "configuration": "Release", "output": { "outputOnFailure": true } }
+  ]
+}

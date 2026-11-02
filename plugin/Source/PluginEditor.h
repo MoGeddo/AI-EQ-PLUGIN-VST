@@ -21,12 +21,12 @@ private:
 
     AeqAudioProcessor& proc_;
     juce::TextButton learnBtn_{"Learn"}, resetBtn_{"Reset"};
-    juce::Slider amount_, hpf_, deEss_, axis1_, axis2_, air_;
+    juce::Slider amount_, hpf_, deEss_, axis1_, axis2_, air_, settle_;
     juce::ComboBox mode_;
     juce::ToggleButton bypass_{"Bypass"};
     juce::Label status_;
 
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> aAmount_, aHpf_, aDeEss_, aA1_, aA2_, aAir_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> aAmount_, aHpf_, aDeEss_, aA1_, aA2_, aAir_, aSettle_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> aMode_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> aBypass_;
 

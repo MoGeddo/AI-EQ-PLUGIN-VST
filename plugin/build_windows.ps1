@@ -1,9 +1,104 @@
-# Builds the VST3 on Windows (Visual Studio 2022 + CMake 3.22+).
-#   .\build_windows.ps1
-# Output: build\AEQRestore_artefacts\Release\VST3\AEQ Restore.vst3
+# build_windows.ps1 - builds AEQ Restore as a VST3 (and a standalone) on Windows.
+#
+#   .\build_windows.ps1              build + run the acceptance gates
+#   .\build_windows.ps1 -Install     ... and copy the plugin into the VST3 folder
+#   .\build_windows.ps1 -Clean       wipe the build folder first
+#
+# Needs: Visual Studio 2022 (Desktop development with C++), CMake 3.22+, Git.
+# The first run downloads JUCE 8.0.4 (~250 MB) from github.com - that is the only
+# step that needs the network.  Pass -JucePath <dir> to use a JUCE checkout
+# instead and build offline.
+param(
+    [switch]$Install,
+    [switch]$Clean,
+    [string]$JucePath = ""
+)
 $ErrorActionPreference = "Stop"
-cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release --parallel
+$root = $PSScriptRoot
+
+function Fail($msg) { Write-Host ""; Write-Host "FAILED: $msg" -ForegroundColor Red; exit 1 }
+
+# ---------------------------------------------------------------- prerequisites
+Write-Host "== checking prerequisites ==" -ForegroundColor Cyan
+
+$cmake = Get-Command cmake -ErrorAction SilentlyContinue
+if (-not $cmake) { Fail "cmake not found. Install CMake 3.22+ (winget install Kitware.CMake) and reopen the terminal." }
+$cmakeVersion = (& cmake --version | Select-Object -First 1)
+if ($cmakeVersion -notmatch "(\d+)\.(\d+)") { Fail "cannot read the cmake version" }
+if ([int]$Matches[1] -lt 3 -or ([int]$Matches[1] -eq 3 -and [int]$Matches[2] -lt 22)) {
+    Fail "cmake 3.22+ required, found $cmakeVersion"
+}
+Write-Host "   $cmakeVersion"
+
+if (-not $JucePath) {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Fail "git not found - JUCE is fetched with git. Install Git, or pass -JucePath <a JUCE 8 checkout>."
+    }
+    Write-Host "   git ok (JUCE will be fetched on the first configure)"
+} else {
+    if (-not (Test-Path (Join-Path $JucePath "CMakeLists.txt"))) { Fail "-JucePath does not point at a JUCE checkout" }
+    Write-Host "   using JUCE at $JucePath"
+}
+
+# vswhere ships with every Visual Studio installer / Build Tools
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+if (Test-Path $vswhere) {
+    $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property displayName
+    if (-not $vs) { Fail "Visual Studio found but not the C++ workload. Re-run the installer and tick 'Desktop development with C++'." }
+    Write-Host "   $vs"
+} else {
+    Write-Host "   vswhere not found - assuming the C++ toolchain is on PATH (Build Tools are fine too)" -ForegroundColor Yellow
+}
+
+# --------------------------------------------------------------------- configure
+$buildDir = Join-Path $root "build"
+if ($Clean -and (Test-Path $buildDir)) {
+    Write-Host "== cleaning $buildDir ==" -ForegroundColor Cyan
+    Remove-Item -Recurse -Force $buildDir
+}
+
+Write-Host "== configure ==" -ForegroundColor Cyan
+$cfgArgs = @("-B", $buildDir, "-S", $root, "-G", "Visual Studio 17 2022", "-A", "x64")
+if ($JucePath) { $cfgArgs += "-DJUCE_PATH=$JucePath" }
+& cmake @cfgArgs
+if ($LASTEXITCODE -ne 0) { Fail "configure failed (scroll up: the usual causes are no network for the JUCE fetch, or a missing C++ workload)" }
+
+# ------------------------------------------------------------------------- build
+Write-Host "== build (Release) ==" -ForegroundColor Cyan
+& cmake --build $buildDir --config Release --parallel
+if ($LASTEXITCODE -ne 0) { Fail "build failed" }
+
+# ------------------------------------------------------------------- gates first
+Write-Host "== acceptance gates ==" -ForegroundColor Cyan
+$tests = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_tests.exe" | Select-Object -First 1
+if (-not $tests) { Fail "aeq_tests.exe was not built" }
+& $tests.FullName
+if ($LASTEXITCODE -ne 0) { Fail "the DSP gates did not pass - do not load this build in a DAW" }
+
+# ----------------------------------------------------------------------- output
+$vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.vst3" | Select-Object -First 1
+$exe  = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.exe" | Select-Object -First 1
+
 Write-Host ""
-Write-Host "Built. Copy the .vst3 folder to C:\Program Files\Common Files\VST3"
-Write-Host "Smoke test first:  .\build\Release\aeq_tests.exe"
+if ($vst3) {
+    Write-Host "VST3      : $($vst3.FullName)" -ForegroundColor Green
+} else {
+    Fail "no .vst3 was produced - check the build log for the VST3 target"
+}
+if ($exe) { Write-Host "Standalone: $($exe.FullName)" -ForegroundColor Green }
+
+if ($Install) {
+    $dest = Join-Path $env:ProgramFiles "Common Files\VST3"
+    if (-not (Test-Path $dest)) { Fail "VST3 folder not found: $dest" }
+    Write-Host "== installing to $dest ==" -ForegroundColor Cyan
+    Copy-Item -Recurse -Force $vst3.FullName $dest
+    Write-Host "installed: $(Join-Path $dest 'AEQ Restore.vst3')" -ForegroundColor Green
+} else {
+    Write-Host ""
+    Write-Host "To install, either re-run with -Install, or copy that .vst3 folder to:" -ForegroundColor Yellow
+    Write-Host "  C:\Program Files\Common Files\VST3"
+}
+
+Write-Host ""
+Write-Host "Next: validate it with pluginval (strictness 5, then 10) before mixing:" -ForegroundColor Yellow
+Write-Host '  pluginval.exe --strictness-level 5 --validate "C:\Program Files\Common Files\VST3\AEQ Restore.vst3"'

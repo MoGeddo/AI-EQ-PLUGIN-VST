@@ -151,6 +151,9 @@ public:
     }
 
     double activeFraction() const { return framesSeen_ ? double(nActive_) / framesSeen_ : 0.0; }
+    // how many seconds of actually-sung audio have been analysed (not just the
+    // transport time: silence and gaps do not count)
+    double activeSeconds() const { return double(nActive_) * kHop / (fs_ > 0.0 ? fs_ : 48000.0); }
     double noiseFraction()  const { return nActive_ ? double(nNoisy_) / nActive_ : 0.0; }
     double clipRate()       const { return totalSamples_ ? double(clipCount_) / totalSamples_ : 0.0; }
     int    clipSamples()    const { return clipCount_; }
