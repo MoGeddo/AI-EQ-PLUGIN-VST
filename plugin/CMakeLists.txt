@@ -94,7 +94,11 @@ target_include_directories(aeq_shot PRIVATE Source)
 target_compile_definitions(aeq_shot PRIVATE
     JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1 JUCE_STANDALONE_APPLICATION=1
-    JUCE_MODAL_LOOPS_PERMITTED=1)
+    JUCE_MODAL_LOOPS_PERMITTED=1
+    # The renderer, not the font path: a headless CI session has no desktop, and
+    # Direct2D needs one.  Text still goes through DirectWrite, which is exactly
+    # the code that decides whether the Arabic has glyphs.
+    JUCE_DIRECT2D=0)
 target_link_libraries(aeq_shot PRIVATE
     AEQRestoreFonts
     juce::juce_audio_utils juce::juce_audio_processors juce::juce_dsp

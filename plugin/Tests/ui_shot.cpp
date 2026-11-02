@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
     juce::File dir = juce::File::getCurrentWorkingDirectory();
     if (argc > 1) {
         const juce::File given (juce::String::fromUTF8 (argv[1]));
-        dir = juce::File::isAbsolutePath (argv[1]) ? given : dir.getChildFile (given.getFileName());
+        dir = juce::File::isAbsolutePath (argv[1]) ? given : dir.getChildFile (argv[1]);
     }
     dir.createDirectory();
     g_log = dir.getChildFile ("shot.log.txt");
@@ -145,6 +145,32 @@ int main(int argc, char** argv) {
                 (int) proc.core().state().valid,
                 (int) proc.core().state().settled,
                 (int) proc.core().activeBands().size());
+
+    // ---- probe 1: can this process paint an image at all? -----------------
+    // A headless CI session has no desktop and possibly no Direct2D device.  If
+    // even a filled rectangle crashes, the problem is the renderer and not this
+    // plugin; if only the editor crashes, it is our own paint code.  The
+    // breadcrumbs say which, instead of "access violation".
+    stage("probe: plain image");
+    {
+        juce::Image probe (64, 24, false);
+        juce::Graphics pg (probe);
+        pg.setColour (juce::Colours::red);
+        pg.fillRect (probe.getBounds());
+        savePng (probe, dir.getChildFile ("probe-plain.png"));
+    }
+
+    // ---- probe 2: the embedded font, shaped ---------------------------------
+    stage("probe: embedded font");
+    {
+        juce::Image probe (480, 90, false);
+        juce::Graphics pg (probe);
+        pg.fillAll (juce::Colour::fromRGB (0x10, 0x12, 0x16));
+        aeq::ui::draw (pg, juce::String::fromUTF8 (u8"AEQ Restore — الاختبار: خط عربي"),
+                       probe.getBounds().toFloat().reduced (8.0f),
+                       juce::Justification::centredLeft, 22.0f, juce::Colours::white);
+        savePng (probe, dir.getChildFile ("probe-font.png"));
+    }
 
     stage("analysis fed");
     std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
