@@ -2,10 +2,16 @@ name: build-windows
 
 # Builds the VST3 on a real Windows machine and wraps it in the installer, so the
 # .exe comes out of CI instead of needing Visual Studio on a laptop.
+#
+# On failure the full output is pushed to the `ci/logs` branch, because the build
+# logs themselves live on a storage host that not every client can reach.
 on:
   push:
     branches: ['arena/**', 'main']
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -26,30 +32,58 @@ jobs:
           key: juce-8.0.4-windows
 
       - name: Configure
-        run: cmake -B plugin/build -S plugin -G "Visual Studio 17 2022" -A x64
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          & cmake -B plugin/build -S plugin -G "Visual Studio 17 2022" -A x64 2>&1 |
+              Tee-Object -FilePath build.log
+          "`n=== configure exit: $LASTEXITCODE ===" | Tee-Object -FilePath build.log -Append
+          if ($LASTEXITCODE -ne 0) { throw "cmake configure failed" }
 
       - name: Build
-        run: cmake --build plugin/build --config Release --parallel
+        run: |
+          & cmake --build plugin/build --config Release --parallel 2>&1 |
+              Tee-Object -FilePath build.log -Append
+          "`n=== build exit: $LASTEXITCODE ===" | Tee-Object -FilePath build.log -Append
+          if ($LASTEXITCODE -ne 0) {
+            # the compiler error is the last thing in the log; keep the tail in
+            # the step summary so it is visible without downloading anything
+            Get-Content build.log -Tail 80 | Out-File -Encoding utf8 $env:GITHUB_STEP_SUMMARY -Append
+            throw "compile failed"
+          }
 
       # The installer must never package a build whose DSP gates fail.
       - name: Acceptance gates
         run: |
           $t = Get-ChildItem plugin/build -Recurse -Filter aeq_tests.exe | Select-Object -First 1
           if (-not $t) { throw "aeq_tests.exe was not built" }
-          Write-Host "running $($t.FullName)"
-          & $t.FullName
+          & $t.FullName 2>&1 | Tee-Object -FilePath build.log -Append
           if ($LASTEXITCODE -ne 0) { throw "the 18 gates did not pass" }
 
       - name: Inno Setup
         run: choco install innosetup --yes --no-progress
 
       - name: Installer
-        run: ./installer/build_installer.ps1 -SkipBuild -Version 1.0.0
+        run: |
+          ./installer/build_installer.ps1 -SkipBuild -Version 1.0.0 2>&1 |
+              Tee-Object -FilePath build.log -Append
 
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: AEQ_Restore_Setup
           path: |
             dist/*.exe
             dist/*.sha256
           if-no-files-found: error
+
+      - name: Publish the log on failure
+        if: failure()
+        run: |
+          if (-not (Test-Path build.log)) { "nothing was captured" | Out-File build.log }
+          Copy-Item build.log ci-failure.log -Force
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          git checkout -B ci/logs
+          git add -f ci-failure.log
+          git commit -m "ci log for run $env:GITHUB_RUN_ID ($env:GITHUB_SHA)"
+          git push --force origin ci/logs
