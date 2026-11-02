@@ -68,6 +68,23 @@ jobs:
             dist/*.sha256
           if-no-files-found: error
 
+      # The Actions artifact is the normal way to get the .exe out of CI.  It
+      # lives on a storage host that some clients cannot reach, so a commit that
+      # says [exe] in its message also parks the setup on the ci/artifacts
+      # branch, where plain git can fetch it.
+      - name: Park the setup on a branch
+        if: success() && contains(github.event.head_commit.message, '[exe]')
+        run: |
+          New-Item -ItemType Directory -Force -Path ci-artifacts | Out-Null
+          Copy-Item dist/*.exe ci-artifacts/ -Force
+          Copy-Item dist/*.sha256 ci-artifacts/ -Force
+          git config user.name "ci"
+          git config user.email "ci@users.noreply.github.com"
+          git checkout -B ci/artifacts
+          git add -f ci-artifacts
+          git commit -m "setup for run $env:GITHUB_RUN_ID"
+          git push --force origin ci/artifacts
+
       - name: Publish the log on failure
         if: failure()
         run: |
