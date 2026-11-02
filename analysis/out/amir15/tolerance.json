@@ -1,0 +1,534 @@
+{
+ "scripts": "analysis/scripts/tolerance15.py",
+ "why": "a fixed band that reaches under the fundamental measures register, not mix",
+ "songs": {
+  "اتأخر عتابنا - عمرو دياب": {
+   "f0": 260.1,
+   "boom": {
+    "before": 5.49,
+    "after": null,
+    "clamped_lo": 390.0
+   },
+   "mud": {
+    "before": 1.79,
+    "after": 1.27,
+    "clamped_lo": 390.0
+   },
+   "box": {
+    "before": 2.04,
+    "after": 2.04,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -1.83,
+    "after": -1.83,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -0.59,
+    "after": -0.59,
+    "clamped_lo": 2000
+   }
+  },
+  "اسكت - أنغام": {
+   "f0": 331.6,
+   "boom": {
+    "before": -11.7,
+    "after": null,
+    "clamped_lo": 497.0
+   },
+   "mud": {
+    "before": 1.6,
+    "after": -3.25,
+    "clamped_lo": 497.0
+   },
+   "box": {
+    "before": 3.33,
+    "after": 3.33,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -1.96,
+    "after": -1.96,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -1.92,
+    "after": -1.92,
+    "clamped_lo": 2000
+   }
+  },
+  "اسمعيني - رامي صبري": {
+   "f0": 234.6,
+   "boom": {
+    "before": -8.3,
+    "after": null,
+    "clamped_lo": 352.0
+   },
+   "mud": {
+    "before": -0.77,
+    "after": -1.15,
+    "clamped_lo": 352.0
+   },
+   "box": {
+    "before": -0.15,
+    "after": -0.15,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -1.67,
+    "after": -1.67,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": 1.57,
+    "after": 1.57,
+    "clamped_lo": 2000
+   }
+  },
+  "القمر - رامي صبري": {
+   "f0": 245.0,
+   "boom": {
+    "before": -17.01,
+    "after": null,
+    "clamped_lo": 368.0
+   },
+   "mud": {
+    "before": -5.09,
+    "after": -3.93,
+    "clamped_lo": 368.0
+   },
+   "box": {
+    "before": -2.66,
+    "after": -2.66,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -2.63,
+    "after": -2.63,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -2.17,
+    "after": -2.17,
+    "clamped_lo": 2000
+   }
+  },
+  "ايامي - رامي صبري": {
+   "f0": 225.0,
+   "boom": {
+    "before": 1.08,
+    "after": null,
+    "clamped_lo": 338.0
+   },
+   "mud": {
+    "before": 1.64,
+    "after": 1.95,
+    "clamped_lo": 338.0
+   },
+   "box": {
+    "before": 1.57,
+    "after": 1.57,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -1.53,
+    "after": -1.53,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -0.38,
+    "after": -0.38,
+    "clamped_lo": 2000
+   }
+  },
+  "بحاول - عمرو دياب": {
+   "f0": 259.4,
+   "boom": {
+    "before": 4.58,
+    "after": null,
+    "clamped_lo": 389.0
+   },
+   "mud": {
+    "before": 1.8,
+    "after": 0.99,
+    "clamped_lo": 389.0
+   },
+   "box": {
+    "before": 0.56,
+    "after": 0.56,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -1.08,
+    "after": -1.08,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -0.55,
+    "after": -0.55,
+    "clamped_lo": 2000
+   }
+  },
+  "توبه - محمد حماقي": {
+   "f0": 185.3,
+   "boom": {
+    "before": 14.21,
+    "after": null,
+    "clamped_lo": 278.0
+   },
+   "mud": {
+    "before": 6.66,
+    "after": 6.5,
+    "clamped_lo": 278.0
+   },
+   "box": {
+    "before": -1.11,
+    "after": -1.11,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -0.61,
+    "after": -0.61,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": 0.76,
+    "after": 0.76,
+    "clamped_lo": 2000
+   }
+  },
+  "جرالك ايه - سميرة سعيد": {
+   "f0": 352.8,
+   "boom": {
+    "before": -25.58,
+    "after": null,
+    "clamped_lo": 529.0
+   },
+   "mud": {
+    "before": -1.75,
+    "after": null,
+    "clamped_lo": 529.0
+   },
+   "box": {
+    "before": -4.01,
+    "after": -4.09,
+    "clamped_lo": 529.0
+   },
+   "nasal": {
+    "before": -1.61,
+    "after": -1.61,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": 2.25,
+    "after": 2.25,
+    "clamped_lo": 2000
+   }
+  },
+  "جيتلك - عمرو دياب": {
+   "f0": 279.1,
+   "boom": {
+    "before": -5.7,
+    "after": null,
+    "clamped_lo": 419.0
+   },
+   "mud": {
+    "before": -1.82,
+    "after": -5.72,
+    "clamped_lo": 419.0
+   },
+   "box": {
+    "before": 0.51,
+    "after": 0.51,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -3.35,
+    "after": -3.35,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -2.73,
+    "after": -2.73,
+    "clamped_lo": 2000
+   }
+  },
+  "شایف قمر - عمرو دياب": {
+   "f0": 302.1,
+   "boom": {
+    "before": -14.78,
+    "after": null,
+    "clamped_lo": 453.0
+   },
+   "mud": {
+    "before": -3.52,
+    "after": -12.21,
+    "clamped_lo": 453.0
+   },
+   "box": {
+    "before": -1.49,
+    "after": -1.49,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -1.75,
+    "after": -1.75,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -3.97,
+    "after": -3.97,
+    "clamped_lo": 2000
+   }
+  },
+  "عمرنا مانسينا - محمد حماقي": {
+   "f0": 245.0,
+   "boom": {
+    "before": 6.73,
+    "after": null,
+    "clamped_lo": 368.0
+   },
+   "mud": {
+    "before": 3.24,
+    "after": 2.69,
+    "clamped_lo": 368.0
+   },
+   "box": {
+    "before": 1.08,
+    "after": 1.08,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -2.31,
+    "after": -2.31,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": 1.32,
+    "after": 1.32,
+    "clamped_lo": 2000
+   }
+  },
+  "قالوا عني ايه - محمد حماقي": {
+   "f0": 238.4,
+   "boom": {
+    "before": 3.02,
+    "after": null,
+    "clamped_lo": 358.0
+   },
+   "mud": {
+    "before": 0.38,
+    "after": -1.04,
+    "clamped_lo": 358.0
+   },
+   "box": {
+    "before": 0.07,
+    "after": 0.07,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -3.5,
+    "after": -3.5,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -1.79,
+    "after": -1.79,
+    "clamped_lo": 2000
+   }
+  },
+  "كان برئ - أنغام": {
+   "f0": 341.9,
+   "boom": {
+    "before": 2.47,
+    "after": null,
+    "clamped_lo": 513.0
+   },
+   "mud": {
+    "before": -0.54,
+    "after": null,
+    "clamped_lo": 513.0
+   },
+   "box": {
+    "before": -3.62,
+    "after": -3.62,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -1.71,
+    "after": -1.71,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -0.83,
+    "after": -0.83,
+    "clamped_lo": 2000
+   }
+  },
+  "من غير كلام - توو ليت": {
+   "f0": 239.7,
+   "boom": {
+    "before": 5.01,
+    "after": null,
+    "clamped_lo": 360.0
+   },
+   "mud": {
+    "before": -2.44,
+    "after": -2.32,
+    "clamped_lo": 360.0
+   },
+   "box": {
+    "before": -1.8,
+    "after": -1.8,
+    "clamped_lo": 520
+   },
+   "nasal": {
+    "before": -6.14,
+    "after": -6.14,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": -4.51,
+    "after": -4.51,
+    "clamped_lo": 2000
+   }
+  },
+  "يا لطيف - سميرة سعيد": {
+   "f0": 356.8,
+   "boom": {
+    "before": -21.4,
+    "after": null,
+    "clamped_lo": 535.0
+   },
+   "mud": {
+    "before": -5.11,
+    "after": null,
+    "clamped_lo": 535.0
+   },
+   "box": {
+    "before": -4.0,
+    "after": -3.47,
+    "clamped_lo": 535.0
+   },
+   "nasal": {
+    "before": -3.01,
+    "after": -3.01,
+    "clamped_lo": 850
+   },
+   "harsh": {
+    "before": 2.38,
+    "after": 2.38,
+    "clamped_lo": 2000
+   }
+  }
+ },
+ "regions": {
+  "boom": {
+   "band_hz": [
+    110,
+    260
+   ],
+   "current_threshold_db": 2.5,
+   "before": {
+    "fires_on_target": 6,
+    "n": 15,
+    "sd_db": 11.38,
+    "r_with_f0": -0.69
+   },
+   "after_clamp": {
+    "fires_on_target": 0,
+    "n": 0,
+    "sd_db": NaN,
+    "r_with_f0": NaN,
+    "skipped_as_unmeasurable": 15,
+    "recommended_threshold_db": 2.5
+   }
+  },
+  "mud": {
+   "band_hz": [
+    260,
+    520
+   ],
+   "current_threshold_db": 2.2,
+   "before": {
+    "fires_on_target": 2,
+    "n": 15,
+    "sd_db": 3.09,
+    "r_with_f0": -0.51
+   },
+   "after_clamp": {
+    "fires_on_target": 2,
+    "n": 12,
+    "sd_db": 4.56,
+    "r_with_f0": -0.71,
+    "skipped_as_unmeasurable": 3,
+    "recommended_threshold_db": 4.56
+   }
+  },
+  "box": {
+   "band_hz": [
+    520,
+    850
+   ],
+   "current_threshold_db": 2.2,
+   "before": {
+    "fires_on_target": 1,
+    "n": 15,
+    "sd_db": 2.19,
+    "r_with_f0": -0.39
+   },
+   "after_clamp": {
+    "fires_on_target": 1,
+    "n": 15,
+    "sd_db": 2.15,
+    "r_with_f0": -0.38,
+    "skipped_as_unmeasurable": 0,
+    "recommended_threshold_db": 2.2
+   }
+  },
+  "nasal": {
+   "band_hz": [
+    850,
+    1300
+   ],
+   "current_threshold_db": 2.5,
+   "before": {
+    "fires_on_target": 0,
+    "n": 15,
+    "sd_db": 1.28,
+    "r_with_f0": 0.01
+   },
+   "after_clamp": {
+    "fires_on_target": 0,
+    "n": 15,
+    "sd_db": 1.28,
+    "r_with_f0": 0.01,
+    "skipped_as_unmeasurable": 0,
+    "recommended_threshold_db": 2.5
+   }
+  },
+  "harsh": {
+   "band_hz": [
+    2000,
+    4200
+   ],
+   "current_threshold_db": 2.2,
+   "before": {
+    "fires_on_target": 2,
+    "n": 15,
+    "sd_db": 2.06,
+    "r_with_f0": 0.14
+   },
+   "after_clamp": {
+    "fires_on_target": 2,
+    "n": 15,
+    "sd_db": 2.06,
+    "r_with_f0": 0.14,
+    "skipped_as_unmeasurable": 0,
+    "recommended_threshold_db": 2.2
+   }
+  }
+ },
+ "headline": "false 'problems' on the 15 songs that DEFINE the target: 11 before, 5 after the clamp (out of 5 regions x 15 songs)"
+}

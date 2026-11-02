@@ -33,6 +33,8 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/06_ENGINEERS_AR.md` | **بصمة المهندس**: اعتمادات الـ13 أغنية بالمصادر + اختبار إحصائي (Mantel، تعداد كامل، تحكم في الطبقة) |
 | `docs/07_AMIR_MAHROUS_SET_AR.md` | **مجموعة أمير محروس**: عدد الأغاني المناسب (12، مبني على power analysis) + الأغاني المحددة + بروتوكول التسليم |
 | `docs/08_FIRST_EQ_SPEC_AR.md` | **مواصفة الـ«أول EQ»**: اللي محتاجه من التسجيلات، وليه كل أدوات السوق بتفشل (بدليل)، وتصميم 5 مشاكل مسمّاة + بوابات التحقق |
+| `docs/09_STEM_AUDIT_AR.md` | تشريح الـ39 stem: أي نسخة نستخدم، وأدلة raw مقابل Dry، وسلامة الملفات |
+| `docs/10_TARGET_VALIDATION_AR.md` | **التحقق على الـ15 أغنية**: الكيرف اتأكد بـ0.88 dB، وتشغيل البلجن الحقيقي على المادة الهدف، و3 أسباب لأخطاء اتصلحت |
 | `plugin/` | كود البلجِن: نواة DSP + VST3 (JUCE) + CLI + 18 بوابة قبول |
 | `analysis/aeq/` | محرك القياس (Python): STFT، LTAS، VAD، YIN، لاودنس، ريفيرب، حل EQ |
 | `analysis/scripts/` | تشغيل الكوربس والتحليل |

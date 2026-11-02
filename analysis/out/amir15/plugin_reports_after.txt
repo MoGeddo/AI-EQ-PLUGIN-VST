@@ -1,0 +1,426 @@
+########## اتأخر_عتابنا_-_عمرو_دياب_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 260 Hz
+peak             : -0.8 dBFS   dynamic range 45.5 dB
+sibilance median : -12.0 dB   p90 -3.0 dB
+
+--- problems found (4) ---
+  [ 0.10] صندوقية (Box)   زيادة 3.3 dB في 520–850 Hz
+          -> EQ cut     665 Hz  Q 2.0  -2.5 dB
+  [ 0.11] رنين ثابت (غرفة/مايك) 6089 Hz ثابت على مدى الأداء (متوسط +5.0 dB، تغيّر 3.9 dB)
+          -> notch     6089 Hz  Q 8.0  -4.0 dB
+  [ 0.50] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -3.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -3.6 dB
+  [ 0.44] أرضية تشويش عالية أرضية الصمت -65 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (1 bands) ---
+  type           freq      Q     gain
+  peak            223   0.91    -3.50
+
+--- surgical notches (1) ---
+  peak     6089 Hz Q  8.0  -4.01 dB
+
+HPF              : 161 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 2.9 dB
+problems fixed   : 5.80 dB RMS -> 4.50 dB RMS  (22% of the excess removed)
+distance to family target: 3.00 -> 2.42 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## اسكت_-_أنغام_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 320 Hz
+peak             : 0.1 dBFS   dynamic range 51.0 dB
+sibilance median : -12.0 dB   p90 -4.0 dB
+
+--- problems found (5) ---
+  [ 0.31] صندوقية (Box)   زيادة 4.4 dB في 520–850 Hz
+          -> EQ cut     665 Hz  Q 2.0  -3.3 dB
+  [ 0.45] رنين ثابت (غرفة/مايك) 3225 Hz ثابت على مدى الأداء (متوسط +6.5 dB، تغيّر 5.8 dB)
+          -> notch     3225 Hz  Q 8.0  -5.2 dB
+  [ 0.01] رنين ثابت (غرفة/مايك) 6451 Hz ثابت على مدى الأداء (متوسط +4.5 dB، تغيّر 3.6 dB)
+          -> notch     6451 Hz  Q 8.0  -3.6 dB
+  [ 0.33] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -4.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -2.4 dB
+  [ 0.20] أرضية تشويش عالية أرضية الصمت -69 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (3 bands) ---
+  type           freq      Q     gain
+  peak            726   0.68    -1.82
+  peak           1280   1.20    +2.20
+  peak           4242   1.20    +1.87
+
+--- surgical notches (2) ---
+  peak     3225 Hz Q  8.0  -5.20 dB
+  peak     6451 Hz Q  8.0  -3.64 dB
+
+HPF              : 172 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 1.9 dB
+problems fixed   : 4.78 dB RMS -> 3.86 dB RMS  (19% of the excess removed)
+distance to family target: 3.43 -> 2.96 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## اسمعيني_-_رامي_صبري_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 230 Hz
+peak             : -0.7 dBFS   dynamic range 46.7 dB
+sibilance median : -9.0 dB   p90 -1.0 dB
+
+--- problems found (2) ---
+  [ 0.83] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -1.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -6.0 dB
+  [ 0.24] أرضية تشويش عالية أرضية الصمت -68 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (4 bands) ---
+  type           freq      Q     gain
+  peak            214   0.68    -3.25
+  peak            359   1.20    +1.65
+  peak            562   1.20    -1.47
+  peak           5663   0.41    -2.79
+
+--- surgical notches (0) ---
+
+HPF              : 143 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 4.8 dB
+problems fixed   : 5.63 dB RMS -> 3.86 dB RMS  (31% of the excess removed)
+distance to family target: 4.32 -> 2.98 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## القمر_-_رامي_صبري_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 260 Hz
+peak             : -1.1 dBFS   dynamic range 48.0 dB
+sibilance median : -15.0 dB   p90 -7.0 dB
+
+--- problems found (1) ---
+  [ 0.17] أرضية تشويش عالية أرضية الصمت -69 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (4 bands) ---
+  type           freq      Q     gain
+  peak            320   1.08    +3.50
+  peak           2214   0.51    +1.36
+  peak           4809   1.20    -2.03
+  peak           7559   0.48    +3.39
+
+--- surgical notches (0) ---
+
+HPF              : 161 Hz (24 dB/oct)
+de-esser         : thr -30 dBFS, max 0.0 dB
+problems fixed   : 5.80 dB RMS -> 3.63 dB RMS  (37% of the excess removed)
+distance to family target: 5.82 -> 3.98 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## ايامي_-_رامي_صبري_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 220 Hz
+peak             : -1.1 dBFS   dynamic range 46.7 dB
+sibilance median : -12.0 dB   p90 -6.0 dB
+
+--- problems found (1) ---
+  [ 0.23] أرضية تشويش عالية أرضية الصمت -68 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (3 bands) ---
+  type           freq      Q     gain
+  peak            225   0.74    -3.36
+  peak            339   1.20    +1.43
+  peak            562   1.20    -1.44
+
+--- surgical notches (0) ---
+
+HPF              : 136 Hz (24 dB/oct)
+de-esser         : thr -30 dBFS, max 0.0 dB
+problems fixed   : 5.06 dB RMS -> 3.83 dB RMS  (24% of the excess removed)
+distance to family target: 3.10 -> 2.56 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## بحاول_-_عمرو_دياب_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 240 Hz
+peak             : -0.8 dBFS   dynamic range 44.1 dB
+sibilance median : -10.0 dB   p90 -1.0 dB
+
+--- problems found (3) ---
+  [ 0.40] رنين ثابت (غرفة/مايك) 6089 Hz ثابت على مدى الأداء (متوسط +6.3 dB، تغيّر 4.2 dB)
+          -> notch     6089 Hz  Q 8.0  -5.1 dB
+  [ 0.83] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -1.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -6.0 dB
+  [ 0.44] أرضية تشويش عالية أرضية الصمت -65 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (2 bands) ---
+  type           freq      Q     gain
+  peak            240   0.68    -3.50
+  peak            480   1.20    +1.06
+
+--- surgical notches (1) ---
+  peak     6089 Hz Q  8.0  -5.06 dB
+
+HPF              : 149 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 4.8 dB
+problems fixed   : 5.80 dB RMS -> 4.69 dB RMS  (19% of the excess removed)
+distance to family target: 3.24 -> 2.73 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## توبه_-_محمد_حماقي_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 170 Hz
+peak             : -2.8 dBFS   dynamic range 46.1 dB
+sibilance median : -12.0 dB   p90 -1.0 dB
+
+--- problems found (3) ---
+  [ 0.73] عكارة (Mud)       زيادة 6.8 dB في 260–520 Hz
+          -> EQ cut     368 Hz  Q 1.4  -5.1 dB
+  [ 0.83] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -1.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -6.0 dB
+  [ 0.12] أرضية تشويش عالية أرضية الصمت -70 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (4 bands) ---
+  type           freq      Q     gain
+  peak            270   0.40    -3.50
+  peak            272   0.69    -2.87
+  peak            808   1.20    +1.54
+  peak          11494   0.80    -2.76
+
+--- surgical notches (0) ---
+
+HPF              : 105 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 4.8 dB
+problems fixed   : 7.72 dB RMS -> 4.49 dB RMS  (42% of the excess removed)
+distance to family target: 4.97 -> 2.75 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## جرالك_ايه_-_سميرة_سعيد_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 340 Hz
+peak             : -1.4 dBFS   dynamic range 44.5 dB
+sibilance median : -15.0 dB   p90 -5.0 dB
+
+--- problems found (3) ---
+  [ 0.31] رنين ثابت (غرفة/مايك) 9665 Hz ثابت على مدى الأداء (متوسط +5.9 dB، تغيّر 5.1 dB)
+          -> notch     9665 Hz  Q 8.0  -4.7 dB
+  [ 0.17] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -5.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -1.2 dB
+  [ 0.42] أرضية تشويش عالية أرضية الصمت -65 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (3 bands) ---
+  type           freq      Q     gain
+  peak            213   1.20    +3.50
+  peak            312   0.54    +2.09
+  peak           5424   1.20    +3.10
+
+--- surgical notches (1) ---
+  peak     9665 Hz Q  8.0  -4.71 dB
+
+HPF              : 172 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 1.0 dB
+problems fixed   : 8.58 dB RMS -> 6.21 dB RMS  (28% of the excess removed)
+distance to family target: 6.78 -> 5.20 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## جيتلك_-_عمرو_دياب_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 270 Hz
+peak             : -0.6 dBFS   dynamic range 49.7 dB
+sibilance median : -15.0 dB   p90 -6.0 dB
+
+--- problems found (3) ---
+  [ 0.08] رنين ثابت (غرفة/مايك) 5747 Hz ثابت على مدى الأداء (متوسط +4.9 dB، تغيّر 4.4 dB)
+          -> notch     5747 Hz  Q 8.0  -3.9 dB
+  [ 0.14] رنين ثابت (غرفة/مايك) 6089 Hz ثابت على مدى الأداء (متوسط +5.1 dB، تغيّر 3.9 dB)
+          -> notch     6089 Hz  Q 8.0  -4.1 dB
+  [ 0.20] أرضية تشويش عالية أرضية الصمت -69 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (2 bands) ---
+  type           freq      Q     gain
+  peak            218   0.92    -2.72
+  peak           4833   1.20    +1.95
+
+--- surgical notches (2) ---
+  peak     5747 Hz Q  8.0  -3.90 dB
+  peak     6089 Hz Q  8.0  -4.09 dB
+
+HPF              : 167 Hz (24 dB/oct)
+de-esser         : thr -30 dBFS, max 0.0 dB
+problems fixed   : 5.12 dB RMS -> 4.14 dB RMS  (19% of the excess removed)
+distance to family target: 3.16 -> 2.71 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## شایف_قمر_-_عمرو_دياب_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 290 Hz
+peak             : -1.6 dBFS   dynamic range 44.7 dB
+sibilance median : -14.0 dB   p90 -6.0 dB
+
+--- problems found (2) ---
+  [ 0.38] رنين ثابت (غرفة/مايك) 6089 Hz ثابت على مدى الأداء (متوسط +6.2 dB، تغيّر 4.8 dB)
+          -> notch     6089 Hz  Q 8.0  -5.0 dB
+  [ 0.36] أرضية تشويش عالية أرضية الصمت -66 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (3 bands) ---
+  type           freq      Q     gain
+  peak            484   1.20    +2.76
+  peak           1088   0.55    -1.90
+  peak           2766   0.40    +3.50
+
+--- surgical notches (1) ---
+  peak     6089 Hz Q  8.0  -4.96 dB
+
+HPF              : 172 Hz (24 dB/oct)
+de-esser         : thr -30 dBFS, max 0.0 dB
+problems fixed   : 5.82 dB RMS -> 4.57 dB RMS  (21% of the excess removed)
+distance to family target: 5.02 -> 3.99 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## عمرنا_مانسينا_-_محمد_حماقي_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 230 Hz
+peak             : -2.2 dBFS   dynamic range 45.7 dB
+sibilance median : -11.0 dB   p90 -2.0 dB
+
+--- problems found (3) ---
+  [ 0.15] عكارة (Mud)       زيادة 3.8 dB في 260–520 Hz
+          -> EQ cut     368 Hz  Q 1.4  -2.9 dB
+  [ 0.67] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -2.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -4.8 dB
+  [ 0.30] أرضية تشويش عالية أرضية الصمت -67 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (1 bands) ---
+  type           freq      Q     gain
+  peak            240   0.70    -3.50
+
+--- surgical notches (0) ---
+
+HPF              : 143 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 3.8 dB
+problems fixed   : 6.18 dB RMS -> 4.71 dB RMS  (24% of the excess removed)
+distance to family target: 3.44 -> 2.71 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## قالوا_عني_ايه_-_محمد_حماقي_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 230 Hz
+peak             : -0.7 dBFS   dynamic range 49.3 dB
+sibilance median : -14.0 dB   p90 -3.0 dB
+
+--- problems found (3) ---
+  [ 0.01] صندوقية (Box)   زيادة 2.8 dB في 520–850 Hz
+          -> EQ cut     665 Hz  Q 2.0  -2.1 dB
+  [ 0.50] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -3.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -3.6 dB
+  [ 0.13] أرضية تشويش عالية أرضية الصمت -70 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (3 bands) ---
+  type           freq      Q     gain
+  peak            239   0.60    -3.50
+  peak            480   1.20    +0.85
+  peak           1112   0.51    -1.08
+
+--- surgical notches (0) ---
+
+HPF              : 143 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 2.9 dB
+problems fixed   : 6.01 dB RMS -> 4.43 dB RMS  (26% of the excess removed)
+distance to family target: 3.61 -> 2.63 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## كان_برئ_-_أنغام_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 320 Hz
+peak             : -0.8 dBFS   dynamic range 44.3 dB
+sibilance median : -11.0 dB   p90 3.0 dB
+
+--- problems found (2) ---
+  [ 1.00] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = 3.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -6.0 dB
+  [ 0.46] أرضية تشويش عالية أرضية الصمت -64 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (1 bands) ---
+  type           freq      Q     gain
+  peak            200   1.20    -3.36
+
+--- surgical notches (0) ---
+
+HPF              : 172 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 4.8 dB
+problems fixed   : 5.05 dB RMS -> 4.31 dB RMS  (15% of the excess removed)
+distance to family target: 3.26 -> 3.01 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## من_غير_كلام_-_توو_ليت_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 230 Hz
+peak             : -1.7 dBFS   dynamic range 49.8 dB
+sibilance median : -13.0 dB   p90 -2.0 dB
+
+--- problems found (7) ---
+  [ 0.17] ترددات تحت صوت الغناء طاقة 30–70 Hz أعلى من الطبيعي بـ 3 dB
+          -> HPF          0 Hz  Q 1.0  +0.0 dB
+  [ 0.67] رنين ثابت (غرفة/مايك) 6451 Hz ثابت على مدى الأداء (متوسط +7.5 dB، تغيّر 4.2 dB)
+          -> notch     6451 Hz  Q 8.0  -6.0 dB
+  [ 0.14] رنين ثابت (غرفة/مايك) 6834 Hz ثابت على مدى الأداء (متوسط +5.1 dB، تغيّر 4.4 dB)
+          -> notch     6834 Hz  Q 8.0  -4.1 dB
+  [ 0.33] رنين ثابت (غرفة/مايك) 9665 Hz ثابت على مدى الأداء (متوسط +6.0 dB، تغيّر 3.9 dB)
+          -> notch     9665 Hz  Q 8.0  -4.8 dB
+  [ 0.19] رنين ثابت (غرفة/مايك) 10240 Hz ثابت على مدى الأداء (متوسط +5.4 dB، تغيّر 3.6 dB)
+          -> notch    10240 Hz  Q 8.0  -4.3 dB
+  [ 0.67] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = -2.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -4.8 dB
+  [ 0.14] أرضية تشويش عالية أرضية الصمت -70 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (2 bands) ---
+  type           freq      Q     gain
+  peak            226   0.85    -3.50
+  peak           4561   0.89    +3.50
+
+--- surgical notches (2) ---
+  peak     6451 Hz Q  8.0  -6.02 dB
+  peak     6834 Hz Q  8.0  -4.10 dB
+
+HPF              : 143 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 3.8 dB
+problems fixed   : 7.18 dB RMS -> 5.56 dB RMS  (23% of the excess removed)
+distance to family target: 4.82 -> 3.84 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================
+########## يا_لطيف_-_سميرة_سعيد_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav
+================ AEQ RESTORE - REPORT ================
+median F0        : 350 Hz
+peak             : -0.3 dBFS   dynamic range 46.2 dB
+sibilance median : -13.0 dB   p90 20.0 dB
+
+--- problems found (3) ---
+  [ 0.10] حدّة (Harsh)       زيادة 2.7 dB في 2000–4200 Hz
+          -> EQ cut    2898 Hz  Q 1.3  -2.0 dB
+  [ 1.00] حروف سِيبيلانت قوية 5-10k / 1-4k عند أعلى 10% = 20.0 dB - القمم محتاجة de-esser ديناميكي
+          -> de-ess    7200 Hz  Q 1.0  -6.0 dB
+  [ 0.13] أرضية تشويش عالية أرضية الصمت -70 dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)
+          -> warn         0 Hz  Q 1.0  +0.0 dB
+
+--- corrective EQ (5 bands) ---
+  type           freq      Q     gain
+  peak            225   1.20    +3.50
+  peak            489   1.06    +1.69
+  peak           1537   1.20    +1.64
+  peak           2902   0.88    -2.46
+  peak           5747   1.20    +2.06
+
+--- surgical notches (0) ---
+
+HPF              : 172 Hz (24 dB/oct)
+de-esser         : thr -34 dBFS, max 4.8 dB
+problems fixed   : 6.39 dB RMS -> 4.82 dB RMS  (25% of the excess removed)
+distance to family target: 6.10 -> 4.74 dB RMS (informational; restore
+  mode deliberately refuses to chase natural variation)
+=====================================================

@@ -49,7 +49,16 @@ inline double levelBetween(const Measurements& m, double lo, double hi) {
 
 // how far a region sits above a *balanced* vocal (the smoothed corpus target),
 // normalised at 1 kHz.  This is what "your voice is 4 dB too boomy" means.
+// A monophonic voice carries almost no energy below its fundamental, so a fixed
+// band that reaches under 1.5*F0 measures the singer's register, not the mix.
+// Measured on the 15 mixes that *define* the target: the 110-260 Hz "boom" test
+// fires on 6 of them, and the number splits 16 dB between the songs whose
+// fundamental sits inside the band (+3.5 dB) and those above it (-12.4 dB),
+// r = -0.76 against F0.  None of that is a mixing fault, so the window is
+// clamped to the measurable part of the spectrum and a band with less than a
+// third of an octave left is not scored at all.
 inline double excessVsTarget(const Measurements& m, double lo, double hi) {
+    if (m.medianF0 > 0.0) lo = std::max(lo, 1.5 * m.medianF0);
     double s = 0.0; int n = 0;
     const double ref = levelBetween(m, 900.0, 1150.0);
     for (size_t i = 0; i < m.freqs.size(); ++i) {
@@ -59,7 +68,7 @@ inline double excessVsTarget(const Measurements& m, double lo, double hi) {
         s += (m.bandDb[i] - ref) - TargetCurve::atSmoothed(f, 0.5);
         ++n;
     }
-    return n ? s / n : 0.0;
+    return n >= 4 ? s / n : -50.0;   // -50 = "not measurable", never a problem
 }
 
 inline double excessBetween(const Measurements& m, double lo, double hi) {
@@ -90,12 +99,18 @@ public:
 
         // ---- 2. broadband excess regions --------------------------------
         struct Region { const char* id; const char* label; double lo, hi, thr; };
+        // Thresholds are the engineer's own natural variation, not taste.  Each
+        // one is a measured standard deviation of that region across the 15
+        // mixes that define the target (analysis/out/amir15/tolerance.json), so
+        // a region has to leave his own spread before it can be called a fault.
+        // The old fixed 2.2 dB sat *below* that spread (3.04 dB median per band)
+        // and flagged the target material itself 6 times out of 15.
         const Region regions[] = {
-            {"boom",  "تخنة (Boom)",        110, 260, 2.5},
-            {"mud",   "عكارة (Mud)",         260, 520, 2.2},
-            {"box",   "صندوقية (Box)",       520, 850, 2.2},
-            {"nasal", "خنّة (Nasal)",        850, 1300, 2.5},
-            {"harsh", "حدّة (Harsh)",       2000, 4200, 2.2},
+            {"boom",  "تخنة (Boom)",        110, 260, 2.5},   // SD 11 dB, F0-driven - see clamp
+            {"mud",   "عكارة (Mud)",         260, 520, 3.1},   // SD 3.09
+            {"box",   "صندوقية (Box)",       520, 850, 2.8},   // SD 2.19-2.48
+            {"nasal", "خنّة (Nasal)",        850, 1300, 2.5},   // SD 1.28 (this band holds the 1 kHz reference)
+            {"harsh", "حدّة (Harsh)",       2000, 4200, 2.2},   // SD 2.06 - keep, it is the one region that behaves
         };
         for (const auto& r : regions) {
             const double ex = excessVsTarget(m, r.lo, r.hi);
@@ -112,21 +127,28 @@ public:
         // ---- 3. static narrow resonances -------------------------------
         // A room/mic resonance is a *fixed* frequency: high mean excess with low
         // frame-to-frame variation, isolated from its neighbours.
+        //
+        // The bar is 4.5 dB, not 3.0: the per-band spread across the 15 mixes
+        // that define the target is 3.04 dB (median), so a 3 dB "peak" is just
+        // the engineer's own variation - and at 3.0 dB this loop produced 16
+        // notches over 15 target songs, with 6089 and 6451 Hz each recurring in
+        // 4 different songs (different singers, so not a room; it is a fixed
+        // artefact of the source separation).
         for (int i = 3; i + 3 < static_cast<int>(m.freqs.size()); ++i) {
             const double f = m.freqs[i];
             if (f < 200.0 || f > 12000.0) continue;
             const double ex = m.excessMean[i];
-            if (ex < 3.0) continue;
+            if (ex < 4.5) continue;
             // A room / mic resonance is *narrow* and *fixed*: it must stand above
             // its own 1/4-octave shoulders (sharpness) and stay put over time
             // (the shoulders follow the formants of the take, the spike does not).
             const double shoulder = 0.5 * (m.excessMean[i - 3] + m.excessMean[i + 3]);
-            const bool sharp = (ex - shoulder) > 1.5;
+            const bool sharp = (ex - shoulder) > 2.0;
             const bool stable = m.excessSd[i] < std::max(3.0, 0.9 * ex);
             if (sharp && stable) {
                 out.push_back({"reso", "رنين ثابت (غرفة/مايك)",
                                fmt("%.0f Hz ثابت على مدى الأداء (متوسط +%.1f dB، تغيّر %.1f dB)", {f, ex, m.excessSd[i]}),
-                               sev(ex, 3.0, 8.0), f, 8.0, -std::min(ex * 0.8, 7.0), Action::CutNarrow});
+                               sev(ex, 4.5, 9.0), f, 8.0, -std::min(ex * 0.8, 7.0), Action::CutNarrow});
             }
         }
 

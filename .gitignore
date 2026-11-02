@@ -11,3 +11,4 @@ __pycache__/
 _refs/
 analysis/out/cache/
 *.whl
+analysis/out/*/cache/

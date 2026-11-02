@@ -162,8 +162,8 @@ public:
 
     // median F0 of the performance (Hz), 0 if unknown - used to adapt the HPF
     double medianF0() const {
-        double tot = 0; int n = 0;
-        for (int i = 0; i < static_cast<int>(f0Hist_.size()); ++i) { tot += f0Hist_[i]; n += 0; }
+        double tot = 0;
+        for (int c : f0Hist_) tot += c;
         if (tot <= 0) return 0.0;
         double acc = 0;
         for (int i = 0; i < static_cast<int>(f0Hist_.size()); ++i) {
