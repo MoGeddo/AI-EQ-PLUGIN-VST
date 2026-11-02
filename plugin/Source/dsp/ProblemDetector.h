@@ -370,7 +370,7 @@ public:
         // ---- 4. sibilance (dynamic, not static) -------------------------
         if (m.sibP90 > -6.0) {
             out.push_back({"sib", "حروف سِيبيلانت قوية",
-                           fmt("5-10k / 1-4k عند أعلى 10%% = %.1f dB - القمم محتاجة de-esser ديناميكي", {m.sibP90}),
+                           fmt("5-10k / 1-4k عند أعلى 10 بالمية = %.1f dB - القمم محتاجة de-esser ديناميكي", {m.sibP90}),
                            sev(m.sibP90, -6.0, 0.0), 7200.0, 1.0,
                            -std::min((m.sibP90 + 6.0) * 1.2, 6.0), Action::DeEss});
         }
@@ -412,16 +412,31 @@ private:
     static double sev(double v, double lo, double hi) {
         return std::clamp((v - lo) / std::max(hi - lo, 1e-9), 0.0, 1.0);
     }
-    // printf-style, with the argument count taken from the format itself
+    // printf-style, with the argument count taken from the format itself.
+    //
+    // Two bugs lived here and this is the fix for both:
+    //  (a) "%%" is an escaped percent, not a placeholder.  The old loop skipped
+    //      the first '%' and counted the second, so the de-esser message - which
+    //      contains "10%%" - asked for 2 arguments while being given 1, and fmt
+    //      read past the end of the initializer list.  g++ printed garbage; MSVC
+    //      crashed the gate binary before a single line of output was flushed, so
+    //      CI reported "the DSP gates did not pass" with no evidence at all.
+    //      Found with -fsanitize=address.
+    //  (b) even with correct counting, a future mismatch would do the same thing.
+    //      The count is now clamped to the arguments actually supplied.
     static int placeholders(const char* f) {
         int n = 0;
-        for (const char* p = f; *p; ++p) if (*p == '%' && p[1] != '%') ++n;
+        for (const char* p = f; *p; ++p) {
+            if (*p != '%') continue;
+            if (p[1] == '%') { ++p; continue; }   // skip both characters of %%
+            ++n;
+        }
         return n;
     }
     static std::string fmt(const char* f, std::initializer_list<double> a) {
         char buf[256];
         const double* v = a.begin();
-        switch (placeholders(f)) {
+        switch (std::min(placeholders(f), static_cast<int>(a.size()))) {
             case 3: std::snprintf(buf, sizeof(buf), f, v[0], v[1], v[2]); break;
             case 2: std::snprintf(buf, sizeof(buf), f, v[0], v[1]); break;
             case 1: std::snprintf(buf, sizeof(buf), f, v[0]); break;

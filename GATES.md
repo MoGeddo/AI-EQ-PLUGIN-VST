@@ -29,10 +29,10 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: envelope cuts that dependence by more than 3x
   EVIDENCE: automatic-evidence=v1; definition-sha256=42ff9fc93b23768f5a3116cbc49ba2c3eb379fab7be297f5658feb6a6239c99d; exit=0; EXPECT=matched; output-sha256=197e6a51e42f7890dc1dd0bc997fcf1f5b40ee64e4b7c4a29697c06471c29c9f; output-bytes=2451; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
 
-- [x] G3: nothing else regressed - the 18 original gates still pass, and G8 adds 4 asserts
+- [x] G3: nothing else regressed - the original gates still pass, and G8/G16 add asserts
   CHECK: build/aeq_tests
-  EXPECT: 22 passed, 0 failed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=1f0ef911fae8c3e5abbdcbd30f194d01f53298760112e68fb257c6a8e36f95d7; exit=0; EXPECT=matched; output-sha256=197e6a51e42f7890dc1dd0bc997fcf1f5b40ee64e4b7c4a29697c06471c29c9f; output-bytes=2451; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EXPECT: 24 passed, 0 failed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=85bb5be1e422a88198d97296c2c5b6589482955e41c8d3bd92fab6a8740ef7e4; exit=0; EXPECT=matched; output-sha256=a5571205f49e9f79f4f3f055d256495696e78939272df0bbc4fb6890ba376d0d; output-bytes=2649; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
 
 - [x] G4: determinism survives the new accumulator
   CHECK: build/aeq_tests
@@ -95,3 +95,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
       3 real takes (the raw-spectrum detector caught 0 of 3)
   CHECK: .venv/bin/python analysis/scripts/bench_faults.py --freq 665 --q 1.5 --db 4 --expect 2
   EXPECT: GATE PASS: fault caught
+
+- [x] G16: every report line is fully formatted - no leftover '%' from a format whose
+  EVIDENCE: automatic-evidence=v1; definition-sha256=43ab3f8c47a5d18fa50e4e3b9c54889d23a84b144c9b41f31093563d8bda1809; exit=0; EXPECT=matched; output-sha256=a5571205f49e9f79f4f3f055d256495696e78939272df0bbc4fb6890ba376d0d; output-bytes=2649; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      argument count did not match.  A '%%' in the de-esser line was counted as a
+      placeholder, read past its argument list, and killed the Windows gate binary
+      before it printed a line (found with -fsanitize=address)
+  CHECK: build/aeq_tests
+  EXPECT: no leftover %% in any report line

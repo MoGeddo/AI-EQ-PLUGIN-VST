@@ -220,6 +220,31 @@ int main() {
         std::printf("       resonance reported at %.0f Hz, correction %+.1f dB\n", resoF, resoGain);
     }
 
+    // ---------------- G16: every report line is fully formatted --------
+    // The report text is built with a printf-style helper whose argument count is
+    // taken from the format string.  It counted the "%%" in the de-esser line as a
+    // placeholder and read past the end of its argument list: g++ printed rubbish,
+    // MSVC killed the gate binary before it printed anything, and CI said "the DSP
+    // gates did not pass" with no evidence.  So: no raw '%' may survive in any line.
+    std::printf("\n[G16] every problem line has its numbers substituted\n");
+    {
+        RestoreSettings s; s.learn = true;
+        RestoreCore core;
+        runPipeline(bad, core, s, true);
+        const auto st = core.state();
+        int unsubstituted = 0;
+        for (const auto& p : st.problems) {
+            if (p.labelAr.empty() || p.detailAr.find('%') != std::string::npos) {
+                std::printf("       not substituted: %s\n", p.detailAr.c_str());
+                ++unsubstituted;
+            }
+        }
+        std::printf("       %zu problems, %d with a leftover format character\n",
+                    st.problems.size(), unsubstituted);
+        checkTrue(!st.problems.empty(), "the faulty take produced problems at all");
+        checkTrue(unsubstituted == 0, "no leftover %% in any report line");
+    }
+
     // ---------------- G8: does the envelope remove the singer? ---------
     // Same vocal tract at two pitches.  The place where pitch confounds the
     // measurement is where the harmonics are far apart compared with the

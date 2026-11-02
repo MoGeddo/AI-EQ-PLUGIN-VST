@@ -94,8 +94,14 @@ if ($LASTEXITCODE -ne 0) { Fail "build failed" }
 Write-Host "== acceptance gates ==" -ForegroundColor Cyan
 $tests = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_tests.exe" | Select-Object -First 1
 if (-not $tests) { Fail "aeq_tests.exe was not built" }
-& $tests.FullName
-if ($LASTEXITCODE -ne 0) { Fail "the DSP gates did not pass - do not load this build in a DAW" }
+# Tee, not a plain call: if the gate binary ever dies mid-run the buffered output is
+# still shown, instead of "the gates did not pass" with no evidence (that happened).
+& $tests.FullName 2>&1 | Tee-Object -Variable gateOut | Write-Host
+$code = $LASTEXITCODE
+if ($code -ne 0) {
+    $last = ($gateOut | Select-Object -Last 12) -join "`n"
+    Fail "the DSP gates did not pass (exit $code) - do not load this build in a DAW.`nLast lines:`n$last"
+}
 
 # ----------------------------------------------------------------------- output
 $vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.vst3" | Select-Object -First 1
