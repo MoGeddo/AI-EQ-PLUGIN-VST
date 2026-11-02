@@ -8,6 +8,9 @@ name: build-windows
 on:
   push:
     branches: ['arena/**', 'main']
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
   workflow_dispatch:
 
 permissions:

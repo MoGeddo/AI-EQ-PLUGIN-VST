@@ -125,6 +125,28 @@ More info → Run anyway.
 
 ---
 
+## 4.5 من غير ما تبني على جهازك: GitHub Actions
+
+الـ`.exe` بيتولّد كمان على ويندوز في السحابة. `.github/workflows/build-windows.yml` بيعمل:
+بناء البلجن (بنفس `build_windows.ps1` اللي بتشغله إنت) → 18 بوابة → Inno Setup → الـinstaller.
+
+**تنزيل الناتج:**
+
+- **الطريقة العادية:** افتح `Actions` في الريبو → آخر run ناجح → `Artifacts` →
+  `AEQ_Restore_Setup`. الملف جوّه zip.
+
+- **لو الأرتيفاكت مش موصّل عندك:** اكتب `[exe]` في رسالة أي commit وارفع — الـworkflow
+  هيلزق الـsetup على فرع `ci/artifacts`، وبعدها:
+
+```bash
+git fetch origin ci/artifacts
+git show FETCH_ORIGIN_HEAD:ci-artifacts/AEQ_Restore_Setup_1.0.0.exe > AEQ_Restore_Setup_1.0.0.exe
+```
+
+**ملاحظة مهمة عن المعمارية:** ملف التسطيب نفسه **32-bit** — ده عادي ومقصود،
+Inno Setup بيطلّع installer 32-bit دايماً. **البلجن جوّاه 64-bit** وبيتسطب في
+`Common Files\VST3` الصح. لو شفت "x86" في خصائص الملف، ده الـinstaller مش البلجن.
+
 ## 5. أوامر مفيدة
 
 ```powershell
