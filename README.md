@@ -36,7 +36,7 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 | `docs/09_STEM_AUDIT_AR.md` | تشريح الـ39 stem: أي نسخة نستخدم، وأدلة raw مقابل Dry، وسلامة الملفات |
 | `docs/10_TARGET_VALIDATION_AR.md` | **التحقق على الـ15 أغنية**: الكيرف اتأكد بـ0.88 dB، وتشغيل البلجن الحقيقي على المادة الهدف، و3 أسباب لأخطاء اتصلحت |
 | `docs/11_VST3_BUILD_AR.md` | **إيه المطلوب للـVST3**: متطلبات ويندوز، اللي اتصلح واللي لسه، والتحقق بـpluginval |
-| `docs/12_INSTALLER_AR.md` | **الـInstaller**: ملف `.exe` واحد Next/Next، المسارات، الـUninstall، والتوقيع |
+| `docs/12_INSTALLER_AR.md` | **الـInstaller و Releases**: ملف `.exe` واحد Next/Next، المسارات، الـUninstall، التوقيع، وإزاي كل إصدار ينشر تلقائياً |
 | `docs/13_MARKET_TEARDOWN_AR.md` | **تفكيك السوق**: 120 بلجن = 6 معماريات، الفراغ المقاس، وتصميم Performance-Domain |
 | `docs/14_HARMONIC_ENVELOPE_AR.md` | **المظروف الهرموني**: الشرح + القياس على الـ15 + **القرار بقى بيستخدمه** (هدف وسماحية في نفس الإحداثيات، صفر إنذار كاذب، وحدود الطريقة) |
 | `GATES.md` | بوابات القبول المكتوبة قبل الكود (6/6 ناجحة) — طريقة العمل: تعريف النجاح الأول |

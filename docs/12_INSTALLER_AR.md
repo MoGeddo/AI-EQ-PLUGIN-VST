@@ -199,3 +199,43 @@ python .\installer\make_assets.py
 
 **قبل ما تسطّب:** النسخة غير موقّعة بشهادة، فهيظهر تحذير SmartScreen:
 **More info → Run anyway**. ده متوقع، ومش عيب في الـinstaller.
+
+---
+
+## 8. الإصدارات (Releases) — من هنا بتنزّل
+
+كل إصدار بيتنشر تلقائياً في صفحة **Releases** على الريبو، وفيه ملف التسطيب نفسه
+جاهز للتنزيل:
+
+```
+https://github.com/MoGeddo/AI-EQ-PLUGIN-VST/releases/latest
+```
+
+كل Release فيه:
+
+| الملف | إيه هو |
+|---|---|
+| `AEQ_Restore_Setup_<version>.exe` | الـinstaller (Next → Next → Install) |
+| `AEQ_Restore_Setup_<version>.sha256` | البصمة للتحقق إن الملف نزل سليم |
+
+### إزاي إصدار جديد ينزل «واحد ورا التاني»
+
+الـworkflow بيقرا رقم الإصدار من `installer/AEQ_Restore.iss`، ولو الإصدار ده
+**مش منشور قبل كده** بيعمله Release ويحط الملفات جواه، ومعه قائمة اللي اتغير من
+آخر tag. ولو الإصدار **موجود بالفعل** بيقف ويقول: "الإصدار ده منشور — كبّر الرقم".
+
+يعني الإصدارات **مابتتغيّرش من تحت** حد نزّلها. عشان تنزّل نسخة جديدة:
+
+1. غيّر الرقم في **مكانين** (لازم الاتنين يتطابقوا):
+   - `installer/AEQ_Restore.iss` → `#define AppVersion "1.2.0"`
+   - `plugin/CMakeLists.txt` → `project(AEQRestore VERSION 1.2.0 ...)`
+   - `installer/build_installer.ps1` و`.github/workflows/build-windows.yml` بياخدوا
+     الرقم من نفس الـworkflow
+2. ادفع الكوميت، والـCI هيبني، يشغّل الـ15 بوابة، ويعمل الـRelease.
+
+**التحقق بعد التنزيل** (PowerShell):
+
+```powershell
+Get-FileHash .\AEQ_Restore_Setup_1.2.0.exe -Algorithm SHA256
+# قارن بالـsha256 اللي في صفحة الـRelease
+```
