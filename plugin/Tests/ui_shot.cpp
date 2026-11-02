@@ -243,7 +243,7 @@ int main(int argc, char** argv) {
                     stage (("string " + juce::String (k) + " alone").toRawUTF8());
                     juce::Image im (juce::Image::RGB, 320, 60, true);
                     juce::Graphics gg (im);
-                    gg.fillAll (Palette::surface());
+                    gg.fillAll (aeq::ui::Palette::surface());
                     aeq::ui::draw (gg, strs[k], im.getBounds().toFloat().reduced (4.0f),
                                    juce::Justification::topRight, k == 0 ? 13.0f : 11.5f,
                                    juce::Colours::white);
