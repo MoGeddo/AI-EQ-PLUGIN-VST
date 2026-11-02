@@ -111,7 +111,9 @@ if ($code -ne 0) {
 Write-Host "== UI screenshot ==" -ForegroundColor Cyan
 $shot = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_shot.exe" | Select-Object -First 1
 if ($shot) {
-    $shotDir = Join-Path $root "dist\ui"
+    # the repo dist folder, not the plugin folder: the artifact upload and the
+    # installer both work from there
+    $shotDir = Join-Path (Split-Path $root -Parent) "dist\ui"
     New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
     # The output is kept next to the images: when a renderer fails on a machine
     # nobody can log into, the reason has to travel with the artifact.
