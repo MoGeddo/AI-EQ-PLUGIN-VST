@@ -28,6 +28,11 @@ jobs:
         with:
           fetch-depth: 0        # release notes diff against the previous tag
 
+      # The version lives in four files and a release is only correct when they
+      # agree; check before spending six minutes compiling.
+      - name: Check the version is consistent
+        run: python installer/bump_version.py --check
+
       # JUCE 8.0.4 is ~250 MB to fetch; caching makes a re-run start at the
       # compile step instead of the download.
       - name: Cache JUCE
@@ -131,24 +136,31 @@ jobs:
           if (-not $changes) { $changes = "- (no commits listed)" }
 
           $notes = @"
-          ## AEQ Restore $v
+          ## AEQ Restore $v — ويندوز
 
-          Installer for Windows: VST3 + standalone. Run it, press Next, Next, Install.
+          installer واحد: VST3 + نسخة مستقلة. دوس **Next → Next → Install** وخلاص.
 
-          **Not code-signed yet**, so Windows shows "Unknown publisher": choose
-          **More info -> Run anyway**. That is expected, not a broken installer.
+          > النسخة **مش موقّعة بشهادة**، فويندوز هيقول "Unknown publisher" →
+          > **More info → Run anyway**. ده متوقع، مش عيب في الـinstaller.
 
           | | |
           |---|---|
-          | Installer | ``AEQ_Restore_Setup_$v.exe`` (``$size MB``) |
+          | الملف | ``AEQ_Restore_Setup_$v.exe`` (``$size MB``) |
           | SHA-256 | ``$sha`` |
-          | VST3 path | ``C:\Program Files\Common Files\VST3\AEQ Restore.vst3`` |
+          | مكان الـVST3 | ``C:\Program Files\Common Files\VST3\AEQ Restore.vst3`` |
 
-          ### What changed
+          ### اللي اتغيّر في الإصدار ده
+
           $changes
 
-          Built by CI run [$env:GITHUB_RUN_ID]($env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID)
-          on ``$env:GITHUB_SHA.Substring(0,12)``, after all acceptance gates passed.
+          ### التحقق بعد التنزيل
+
+          ```powershell
+          Get-FileHash .\AEQ_Restore_Setup_$v.exe -Algorithm SHA256
+          ```
+
+          البناء والبوابات: [run $env:GITHUB_RUN_ID]($env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID)
+          على ``$($env:GITHUB_SHA.Substring(0,12))`` — كل بوابات القبول ناجحة قبل النشر.
           "@
 
           $notes | Out-File -Encoding utf8 release-notes.md
