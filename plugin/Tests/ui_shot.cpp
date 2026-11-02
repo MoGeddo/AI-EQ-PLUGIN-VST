@@ -223,6 +223,18 @@ int main(int argc, char** argv) {
         if (c == nullptr || c->getWidth() <= 0 || c->getHeight() <= 0) continue;
         stage ((juce::String ("child ") + juce::String (i) + " " + typeid (*c).name()
                 + " " + c->getBounds().toString()).toRawUTF8());
+        // A viewport is a container: snapshot what it *holds* first, so a crash
+        // says whether the content or the container is at fault
+        if (auto* vp = dynamic_cast<juce::Viewport*> (c)) {
+            if (auto* viewed = vp->getViewedComponent()) {
+                stage (("viewport content " + juce::String (viewed->getWidth()) + "x"
+                        + juce::String (viewed->getHeight())).toRawUTF8());
+                savePng (viewed->createComponentSnapshot (viewed->getLocalBounds(), false, 1.0f),
+                         dir.getChildFile ("probe-viewed.png"));
+                stage ("viewport content survived");
+            }
+        }
+        stage ("snapshot child");
         savePng (c->createComponentSnapshot (c->getLocalBounds(), false, 1.0f),
                  dir.getChildFile ("probe-child-" + juce::String (i) + ".png"));
     }
