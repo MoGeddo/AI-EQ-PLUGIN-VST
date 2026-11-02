@@ -9,15 +9,15 @@
 // ---------------------------------------------------------------------------
 // AEQ Restore - the window.
 //
-// Layout, top to bottom:
-//   header   what this is, what it is doing right now, and the master bypass
-//   curve    the standard, your take, the tolerance corridor, the correction
-//   report   one card per finding, and the verdict card that answers "do I touch
-//            this take at all?"
-//   transport what a mixer actually turns: six knobs and the analysis time
+//   title bar   the mark, the name, the live readouts, the master bypass
+//   curve       the standard, your take, the tolerance corridor, the correction
+//   verdict     the one sentence that matters, with its numbers under it
+//   report      one card per finding
+//   dock        what a mixer actually turns: seven knobs, a label above each and
+//               its value below it - never inside it
 //
-// The window is resizable: a plugin that only looks right at 880x560 is the thing
-// this redesign was for.
+// Every string is drawn through aeq::ui::draw(), which is the shaped, embedded-font
+// path.  Nothing in this file calls Graphics::drawText with a font the OS supplies.
 // ---------------------------------------------------------------------------
 class AeqAudioProcessorEditor : public juce::AudioProcessorEditor,
                                 private juce::Timer {
@@ -31,17 +31,15 @@ public:
 private:
     void timerCallback() override;
     void buildControls();
-    void layoutHeader (juce::Rectangle<int>);
-    void layoutCurve (juce::Rectangle<int>);
-    void layoutReport (juce::Rectangle<int>);
-    void layoutTransport (juce::Rectangle<int>);
 
-    // the verdict: one sentence, three numbers underneath
+    void drawTitleBar (juce::Graphics&, juce::Rectangle<int>);
     void drawVerdict (juce::Graphics&, juce::Rectangle<int>);
-    void drawHeader (juce::Graphics&, juce::Rectangle<int>);
-    void drawTransportFrame (juce::Graphics&, juce::Rectangle<int>);
+    void drawDockFrame (juce::Graphics&, juce::Rectangle<int>);
+
     juce::String verdictTitle() const;
+    juce::String verdictSubtitle() const;
     juce::Colour verdictColour() const;
+    int actionCount() const;
 
     AeqAudioProcessor& proc_;
 
@@ -49,7 +47,7 @@ private:
     aeq::ui::ProblemList problems_;
     juce::Viewport reportView_;
 
-    juce::TextButton learnBtn_ { "تحليل مستمر" }, resetBtn_ { "إعادة" }, bypassBtn_ { "Bypass" };
+    juce::TextButton learnBtn_ { "Analyse" }, resetBtn_ { "Reset" }, bypassBtn_ { "Bypass" };
     juce::ComboBox mode_;
     juce::OwnedArray<juce::Slider> knobs_;
     juce::OwnedArray<juce::Label> knobNames_;
@@ -67,7 +65,9 @@ private:
     double peakZ_ = 0.0;
     double peakZf_ = 0.0;
     bool haveData_ = false;
-    juce::Rectangle<int> verdictBounds_;
+
+    juce::Rectangle<int> verdictBounds_, dockBounds_, curveBounds_;
+    std::vector<juce::Rectangle<int>> knobValueRows_;   // where each knob's number goes
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AeqAudioProcessorEditor)
 };

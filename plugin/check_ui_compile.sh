@@ -19,10 +19,20 @@ if [ ! -d "$JUCE_DIR/modules" ]; then
 fi
 here=$(cd "$(dirname "$0")" && pwd)
 tmp=$(mktemp -d)
+# juce_add_binary_data generates this at CMake configure time; for a syntax check
+# a declaration is enough (nothing is linked here).
+cat > "$tmp/BinaryData.h" <<'HDR'
+#pragma once
+#include <cstddef>
+namespace BinaryData {
+    extern const char* CairoRegular_ttf;      extern const int CairoRegular_ttfSize;
+    extern const char* CairoSemiBold_ttf;     extern const int CairoSemiBold_ttfSize;
+}
+HDR
 cat > "$tmp/tu.cpp" <<CPP
 #include "$here/Source/PluginEditor.cpp"
 CPP
-g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$JUCE_DIR/modules" \
+g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$tmp" -I"$JUCE_DIR/modules" \
     -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_MODULE_AVAILABLE_juce_events=1 \
     -DJUCE_MODULE_AVAILABLE_juce_data_structures=1 -DJUCE_MODULE_AVAILABLE_juce_graphics=1 \
     -DJUCE_MODULE_AVAILABLE_juce_gui_basics=1 -DJUCE_MODULE_AVAILABLE_juce_gui_extra=1 \
@@ -32,4 +42,12 @@ g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$JUCE_DIR/modules" \
     -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 -DJUCE_WEB_BROWSER=0 -DJUCE_USE_CURL=0 \
     -DJUCE_PLUGINHOST_VST3=0 -DJUCE_PLUGINHOST_AU=0 -DJUCE_STANDALONE_APPLICATION=0 \
     "$tmp/tu.cpp"
+# the text funnel is compiled too: a font that does not load is a build problem
+cat > "$tmp/tu2.cpp" <<CPP
+#include "$here/Source/ui/ArabicText.cpp"
+CPP
+g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$tmp" -I"$JUCE_DIR/modules" \
+    -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_MODULE_AVAILABLE_juce_graphics=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_gui_basics=1 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 \
+    "$tmp/tu2.cpp"
 echo "UI compiles against $JUCE_DIR"

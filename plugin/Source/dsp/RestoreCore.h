@@ -270,15 +270,23 @@ public:
 
     // apply a pending correction (audio thread, called from processBlock)
     void pollAndApply() {
-        if (pendingSeen_.load(std::memory_order_acquire)) return;
+        const bool trimsMoved = trimsDirty_.exchange(false, std::memory_order_acq_rel);
+        if (pendingSeen_.load(std::memory_order_acquire) && !trimsMoved) return;
         std::unique_lock<std::mutex> lk(pendingMx_, std::try_to_lock);
-        if (!lk.owns_lock()) return;                 // solver is writing; try again next block
+        if (!lk.owns_lock()) {                       // solver is writing; retry next block
+            if (trimsMoved) trimsDirty_.store(true, std::memory_order_release);
+            return;
+        }
         // Analyse-then-apply: until enough of the performance has been heard,
         // only the manual taste moves reach the signal path.  The corrective
         // curve would otherwise be a different filter every few seconds during
         // the first pass, which is both audible and dishonest.
         const bool settled = pendingSettled_ || settings_.settleSeconds <= 0.0;
         std::vector<BandSpec> bands = settled ? pendingBands_ : manualBands();
+        for (size_t i = 0; i < bands.size() && i < trimDb_.size(); ++i) {
+            const double t = trimDb_[i].load(std::memory_order_relaxed);
+            if (std::abs(t) > 0.001) bands[i].gainDb = static_cast<float>(std::clamp<double>(bands[i].gainDb + t, -18.0, 18.0));
+        }
         eqLeft_.setBands(bands, fs_);
         eqRight_.setBands(bands, fs_);
         hpf_.set(settled && pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
@@ -307,10 +315,15 @@ public:
     // engineer adds on top of what the analysis proposed: it never changes the
     // measurement, only what is applied, and it survives a re-analysis because it
     // is keyed by band index rather than by frequency.
+    // Called from the editor thread.  It must NOT rebuild the cascade here: the
+    // audio thread is reading it, and replacing coefficients (and reallocating the
+    // band list) under it is a race that ends in a crash inside the DAW.  The flag
+    // is picked up by pollAndApply() on the audio thread, which is the only place
+    // that is allowed to touch the processing objects.
     void setBandTrim(int index, double db) {
         if (index < 0 || index >= static_cast<int>(trimDb_.size())) return;
         trimDb_[index].store(std::clamp(db, -12.0, 12.0));
-        updateBands();
+        trimsDirty_.store(true, std::memory_order_release);
     }
     double bandTrim(int index) const {
         if (index < 0 || index >= static_cast<int>(trimDb_.size())) return 0.0;
@@ -318,7 +331,7 @@ public:
     }
     void clearTrims() {
         for (auto& t : trimDb_) t.store(0.0);
-        updateBands();
+        trimsDirty_.store(true, std::memory_order_release);
     }
 
     std::vector<BandSpec> activeBands() const {
@@ -395,6 +408,7 @@ private:
     std::vector<float> scratch_;
     std::vector<int> tmpCount_;
     std::array<std::atomic<double>, 8> trimDb_{};   // UI gain offsets, per corrective band
+    std::atomic<bool> trimsDirty_{false};           // the editor moved a handle
     std::atomic<double> learnProgress_{0.0};
     double outGain_ = 1.0;
 

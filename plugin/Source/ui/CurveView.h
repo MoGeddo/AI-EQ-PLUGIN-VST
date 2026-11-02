@@ -360,12 +360,12 @@ private:
             g.setColour (it.c);
             g.fillRoundedRectangle (x, r.getCentreY() - 1.5f, 14.0f, 3.0f, 1.5f);
             x += 20.0f;
-            g.setColour (Palette::muted());
-            g.setFont (font (11.5f));
+            // through the shaping path: this text is Arabic, and g.drawText with a
+            // system font is what turned it into boxes
             const auto txt = juce::String::fromUTF8 (it.ar) + "  ";
-            g.drawText (txt, juce::Rectangle<float> (x, r.getY(), 80.0f, r.getHeight()).toNearestInt(),
-                        juce::Justification::centredLeft, false);
-            x += juce::GlyphArrangement::getStringWidth (font (11.5f), txt) + 6.0f;
+            aeq::ui::draw (g, txt, juce::Rectangle<float> (x, r.getY(), 80.0f, r.getHeight()),
+                           juce::Justification::centredLeft, 11.5f, Palette::muted());
+            x += aeq::ui::measure (txt, 11.5f) + 6.0f;
         }
         // the corridor earns its own entry: it is the answer to "why no action?"
         const float sx = r.getRight() - 250.0f;

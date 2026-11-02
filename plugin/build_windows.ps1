@@ -103,6 +103,37 @@ if ($code -ne 0) {
     Fail "the DSP gates did not pass (exit $code) - do not load this build in a DAW.`nLast lines:`n$last"
 }
 
+# --------------------------------------------------------------- UI screenshot
+# The claim "the interface renders" has to come from the interface, not from a
+# drawing of it.  aeq_shot builds the real editor, feeds it a synthetic take and
+# snapshots the component tree, using the same Windows font stack that broke in
+# 1.2.0.  A missing shot is not a build failure: the exe is the deliverable.
+Write-Host "== UI screenshot ==" -ForegroundColor Cyan
+$shot = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_shot.exe" | Select-Object -First 1
+if ($shot) {
+    $shotDir = Join-Path $root "dist\ui"
+    New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
+    & $shot.FullName $shotDir 2>&1 | Write-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "   aeq_shot exited $LASTEXITCODE - the screenshot is missing" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "   aeq_shot.exe was not built - the screenshot is missing" -ForegroundColor Yellow
+}
+
+# ----------------------------------------------------------- thread contract
+# TSAN is a GCC/Clang feature; on MSVC this binary is a plain run.  It still
+# catches the class of bug that crashed FL Studio (a lifetime violation across
+# threads) when it is deterministic.
+Write-Host "== thread contract ==" -ForegroundColor Cyan
+$thr = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_threads.exe" | Select-Object -First 1
+if ($thr) {
+    & $thr.FullName 2>&1 | Write-Host
+    if ($LASTEXITCODE -ne 0) { Fail "the audio/editor thread contract failed" }
+} else {
+    Write-Host "   aeq_threads.exe was not built" -ForegroundColor Yellow
+}
+
 # ----------------------------------------------------------------------- output
 $vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.vst3" | Select-Object -First 1
 $exe  = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.exe" | Select-Object -First 1

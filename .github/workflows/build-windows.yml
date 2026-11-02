@@ -69,6 +69,16 @@ jobs:
             throw "packaging failed"
           }
 
+      # The screenshot is the interface, rendered by the interface.  It is uploaded
+      # even when the packaging step fails, because it is also the evidence that the
+      # Arabic in the window is shaped and not a row of boxes.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: AEQ_UI_Screenshot
+          path: dist/ui/*.png
+          if-no-files-found: warn
+
       - uses: actions/upload-artifact@v4
         if: success()
         with:
