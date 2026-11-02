@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
+#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -25,6 +26,7 @@
 
 namespace {
 
+constexpr double kPi = 3.14159265358979323846;   // M_PI is not defined by MSVC
 constexpr double kSr = 48000.0;
 constexpr int kBlock = 64;
 
@@ -34,7 +36,7 @@ std::vector<float> makeVoice(int n, double f0 = 220.0) {
         const double t = i / kSr;
         double s = 0.0;
         for (int k = 1; k <= 20; ++k)
-            s += std::sin(2.0 * M_PI * k * f0 * t) / k;
+            s += std::sin(2.0 * kPi * k * f0 * t) / k;
         x[size_t(i)] = float(0.1 * s);
     }
     return x;
