@@ -85,10 +85,24 @@ void savePng(const juce::Image& img, const juce::File& file) {
                 img.getWidth(), img.getHeight(), (juce::int64) file.getSize());
 }
 
+// Breadcrumbs.  A renderer that dies inside a DAW-less CI session has to leave a
+// trace of the step it died on, or the only thing anyone learns is "exit code
+// -1073741819".  Written unbuffered, to stdout and to a file next to the images.
+juce::File g_log;
+void stage(const char* what) {
+    std::printf("[shot] %s\n", what);
+    std::fflush(stdout);
+    if (g_log != juce::File())
+        g_log.appendText (juce::String("[shot] ") + what + "\n");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);   // a crash must not eat the breadcrumbs
+    stage("start");
     const juce::ScopedJuceInitialiser_GUI init;
+    stage("juce gui initialised");
 
     juce::File dir = juce::File::getCurrentWorkingDirectory();
     if (argc > 1) {
@@ -96,16 +110,16 @@ int main(int argc, char** argv) {
         dir = juce::File::isAbsolutePath (argv[1]) ? given : dir.getChildFile (given.getFileName());
     }
     dir.createDirectory();
-    {
-        const auto res = dir.createDirectory();
-        std::printf("output directory: %s (createDirectory: %d, exists: %d)\n",
-                    dir.getFullPathName().toRawUTF8(), (int) res.getErrorMessage().isNotEmpty(),
-                    (int) dir.isDirectory());
-    }
+    g_log = dir.getChildFile ("shot.log.txt");
+    stage (("output directory " + dir.getFullPathName()).toRawUTF8());
+
+    try {
 
     AeqAudioProcessor proc;
+    stage("processor constructed");
     proc.prepareToPlay(48000.0, 512);
     proc.setLearning(true);
+    stage("prepared");
 
     // feed the take through processBlock exactly as a DAW would
     auto take = voice(196.0, 26.0);        // G3, 26 s
@@ -121,7 +135,7 @@ int main(int argc, char** argv) {
         proc.processBlock(buf, midi);
         if (b % 40 == 0) {                 // what the processor's timer does
             proc.core().refresh();
-            juce::MessageManager::getInstance()->runDispatchLoopUntil(1);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (1);
         }
     }
     proc.core().refresh();
@@ -132,24 +146,36 @@ int main(int argc, char** argv) {
                 (int) proc.core().state().settled,
                 (int) proc.core().activeBands().size());
 
-    std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
-    if (editor == nullptr) { std::printf("no editor\n"); return 1; }
+    stage("analysis fed");
+    std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
+    if (editor == nullptr) { stage("no editor"); return 1; }
+    stage("editor constructed");
 
     struct Size { int w, h; const char* name; };
     const Size sizes[] = { { 1240, 800, "ui-1240x800.png" },
                            { 1024, 700, "ui-1024x700.png" } };
 
     for (const auto& s : sizes) {
+        stage((juce::String("setSize ") + juce::String(s.w) + "x" + juce::String(s.h)).toRawUTF8());
         editor->setSize(s.w, s.h);
         // let the editor's 12 Hz timer fire a few times: it is what pulls the
         // analysis into the window, and a snapshot taken before it would show the
         // empty state
         juce::MessageManager::getInstance()->runDispatchLoopUntil(700);
-        const auto img = editor->createComponentSnapshot(editor->getLocalBounds(), false, 1.0f);
-        savePng(img, dir.getChildFile(s.name));
+        stage("timer pumped");
+        const auto img = editor->createComponentSnapshot (editor->getLocalBounds(), false, 1.0f);
+        stage("snapshot taken");
+        savePng (img, dir.getChildFile (s.name));
     }
 
     editor.reset();
-    juce::MessageManager::getInstance()->runDispatchLoopUntil(50);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    stage("done");
     return 0;
+    } catch (const std::exception& e) {
+        stage ((juce::String ("exception: ") + e.what()).toRawUTF8());
+    } catch (...) {
+        stage ("unknown exception");
+    }
+    return 1;
 }

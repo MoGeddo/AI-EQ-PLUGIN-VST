@@ -134,8 +134,11 @@ if ($shot) {
     }
 
     if (-not $pngs) {
-        if (Test-Path (Join-Path $shotDir "shot.log")) {
-            Get-Content (Join-Path $shotDir "shot.log") -Tail 30 | Write-Host
+        foreach ($f in @("shot.log.txt", "shot.log")) {
+            if (Test-Path (Join-Path $shotDir $f)) {
+                Write-Host "--- $f ---"
+                Get-Content (Join-Path $shotDir $f) -Tail 30 | Write-Host
+            }
         }
         Fail "aeq_shot produced no image - the interface has not been seen to render"
     }
