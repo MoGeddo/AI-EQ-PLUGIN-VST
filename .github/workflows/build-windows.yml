@@ -49,8 +49,15 @@ jobs:
 
       - name: Installer
         run: |
-          ./installer/build_installer.ps1 -SkipBuild -Version 1.0.0 2>&1 |
+          # *>&1 merges Write-Host (the information stream) into the log: without
+          # it the packaging step fails silently in CI
+          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.0.0 *>&1 |
               Tee-Object -FilePath build.log -Append
+          "`n=== installer exit: $LASTEXITCODE ===" | Tee-Object -FilePath build.log -Append
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content build.log -Tail 60 | Out-File -Encoding utf8 $env:GITHUB_STEP_SUMMARY -Append
+            throw "packaging failed"
+          }
 
       - uses: actions/upload-artifact@v4
         if: success()

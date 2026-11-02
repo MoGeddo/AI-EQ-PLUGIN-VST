@@ -85,11 +85,23 @@ if (-not $iscc) {
 if (-not $iscc) {
     Fail "Inno Setup not found. Install it with:  winget install JRSoftware.InnoSetup   then reopen the terminal."
 }
-$isccVersion = (Get-Item $iscc).VersionInfo.FileVersion
-Write-Host "   $iscc  (v$isccVersion)"
-$verParts = $isccVersion -split '\.'
-if ([int]$verParts[0] -lt 6 -or ([int]$verParts[0] -eq 6 -and [int]$verParts[1] -lt 3)) {
-    Fail "Inno Setup 6.3+ required (this one is $isccVersion) - the script uses ArchitecturesAllowed=x64compatible"
+$isccVersion = ""
+try { $isccVersion = (Get-Item $iscc).VersionInfo.FileVersion } catch { }
+if (-not $isccVersion) {
+    Write-Host "   $iscc  (version not readable - continuing, it will fail below if it is too old)" -ForegroundColor Yellow
+} else {
+    Write-Host "   $iscc  (v$isccVersion)"
+    $verParts = $isccVersion -split '\.'
+    $majorOk = $false
+    if ($verParts.Count -ge 2) {
+        $mj = 0; $mn = 0
+        [int]::TryParse($verParts[0], [ref]$mj) | Out-Null
+        [int]::TryParse($verParts[1], [ref]$mn) | Out-Null
+        $majorOk = ($mj -gt 6) -or ($mj -eq 6 -and $mn -ge 3)
+    }
+    if (-not $majorOk) {
+        Fail "Inno Setup 6.3+ required (this one is $isccVersion) - the script uses ArchitecturesAllowed=x64compatible"
+    }
 }
 
 # ------------------------------------------------------------------ 5. compile
