@@ -40,14 +40,28 @@ if (-not $JucePath) {
     Write-Host "   using JUCE at $JucePath"
 }
 
-# vswhere ships with every Visual Studio installer / Build Tools
+# vswhere ships with every Visual Studio installer / Build Tools.  The generator
+# name has to match the installed Visual Studio, and "17 2022" is not a safe
+# assumption any more: a machine with 2026 installed refuses to configure.
+$vsGenerator = $null
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 if (Test-Path $vswhere) {
     $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property displayName
     if (-not $vs) { Fail "Visual Studio found but not the C++ workload. Re-run the installer and tick 'Desktop development with C++'." }
-    Write-Host "   $vs"
+    $vsVersion = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion
+    Write-Host "   $vs ($vsVersion)"
+    $major = 0
+    if ($vsVersion -match '^(\d+)\.') { $major = [int]$Matches[1] }
+    switch ($major) {
+        16 { $vsGenerator = "Visual Studio 16 2019" }
+        17 { $vsGenerator = "Visual Studio 17 2022" }
+        18 { $vsGenerator = "Visual Studio 18 2026" }
+    }
+    if (-not $vsGenerator) {
+        Write-Host "   unknown Visual Studio major version - leaving the generator to CMake" -ForegroundColor Yellow
+    }
 } else {
-    Write-Host "   vswhere not found - assuming the C++ toolchain is on PATH (Build Tools are fine too)" -ForegroundColor Yellow
+    Write-Host "   vswhere not found - letting CMake pick the default generator" -ForegroundColor Yellow
 }
 
 # --------------------------------------------------------------------- configure
@@ -58,10 +72,18 @@ if ($Clean -and (Test-Path $buildDir)) {
 }
 
 Write-Host "== configure ==" -ForegroundColor Cyan
-$cfgArgs = @("-B", $buildDir, "-S", $root, "-G", "Visual Studio 17 2022", "-A", "x64")
+if ($vsGenerator) {
+    $cfgArgs = @("-B", $buildDir, "-S", $root, "-G", $vsGenerator, "-A", "x64")
+} else {
+    $cfgArgs = @("-B", $buildDir, "-S", $root)
+}
 if ($JucePath) { $cfgArgs += "-DJUCE_PATH=$JucePath" }
 & cmake @cfgArgs
-if ($LASTEXITCODE -ne 0) { Fail "configure failed (scroll up: the usual causes are no network for the JUCE fetch, or a missing C++ workload)" }
+if ($LASTEXITCODE -ne 0) {
+    Fail ("configure failed (scroll up: the usual causes are no network for the JUCE fetch, " +
+          "a missing C++ workload, or a build folder made by a different generator - " +
+          "in that last case re-run with -Clean)")
+}
 
 # ------------------------------------------------------------------------- build
 Write-Host "== build (Release) ==" -ForegroundColor Cyan
