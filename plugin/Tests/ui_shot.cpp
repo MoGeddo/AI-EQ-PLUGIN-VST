@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
     // breadcrumbs say which, instead of "access violation".
     stage("probe: plain image");
     {
-        juce::Image probe (64, 24, false);
+        juce::Image probe (juce::Image::RGB, 64, 24, true);
         juce::Graphics pg (probe);
         pg.setColour (juce::Colours::red);
         pg.fillRect (probe.getBounds());
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
     // ---- probe 2: the embedded font, shaped ---------------------------------
     stage("probe: embedded font");
     {
-        juce::Image probe (480, 90, false);
+        juce::Image probe (juce::Image::RGB, 480, 90, true);
         juce::Graphics pg (probe);
         pg.fillAll (juce::Colour::fromRGB (0x10, 0x12, 0x16));
         aeq::ui::draw (pg, juce::String::fromUTF8 (u8"AEQ Restore — الاختبار: خط عربي"),
