@@ -227,6 +227,30 @@ int main(int argc, char** argv) {
                    + " sev=" + juce::String (pp.severity, 3)
                    + " label=" + juce::String (int (pp.labelAr.size())) + "B"
                    + " detail=" + juce::String (int (pp.detailAr.size())) + "B").toRawUTF8());
+            // the strings themselves, in hex, and drawn on their own: if a string
+            // kills the shaper, that is not the card's fault
+            if (i == 2) {
+                juce::String hex = "detail bytes: ";
+                for (unsigned char ch : pp.detailAr) hex << juce::String::toHexString ((int) ch).paddedLeft ('0', 2) << " ";
+                stage (hex.toRawUTF8());
+                juce::String hex2 = "label bytes: ";
+                for (unsigned char ch : pp.labelAr) hex2 << juce::String::toHexString ((int) ch).paddedLeft ('0', 2) << " ";
+                stage (hex2.toRawUTF8());
+
+                const juce::String strs[] = { juce::String::fromUTF8 (pp.labelAr.c_str()),
+                                              juce::String::fromUTF8 (pp.detailAr.c_str()) };
+                for (int k = 0; k < 2; ++k) {
+                    stage (("string " + juce::String (k) + " alone").toRawUTF8());
+                    juce::Image im (juce::Image::RGB, 320, 60, true);
+                    juce::Graphics gg (im);
+                    gg.fillAll (Palette::surface());
+                    aeq::ui::draw (gg, strs[k], im.getBounds().toFloat().reduced (4.0f),
+                                   juce::Justification::topRight, k == 0 ? 13.0f : 11.5f,
+                                   juce::Colours::white);
+                    savePng (im, dir.getChildFile ("probe-str-" + juce::String (k) + ".png"));
+                }
+                stage ("strings survived");
+            }
             aeq::ui::ProblemList one;
             one.setSize (336, 400);
             one.setProblems (std::vector<aeq::Problem> { pp });
