@@ -433,16 +433,29 @@ private:
         }
         return n;
     }
+    // The report text is Arabic with numbers in it, so it is a printf format plus
+    // an argument list.  Getting that wrong is not cosmetic: this used to have a
+    // switch with cases 1..3 only, so a string with four placeholders fell through
+    // to "%s" and the window printed
+    //     القاع أثقل من الجسم بـ % .1f dB (نسبي لطبقة % .0f Hz ...)
+    // verbatim - the literal format string, straight into the report cards.
+    //
+    // Passing extra arguments to snprintf is harmless (they are unused); passing
+    // too few is undefined.  So the argument list is always padded to four and the
+    // count is asserted rather than trusted.
     static std::string fmt(const char* f, std::initializer_list<double> a) {
-        char buf[256];
-        const double* v = a.begin();
-        switch (std::min(placeholders(f), static_cast<int>(a.size()))) {
-            case 3: std::snprintf(buf, sizeof(buf), f, v[0], v[1], v[2]); break;
-            case 2: std::snprintf(buf, sizeof(buf), f, v[0], v[1]); break;
-            case 1: std::snprintf(buf, sizeof(buf), f, v[0]); break;
-            default: std::snprintf(buf, sizeof(buf), "%s", f); break;
+        char buf[512];
+        double v[4] = { 0.0, 0.0, 0.0, 0.0 };
+        int i = 0;
+        for (double d : a) { if (i < 4) v[i] = d; ++i; }
+        const int needed = placeholders(f);
+        // (no jassert here: this header is compiled without JUCE, by the gates)
+        if (needed > 4 || needed > i) {
+            std::snprintf (buf, sizeof (buf), "%s", f);   // rather than undefined behaviour
+            return std::string (buf);
         }
-        return std::string(buf);
+        std::snprintf (buf, sizeof (buf), f, v[0], v[1], v[2], v[3]);
+        return std::string (buf);
     }
 };
 

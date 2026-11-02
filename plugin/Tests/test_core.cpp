@@ -156,6 +156,54 @@ static std::vector<float> runPipeline(const std::vector<float>& in, RestoreCore&
     return out;
 }
 
+// --------------------------------------------------------------------------
+// G21: no report string may reach the window with a format placeholder in it.
+// G16 checks the take it was given; this one checks a *tilted* take, because the
+// line that broke was the low-end one, which has four numbers in it:
+//     "القاع أثقل من الجسم بـ %.1f dB (نسبي لطبقة %.0f Hz: ...)"
+// The formatter had cases for one, two and three arguments, so this line fell
+// through and the report printed the format string itself.  A card that reads
+// "% .1f dB" is worse than no card: it is the product's face.
+static void checkTiltTextIsFormatted() {
+    std::printf("\n[G21] the tilted take's report line carries numbers, not placeholders\n");
+    RestoreSettings s; s.learn = true; s.settleSeconds = 0.0;
+    auto core = makeCore();
+    auto x = voice(196.0, 22.0);
+    // the same two faults the screenshot harness renders: a boom under 120 Hz and
+    // a 230 Hz bell.  This is the take whose report line has four numbers in it.
+    {
+        double lp = 0.0;
+        const double aLp = 1.0 - std::exp(-2.0 * kPi * 120.0 / sr);
+        double b1 = 0.0, b2 = 0.0;
+        const double w = 2.0 * kPi * 230.0 / sr, q = 1.1;
+        const double alpha = std::sin(w) / (2.0 * q), a0 = 1.0 + alpha;
+        const double bb0 = (1.0 + 1.4 * alpha) / a0, bb2 = (1.0 - 1.4 * alpha) / a0;
+        const double aa1 = (-2.0 * std::cos(w)) / a0, aa2 = (1.0 - alpha) / a0;
+        for (auto& v : x) {
+            const double in = v;
+            lp += aLp * (in - lp);
+            const double y = bb0 * in + b1;
+            b1 = bb2 * in - aa1 * y + b2;
+            b2 = -aa2 * y;
+            v = float(in + 0.55 * lp + 0.16 * y);
+        }
+    }
+    runPipeline(x, *core, s, true);
+    const auto st = core->state();
+
+    int bad = 0, tilt = 0;
+    for (const auto& p : st.problems) {
+        if (p.id == "tilt" || p.detailAr.find("القاع") != std::string::npos) ++tilt;
+        if (p.labelAr.find('%') != std::string::npos || p.detailAr.find('%') != std::string::npos) {
+            std::printf("       not substituted: %s\n", p.detailAr.c_str());
+            ++bad;
+        }
+    }
+    std::printf("       %zu problems, %d low-end lines, %d with a leftover format character\n",
+                st.problems.size(), tilt, bad);
+    checkTrue(bad == 0, "no leftover %% in any report line of the tilted take");
+}
+
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // a crash must not swallow the log
     std::printf("\n===== AEQ RESTORE - acceptance gates =====\n");
@@ -433,6 +481,8 @@ int main() {
         double pk = 0; for (auto v : o2) pk = std::max(pk, std::abs(double(v)));
         check(pk <= 1.3, "0 dBFS sine does not blow up", pk, 1.0, 0.3);
     }
+
+    checkTiltTextIsFormatted();
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);
     return gFail ? 1 : 0;
