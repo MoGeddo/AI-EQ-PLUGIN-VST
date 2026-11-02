@@ -50,4 +50,16 @@ g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$tmp" -I"$JUCE_DIR/modules" \
     -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_MODULE_AVAILABLE_juce_graphics=1 \
     -DJUCE_MODULE_AVAILABLE_juce_gui_basics=1 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 \
     "$tmp/tu2.cpp"
+# the screenshot harness is compiled too: it is the thing that has to run on the
+# CI runner, and a typo in it costs six minutes of Windows build to find
+printf '#include "%s/Tests/ui_shot.cpp"\n' "$here" > "$tmp/tu3.cpp"
+g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$tmp" -I"$JUCE_DIR/modules" \
+    -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_MODULE_AVAILABLE_juce_events=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_data_structures=1 -DJUCE_MODULE_AVAILABLE_juce_graphics=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_gui_basics=1 -DJUCE_MODULE_AVAILABLE_juce_gui_extra=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_audio_basics=1 -DJUCE_MODULE_AVAILABLE_juce_audio_devices=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_audio_formats=1 -DJUCE_MODULE_AVAILABLE_juce_audio_processors=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_audio_utils=1 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 \
+    -DJUCE_WEB_BROWSER=0 -DJUCE_USE_CURL=0 -DJUCE_STANDALONE_APPLICATION=1 \
+    -DJUCE_MODAL_LOOPS_PERMITTED=1 "$tmp/tu3.cpp"
 echo "UI compiles against $JUCE_DIR"

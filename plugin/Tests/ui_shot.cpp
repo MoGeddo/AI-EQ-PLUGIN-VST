@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     juce::File dir = juce::File::getCurrentWorkingDirectory();
     if (argc > 1) {
         const juce::File given (juce::String::fromUTF8 (argv[1]));
-        dir = given.isAbsolute() ? given : dir.getChildFile (given.getFileName());
+        dir = juce::File::isAbsolutePath (argv[1]) ? given : dir.getChildFile (given.getFileName());
     }
     dir.createDirectory();
     {
