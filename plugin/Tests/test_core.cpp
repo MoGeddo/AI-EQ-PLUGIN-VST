@@ -313,6 +313,39 @@ int main() {
         checkTrue(d < 1e-9, "envelope is deterministic");
     }
 
+    // ---------------- G18: the UI trims are the engineer's, not the analyser's ----
+    // A handle dragged in the graph must change what is applied and must NOT change
+    // the measurement: the whole point of the evidence trail is that the analysis is
+    // what it is, and any deviation from it is visible and owned by the user.
+    std::printf("\n[G18] a UI trim changes the applied EQ, never the measurement\n");
+    {
+        RestoreSettings s; s.learn = true;
+        auto core = makeCore();
+        runPipeline(bad, *core, s, true);
+        const auto before = core->activeBands();
+        const auto measBefore = core->measurements().bandDb;
+        if (! before.empty()) {
+            const double base = before[0].gainDb;
+            core->setBandTrim(0, -3.0);
+            const auto after = core->activeBands();
+            const auto measAfter = core->measurements().bandDb;
+            const double moved = after.empty() ? 0.0 : after[0].gainDb - base;
+            double measDelta = 0.0;
+            for (size_t i = 0; i < measBefore.size() && i < measAfter.size(); ++i)
+                measDelta = std::max(measDelta, std::abs(measBefore[i] - measAfter[i]));
+            std::printf("       band 1: proposal %+.2f dB -> %+.2f dB after a -3 dB trim\n",
+                        base, after.empty() ? 0.0 : after[0].gainDb);
+            check(std::abs(moved + 3.0) < 0.01, "the trim reaches the applied cascade", moved, -3.0, 0.01);
+            check(measDelta < 1e-9, "the measurement is untouched by the trim", measDelta, 0.0, 1e-9);
+            core->clearTrims();
+            const auto restored = core->activeBands();
+            check(restored.empty() || std::abs(restored[0].gainDb - base) < 0.01,
+                  "clearing the trim restores the proposal", restored.empty() ? 0.0 : restored[0].gainDb, base, 0.01);
+        } else {
+            checkTrue(false, "the take produced at least one corrective band to trim");
+        }
+    }
+
     // ---------------- G4: does processing undo them? -------------------
     std::printf("\n[G4] correction effectiveness\n");
     {

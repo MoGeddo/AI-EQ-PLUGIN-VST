@@ -9,6 +9,7 @@
 #pragma once
 #include <atomic>
 #include <mutex>
+#include <array>
 #include <vector>
 #include <cmath>
 #include <algorithm>
@@ -302,6 +303,24 @@ public:
     Analyzer& analyzer() { return analyzer_; }
 
     // the full correction that is actually running (for the UI curve / delta)
+    // The UI draws the correction as movable handles.  A trim is a gain offset the
+    // engineer adds on top of what the analysis proposed: it never changes the
+    // measurement, only what is applied, and it survives a re-analysis because it
+    // is keyed by band index rather than by frequency.
+    void setBandTrim(int index, double db) {
+        if (index < 0 || index >= static_cast<int>(trimDb_.size())) return;
+        trimDb_[index].store(std::clamp(db, -12.0, 12.0));
+        updateBands();
+    }
+    double bandTrim(int index) const {
+        if (index < 0 || index >= static_cast<int>(trimDb_.size())) return 0.0;
+        return trimDb_[index].load();
+    }
+    void clearTrims() {
+        for (auto& t : trimDb_) t.store(0.0);
+        updateBands();
+    }
+
     std::vector<BandSpec> activeBands() const {
         std::lock_guard<std::mutex> lk(stateMx_);
         return activeBandsLocked();
@@ -322,6 +341,10 @@ public:
 
     std::vector<BandSpec> activeBandsLocked() const {
         std::vector<BandSpec> out = state_.corrective;
+        for (size_t i = 0; i < out.size() && i < trimDb_.size(); ++i) {
+            const double t = trimDb_[i].load();
+            if (std::abs(t) > 0.001) out[i].gainDb = std::clamp(out[i].gainDb + t, -18.0, 18.0);
+        }
         out.insert(out.end(), state_.resonance.begin(), state_.resonance.end());
         const auto man = manualBands();
         out.insert(out.end(), man.begin(), man.end());
@@ -371,6 +394,7 @@ private:
     ProblemDetector detector_;
     std::vector<float> scratch_;
     std::vector<int> tmpCount_;
+    std::array<std::atomic<double>, 8> trimDb_{};   // UI gain offsets, per corrective band
     std::atomic<double> learnProgress_{0.0};
     double outGain_ = 1.0;
 

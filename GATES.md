@@ -25,19 +25,19 @@ at any vocal stem first; the other gates need nothing but the source tree.
 
 - [x] G2: the same signal at two pitches gives the same envelope within 1.5 dB,
       while the raw spectrum differs by more than 3 dB
-  CHECK: build/aeq_tests
+  CHECK: sh -c "ulimit -s 512; build/aeq_tests"
   EXPECT: envelope cuts that dependence by more than 3x
-  EVIDENCE: automatic-evidence=v1; definition-sha256=42ff9fc93b23768f5a3116cbc49ba2c3eb379fab7be297f5658feb6a6239c99d; exit=0; EXPECT=matched; output-sha256=197e6a51e42f7890dc1dd0bc997fcf1f5b40ee64e4b7c4a29697c06471c29c9f; output-bytes=2451; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=682e03ead91e5f3a4e0e0ae1218429435aec149fb4eb4be1d4b82aa1216a0103; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
 
 - [x] G3: nothing else regressed - the original gates still pass, and G8/G16 add asserts
-  CHECK: build/aeq_tests
-  EXPECT: 24 passed, 0 failed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=85bb5be1e422a88198d97296c2c5b6589482955e41c8d3bd92fab6a8740ef7e4; exit=0; EXPECT=matched; output-sha256=a5571205f49e9f79f4f3f055d256495696e78939272df0bbc4fb6890ba376d0d; output-bytes=2649; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  CHECK: sh -c "ulimit -s 512; build/aeq_tests"
+  EXPECT: 27 passed, 0 failed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=22ae5270ed89573d9a11e2e666fa852662075523c417355197d0013ebbfa9003; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
 
 - [x] G4: determinism survives the new accumulator
-  CHECK: build/aeq_tests
+  CHECK: sh -c "ulimit -s 512; build/aeq_tests"
   EXPECT: [G6] determinism
-  EVIDENCE: automatic-evidence=v1; definition-sha256=4c697ac049ec7ea12f5c69d8f200b5da3596ba60cb1863490a7852edc618dc3c; exit=0; EXPECT=matched; output-sha256=197e6a51e42f7890dc1dd0bc997fcf1f5b40ee64e4b7c4a29697c06471c29c9f; output-bytes=2451; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=c6d6e14ab2537e9a8c33114ab2f8554cd2454556a40f234038504c21e743f073; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
 
 - [x] G5: the shipped CLI exposes the envelope for every analysis, so any claim can be
       rechecked on real material
@@ -97,17 +97,31 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: GATE PASS: fault caught
 
 - [x] G16: every report line is fully formatted - no leftover '%' from a format whose
-  EVIDENCE: automatic-evidence=v1; definition-sha256=43ab3f8c47a5d18fa50e4e3b9c54889d23a84b144c9b41f31093563d8bda1809; exit=0; EXPECT=matched; output-sha256=a5571205f49e9f79f4f3f055d256495696e78939272df0bbc4fb6890ba376d0d; output-bytes=2649; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=28b2089bc2796347080f86a6b66ab66eb0cdee6c7d3d9155f93beda5cb1de917; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
       argument count did not match.  A '%%' in the de-esser line was counted as a
       placeholder, read past its argument list, and killed the Windows gate binary
       before it printed a line (found with -fsanitize=address)
-  CHECK: build/aeq_tests
+  CHECK: sh -c "ulimit -s 512; build/aeq_tests"
   EXPECT: no leftover %% in any report line
 
 - [x] G17: the gate binary runs inside 512 KB of stack, because Windows gives 1 MB and
-  EVIDENCE: automatic-evidence=v1; definition-sha256=97e028208a0b8c75d00047bdfd22acdb8a746e24d751149761a483aad14dd1ec; exit=0; EXPECT=matched; output-sha256=a5571205f49e9f79f4f3f055d256495696e78939272df0bbc4fb6890ba376d0d; output-bytes=2649; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=3f4af598502f43fcc3378b49920b2dac382efed817e0617fd2629d6eb0817f50; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
       a 210 KB RestoreCore on the stack (three 8192-point double arrays in the analyser)
       plus ten of them in one function killed the MSVC build with 0xC00000FD before it
       printed a line
   CHECK: sh -c 'ulimit -s 512; build/aeq_tests'
-  EXPECT: 24 passed, 0 failed
+  EXPECT: 27 passed, 0 failed
+
+- [x] G19: the editor compiles against a pristine JUCE 8 tree before CI spends six
+  EVIDENCE: automatic-evidence=v1; definition-sha256=be7c107a665d3fa2b44e488c5dfcdecd273d6621ff63a5e85fdcbcf159673239; exit=0; EXPECT=matched; output-sha256=5273b6773ddfb701faae4d7c6e463fd89f26efb12017bda393875398f4dcb487; output-bytes=36; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      minutes on the Windows build (a changed JUCE API or a missing include is a
+      seconds-long check, not a build-and-wait)
+  CHECK: JUCE_DIR=/tmp/JUCE-8.0.4 ./plugin/check_ui_compile.sh
+  EXPECT: UI compiles against
+
+- [x] G20: the design preview is generated from the table the plugin actually compiles
+  EVIDENCE: automatic-evidence=v1; definition-sha256=3a0f2d81017b1332216fbe336b879372f639ff874a3b933a3d2fc61d93406465; exit=0; EXPECT=matched; output-sha256=068bbd40a33fa7582fb0a825b83c4fc5c14f6a8d1a20aa4af63eb321d9d0ba5c; output-bytes=65; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      in, not from numbers typed into the drawing (it reads EnvTargetCurve.h and
+      fails if the table cannot be found)
+  CHECK: /tmp/v/bin/python analysis/scripts/ui_preview.py
+  EXPECT: wrote
