@@ -5,6 +5,15 @@
 
 A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 
+## التنزيل (ويندوز)
+
+**[أحدث إصدار — Releases](https://github.com/MoGeddo/AI-EQ-PLUGIN-VST/releases/latest)**
+→ نزّل `AEQ_Restore_Setup_<version>.exe` → دوس **Next → Next → Install**.
+
+كل إصدار بيتنشر لوحده مع قائمة اللي اتغيّر + بصمة `SHA-256`. النسخة مش موقّعة
+بشهادة، فويندوز هيقول «Unknown publisher» → **More info → Run anyway** (شرح كامل في
+`docs/12_INSTALLER_AR.md` §8).
+
 ---
 
 ## ليه المشروع ده مختلف
