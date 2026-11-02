@@ -19,6 +19,7 @@
 
 #include <cinttypes>
 #include <random>
+#include <typeinfo>
 
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
@@ -213,6 +214,19 @@ int main(int argc, char** argv) {
     std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
     if (editor == nullptr) { stage("no editor"); return 1; }
     stage("editor constructed");
+
+    // Which child of the editor dies?  One snapshot each, one breadcrumb each.
+    editor->setSize (1240, 800);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil (700);
+    for (int i = 0; i < editor->getNumChildComponents(); ++i) {
+        auto* c = editor->getChildComponent (i);
+        if (c == nullptr || c->getWidth() <= 0 || c->getHeight() <= 0) continue;
+        stage ((juce::String ("child ") + juce::String (i) + " " + typeid (*c).name()
+                + " " + c->getBounds().toString()).toRawUTF8());
+        savePng (c->createComponentSnapshot (c->getLocalBounds(), false, 1.0f),
+                 dir.getChildFile ("probe-child-" + juce::String (i) + ".png"));
+    }
+    stage ("children survived");
 
     struct Size { int w, h; const char* name; };
     const Size sizes[] = { { 1240, 800, "ui-1240x800.png" },
