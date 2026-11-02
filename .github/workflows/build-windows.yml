@@ -118,7 +118,8 @@ jobs:
             exit 0
           }
 
-          $sha  = (Get-Content dist/*.sha256 -Raw).Trim()
+          # the .sha256 file is "<hash>  <filename>"; only the hash belongs in the notes
+          $sha  = ((Get-Content dist/*.sha256 -Raw).Trim() -split '\s+')[0]
           $size = [math]::Round((Get-Item dist/*.exe).Length / 1MB, 2)
           $prev = (git describe --tags --abbrev=0 2>$null)
           if ($prev) {
