@@ -85,10 +85,22 @@ if (-not $iscc) {
 if (-not $iscc) {
     Fail "Inno Setup not found. Install it with:  winget install JRSoftware.InnoSetup   then reopen the terminal."
 }
+# ISCC does not always carry a usable file version (the Chocolatey build reports
+# 0.0.0.0), so try the registry as well and treat "unknown" as "let ISCC speak".
 $isccVersion = ""
 try { $isccVersion = (Get-Item $iscc).VersionInfo.FileVersion } catch { }
-if (-not $isccVersion) {
-    Write-Host "   $iscc  (version not readable - continuing, it will fail below if it is too old)" -ForegroundColor Yellow
+if (-not $isccVersion -or $isccVersion -like "0.0.0*") {
+    foreach ($k in @(
+            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1",
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1")) {
+        try {
+            $v = (Get-ItemProperty -Path $k -ErrorAction Stop).DisplayVersion
+            if ($v) { $isccVersion = $v; break }
+        } catch { }
+    }
+}
+if (-not $isccVersion -or $isccVersion -like "0.0.0*") {
+    Write-Host "   $iscc  (version not readable - continuing; 6.3+ is required)" -ForegroundColor Yellow
 } else {
     Write-Host "   $iscc  (v$isccVersion)"
     $verParts = $isccVersion -split '\.'
