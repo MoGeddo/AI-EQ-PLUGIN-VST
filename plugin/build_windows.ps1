@@ -119,11 +119,29 @@ if ($shot) {
     # nobody can log into, the reason has to travel with the artifact.
     & $shot.FullName $shotDir *>&1 |
         Tee-Object -FilePath (Join-Path $shotDir "shot.log") | Write-Host
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "   aeq_shot exited $LASTEXITCODE - the screenshot is missing" -ForegroundColor Yellow
+    $shotCode = $LASTEXITCODE
+    Write-Host "   aeq_shot: $($shot.FullName) -> $shotDir (exit $shotCode)"
+
+    # a second attempt, relative to the repo root: the first one is the path the
+    # editor will actually be run from, this covers a path-handling mistake
+    $pngs = Get-ChildItem -Path $shotDir -Filter "*.png" -ErrorAction SilentlyContinue
+    if (-not $pngs) {
+        Push-Location (Split-Path $root -Parent)
+        & $shot.FullName "dist\ui" *>&1 | Tee-Object -FilePath (Join-Path $shotDir "shot.log") -Append | Write-Host
+        Write-Host "   retry exit: $LASTEXITCODE"
+        Pop-Location
+        $pngs = Get-ChildItem -Path $shotDir -Filter "*.png" -ErrorAction SilentlyContinue
     }
+
+    if (-not $pngs) {
+        if (Test-Path (Join-Path $shotDir "shot.log")) {
+            Get-Content (Join-Path $shotDir "shot.log") -Tail 30 | Write-Host
+        }
+        Fail "aeq_shot produced no image - the interface has not been seen to render"
+    }
+    Write-Host "   rendered: $($pngs.Name -join ', ')" -ForegroundColor Green
 } else {
-    Write-Host "   aeq_shot.exe was not built - the screenshot is missing" -ForegroundColor Yellow
+    Fail "aeq_shot.exe was not built - the interface has not been seen to render"
 }
 
 # ----------------------------------------------------------- thread contract
