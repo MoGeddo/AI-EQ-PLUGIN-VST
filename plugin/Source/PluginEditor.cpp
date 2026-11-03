@@ -227,15 +227,15 @@ void AeqAudioProcessorEditor::buildControls() {
     aMode_ = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
         proc_.apvts(), "mode", mode_);
 
-    struct K { const char* id; const char* name; int decimals; };
+    struct K { const char* id; juce::String name; int decimals; };
     const K specs[] = {
-        { "amount",             "المعيار",     0 },
-        { "hpf_hz",             "القصّ تحت",   0 },
-        { "deess",              "De-ess",      1 },
-        { "axis_warm_presence", "دفء ↔ حضور",  1 },
-        { "axis_body_air",      "جسم ↔ هواء",  1 },
-        { "air_db",             "Air",         1 },
-        { "settle_s",           "زمن السماع",  0 },
+        { "amount",             aeq::ui::u8 ("المعيار"),     0 },
+        { "hpf_hz",             aeq::ui::u8 ("القصّ تحت"),   0 },
+        { "deess",              aeq::ui::u8 ("De-ess"),      1 },
+        { "axis_warm_presence", aeq::ui::u8 ("دفء ↔ حضور"),  1 },
+        { "axis_body_air",      aeq::ui::u8 ("جسم ↔ هواء"),  1 },
+        { "air_db",             aeq::ui::u8 ("Air"),         1 },
+        { "settle_s",           aeq::ui::u8 ("زمن السماع"),  0 },
     };
 
     for (const auto& k : specs) {
@@ -253,7 +253,7 @@ void AeqAudioProcessorEditor::buildControls() {
             proc_.apvts(), k.id, *s));
 
         auto* l = knobNames_.add (new Label());
-        l->setText (String::fromUTF8 (k.name), dontSendNotification);
+        l->setText (k.name, dontSendNotification);
         l->setJustificationType (Justification::centred);
         l->setColour (Label::textColourId, Palette::muted());
         l->setFont (aeq::ui::font (10.5f));

@@ -147,5 +147,14 @@ at any vocal stem first; the other gates need nothing but the source tree.
       this checks the compiled binary on the runner that builds it, and fails if the
       literal and a \uXXXX escape disagree, or if the embedded typeface has no glyph for
       U+062A
-  CHECK: ./dist/ui/shot-window.log contains-a-line "u8() of an Arabic literal gives"
-  EXPECT: no "FAIL: Arabic did not survive compilation"
+  CHECK: python3 analysis/scripts/check_utf8_literals.py
+  EXPECT: 0 non-ASCII literal(s) bypassing the UTF-8 funnel
+
+- [x] G24: the window lays out its controls at the size it opens at - resized() runs
+      inside setSize(), the constructor called setSize() before buildControls(), so the
+      only layout pass ran over an empty control list and every knob, label and value
+      stayed at 0x0.  The default size also came from nowhere: on a laptop the bottom row
+      fell outside the host's window.  The gate asserts the knobs have a real height and
+      the window fits inside 6/7 of the display it is opened on
+  CHECK: python3 analysis/scripts/check_layout.py
+  EXPECT: layout OK

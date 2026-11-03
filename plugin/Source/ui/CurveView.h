@@ -179,11 +179,18 @@ private:
     }
 
     void drawEmpty (juce::Graphics& g, juce::Rectangle<float> area) {
+        // Two lines, centred as a block.  They used to be drawn at the same y with
+        // a 24 px trim that the label's own justification ignored, so the Arabic
+        // and the English sat on top of each other in the middle of an empty plot.
+        const float blockTop = area.getCentreY() - 16.0f;
         label (g, "لسه مفيش قياس — شغّل التسجيل من أوله",
-               area.toNearestInt(), Palette::muted(), 14.0f, juce::Justification::centred);
+               juce::Rectangle<int> (int (area.getX()), int (blockTop),
+                                     int (area.getWidth()), 20),
+               Palette::muted(), 13.0f, juce::Justification::centred);
         label (g, "the meter fills as the take plays; nothing is applied before it settles",
-               area.toNearestInt().withTrimmedTop (24), Palette::muted().withAlpha (0.7f),
-               11.0f, juce::Justification::centred);
+               juce::Rectangle<int> (int (area.getX()), int (blockTop) + 22,
+                                     int (area.getWidth()), 16),
+               Palette::muted().withAlpha (0.7f), 10.5f, juce::Justification::centred);
     }
 
     void drawCorridor (juce::Graphics& g) {
@@ -349,11 +356,11 @@ private:
     }
 
     void drawLegend (juce::Graphics& g, juce::Rectangle<float> r) {
-        struct Item { juce::Colour c; const char* ar; const char* en; };
+        struct Item { juce::Colour c; juce::String ar; const char* en; };
         const Item items[] = {
-            { Palette::standard(), "المعيار", "standard" },
-            { Palette::accent2(),  "تسجيلك", "your take" },
-            { Palette::accent(),   "التصحيح", "correction" },
+            { Palette::standard(), u8 ("المعيار"),  "standard" },
+            { Palette::accent2(),  u8 ("تسجيلك"),   "your take" },
+            { Palette::accent(),   u8 ("التصحيح"),  "correction" },
         };
         float x = r.getX() + 16.0f;
         for (const auto& it : items) {
@@ -362,7 +369,7 @@ private:
             x += 20.0f;
             // through the shaping path: this text is Arabic, and g.drawText with a
             // system font is what turned it into boxes
-            const auto txt = juce::String::fromUTF8 (it.ar) + "  ";
+            const auto txt = it.ar + "  ";
             aeq::ui::draw (g, txt, juce::Rectangle<float> (x, r.getY(), 80.0f, r.getHeight()),
                            juce::Justification::centredLeft, 11.5f, Palette::muted());
             x += aeq::ui::measure (txt, 11.5f) + 6.0f;
