@@ -255,20 +255,26 @@ int main(int argc, char** argv) {
     // wrong: the compiler mangling the source (a code-page guess on MSVC), and the
     // conversion itself.
     {
-        const juce::String escaped("\u062a\u062e\u0646\u0629");
+        // The expectation is a list of numbers, not a string: building the
+        // reference with juce::String(const char*) would put the same bug in the
+        // test as in the code.  U+062A U+062E U+0646 U+0629 is "تخنة".
+        const juce::juce_wchar expected[] = { 0x062A, 0x062E, 0x0646, 0x0629 };
         const juce::String viaU8 = aeq::ui::u8("تخنة");
         const juce::String viaRaw("تخنة");          // the old path, shown for the log
 
         juce::String hex;
         for (auto c : viaU8) hex << juce::String::toHexString((int) c).paddedLeft('0', 4) << " ";
 
+        bool same = viaU8.length() == 4;
+        for (int i = 0; same && i < 4; ++i) same = (viaU8[i] == expected[i]);
+
         stage("u8() of an Arabic literal gives: " + hex
-              + (viaU8 == escaped ? "" : "   *** NOT the expected code points ***"));
+              + (same ? "  (correct)" : "   *** NOT the expected code points ***"));
         stage("the raw juce::String (const char*) path would have given "
               + juce::String(int(viaRaw.length())) + " characters instead of "
-              + juce::String(int(escaped.length())));
+              + "4");
 
-        if (viaU8 != escaped) {
+        if (! same) {
             stage("FAIL: Arabic did not survive compilation - check /utf-8 and ui::u8");
             return 2;
         }
