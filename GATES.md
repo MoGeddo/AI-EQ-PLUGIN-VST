@@ -31,7 +31,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
 
 - [x] G3: nothing else regressed - the original gates still pass, and G8/G16 add asserts
   CHECK: sh -c "ulimit -s 512; build/aeq_tests"
-  EXPECT: 27 passed, 0 failed
+  EXPECT: 28 passed, 0 failed
   EVIDENCE: automatic-evidence=v1; definition-sha256=22ae5270ed89573d9a11e2e666fa852662075523c417355197d0013ebbfa9003; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
 
 - [x] G4: determinism survives the new accumulator
@@ -110,7 +110,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
       plus ten of them in one function killed the MSVC build with 0xC00000FD before it
       printed a line
   CHECK: sh -c 'ulimit -s 512; build/aeq_tests'
-  EXPECT: 27 passed, 0 failed
+  EXPECT: 28 passed, 0 failed
 
 - [x] G19: the editor compiles against a pristine JUCE 8 tree before CI spends six
   EVIDENCE: automatic-evidence=v1; definition-sha256=be7c107a665d3fa2b44e488c5dfcdecd273d6621ff63a5e85fdcbcf159673239; exit=0; EXPECT=matched; output-sha256=5273b6773ddfb701faae4d7c6e463fd89f26efb12017bda393875398f4dcb487; output-bytes=36; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
@@ -125,3 +125,17 @@ at any vocal stem first; the other gates need nothing but the source tree.
       fails if the table cannot be found)
   CHECK: /tmp/v/bin/python analysis/scripts/ui_preview.py
   EXPECT: wrote
+
+- [x] G21: the report prints its numbers, not its format string - a tilt card carries four
+      numbers and the formatter only had cases for three, so every low-end card in the
+      window read "القاع أثقل من الجسم بـ % .1f dB".  G16 missed it because its take
+      never produced that line; this one renders a tilted take on purpose
+  CHECK: sh -c "ulimit -s 512; build/aeq_tests"
+  EXPECT: no leftover %% in any report line of the tilted take
+
+- [x] G22: the audio thread and the editor never touch the same object unprotected - the
+      crash in FL Studio was setBandTrim() rebuilding the biquad cascade under the audio
+      thread.  600 blocks of audio, 40 analyses and 200 handle drags on three threads,
+      built with ThreadSanitizer where the compiler has it
+  CHECK: ./build/aeq_threads
+  EXPECT: 2 passed, 0 failed
