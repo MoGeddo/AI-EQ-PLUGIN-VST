@@ -139,3 +139,13 @@ at any vocal stem first; the other gates need nothing but the source tree.
       built with ThreadSanitizer where the compiler has it
   CHECK: ./build/aeq_threads
   EXPECT: 2 passed, 0 failed
+
+- [x] G23: the Arabic reaches the binary as Arabic - juce::String(const char*) reads its
+      bytes as ASCII, so a UTF-8 literal that goes through it becomes one character per
+      byte ("تخنة" arrived as U+00D8 U+00AA U+00D8 U+00AE and painted as .notdef boxes while
+      the Latin in the same sentence rendered).  Every string now goes through ui::u8();
+      this checks the compiled binary on the runner that builds it, and fails if the
+      literal and a \uXXXX escape disagree, or if the embedded typeface has no glyph for
+      U+062A
+  CHECK: ./dist/ui/shot-window.log contains-a-line "u8() of an Arabic literal gives"
+  EXPECT: no "FAIL: Arabic did not survive compilation"

@@ -87,6 +87,12 @@ juce::Font font(float height, Face face) {
     return best;
 }
 
+void draw(juce::Graphics& g, const char* utf8, juce::Rectangle<float> area,
+          juce::Justification just, float fontSize, juce::Colour colour, Face face,
+          float extraLineSpacing) {
+    draw (g, u8 (utf8), area, just, fontSize, colour, face, extraLineSpacing);
+}
+
 void draw(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> area,
           juce::Justification just, float fontSize, juce::Colour colour, Face face,
           float extraLineSpacing) {
@@ -94,6 +100,11 @@ void draw(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> ar
     auto layout = buildLayout(utf8, area.getWidth(), fontSize, colour, face, just, extraLineSpacing);
     g.setColour(colour);
     layout.draw(g, area);
+}
+
+void drawParagraph(juce::Graphics& g, const char* utf8, juce::Rectangle<float> area,
+                   juce::Justification just, float fontSize, juce::Colour colour, Face face) {
+    drawParagraph (g, u8 (utf8), area, just, fontSize, colour, face);
 }
 
 void drawParagraph(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> area,
@@ -114,6 +125,10 @@ float measure(const juce::String& utf8, float fontSize, Face face) {
     if (utf8.isEmpty()) return 0.0f;
     auto f = font(fontSize, face);
     return juce::GlyphArrangement::getStringWidth(f, utf8);
+}
+
+float measure(const char* utf8, float fontSize, Face face) {
+    return measure (u8 (utf8), fontSize, face);
 }
 
 } // namespace aeq::ui

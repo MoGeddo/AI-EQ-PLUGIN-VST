@@ -100,27 +100,27 @@ private:
             // line read wrong, and they were the one construct that could take the
             // DirectWrite layout down when a card was drawn offscreen.
             case aeq::Action::CutBroad:
-                actionText = "خصم " + juce::String (std::abs (p.gainDb), 1) + " dB عند "
-                           + juce::String (int (p.freq)) + " هرتز · عرض " + juce::String (p.q, 1);
+                actionText = u8 ("خصم ") + juce::String (std::abs (p.gainDb), 1) + " dB عند "
+                           + juce::String (int (p.freq)) + u8 (" هرتز · عرض ") + juce::String (p.q, 1);
                 break;
             case aeq::Action::CutNarrow:
-                actionText = "notch عند " + juce::String (int (p.freq)) + " هرتز · عرض "
+                actionText = u8 ("notch عند ") + juce::String (int (p.freq)) + u8 (" هرتز · عرض ")
                            + juce::String (p.q, 1) + " · " + juce::String (p.gainDb, 1) + " dB";
                 break;
             case aeq::Action::RaiseHpf:
-                actionText = "قصّ تحت " + juce::String (int (p.freq)) + " Hz";
+                actionText = u8 ("قصّ تحت ") + juce::String (int (p.freq)) + " Hz";
                 break;
             case aeq::Action::DeEss:
-                actionText = "de-esser ديناميكي، أقصى " + juce::String (std::abs (p.gainDb), 1) + " dB";
+                actionText = u8 ("de-esser ديناميكي، أقصى ") + juce::String (std::abs (p.gainDb), 1) + " dB";
                 break;
             case aeq::Action::AddAir:
-                actionText = "رفع خفيف فوق 8 kHz  " + juce::String (p.gainDb, 1) + " dB";
+                actionText = u8 ("رفع خفيف فوق 8 kHz  ") + juce::String (p.gainDb, 1) + " dB";
                 break;
             case aeq::Action::WarnOnly:
-                actionText = "تحذير فقط — الـEQ مش هيحلها";
+                actionText = u8 ("تحذير فقط — الـEQ مش هيحلها");
                 break;
             case aeq::Action::None:
-                actionText = "دليل، مش قرار: داخل المدى بس قريب من الحد";
+                actionText = u8 ("دليل، مش قرار: داخل المدى بس قريب من الحد");
                 break;
         }
         label (g, actionText, act.toNearestInt(),

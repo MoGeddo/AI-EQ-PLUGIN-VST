@@ -192,7 +192,9 @@ void AeqAudioProcessorEditor::buildControls() {
         proc_.apvts(), "bypass", bypassBtn_);
 
     addAndMakeVisible (mode_);
-    mode_.addItemList ({ "Restore — يصحّح المشاكل", "Match — يمشي على المعيار" }, 1);
+    // fromUTF8, not the char* constructor: see ui::u8 in ArabicText.h
+    mode_.addItemList ({ aeq::ui::u8 ("Restore — يصحّح المشاكل"),
+                         aeq::ui::u8 ("Match — يمشي على المعيار") }, 1);
     aMode_ = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
         proc_.apvts(), "mode", mode_);
 
@@ -292,14 +294,14 @@ void AeqAudioProcessorEditor::drawTitleBar (Graphics& g, Rectangle<int> r) {
     auto right = area;
     right.removeFromRight (96 + 10);
 
-    const String f0 = haveData_ ? String (int (state_.measuredF0)) + " Hz" : "—";
+    const String f0 = haveData_ ? String (int (state_.measuredF0)) + " Hz" : aeq::ui::u8 ("—");
     const String secs = String (state_.analyzedSeconds, 0) + " s";
     const String bandCount = String (int (bands_.size()));
     struct C { String text; Colour c; int w; };
     const std::vector<C> chips = {
-        { "F0  " + f0,         Palette::take(),   100 },
-        { "سمع  " + secs,      Palette::muted(),   92 },
-        { "باند  " + bandCount, Palette::accent(),  96 },
+        { aeq::ui::u8 ("F0  ") + f0,              Palette::take(),   100 },
+        { aeq::ui::u8 ("سمع  ") + secs,           Palette::muted(),   92 },
+        { aeq::ui::u8 ("باند  ") + bandCount,     Palette::accent(),  96 },
     };
     for (const auto& c : chips) {
         auto box = right.removeFromRight (c.w).withSizeKeepingCentre (c.w, 24);
@@ -347,10 +349,11 @@ void AeqAudioProcessorEditor::drawVerdict (Graphics& g, Rectangle<int> bounds) {
     const float w = row.getWidth() / 3.0f;
     struct M { String v; String k; };
     const bool has = haveData_;
+    const auto dash = aeq::ui::u8 ("—");
     const std::vector<M> metrics = {
-        { has ? String (jmax (0.0, state_.distBeforeDb), 2) + " dB" : "—", "الانحراف" },
-        { has ? String (int (bands_.size())) : "—",                        "باند" },
-        { has ? String (peakZ_, 2) + "σ" : "—",                            "أقصى انحراف" },
+        { has ? String (jmax (0.0, state_.distBeforeDb), 2) + " dB" : dash, aeq::ui::u8 ("الانحراف") },
+        { has ? String (int (bands_.size())) : dash,                        aeq::ui::u8 ("باند") },
+        { has ? String (peakZ_, 2) + aeq::ui::u8 ("σ") : dash,              aeq::ui::u8 ("أقصى انحراف") },
     };
     for (int i = 0; i < 3; ++i) {
         auto cell = row.removeFromLeft (w);
@@ -372,26 +375,28 @@ void AeqAudioProcessorEditor::drawVerdict (Graphics& g, Rectangle<int> bounds) {
 }
 
 String AeqAudioProcessorEditor::verdictTitle() const {
-    if (! haveData_) return "بيحلّل — شغّل الأغنية من أولها";
-    if (! state_.settled) return "لسه بيسمع (" + String (state_.analyzedSeconds, 0) + " ثانية)";
+    if (! haveData_) return aeq::ui::u8 ("بيحلّل — شغّل الأغنية من أولها");
+    if (! state_.settled)
+        return aeq::ui::u8 ("لسه بيسمع (") + String (state_.analyzedSeconds, 0)
+               + aeq::ui::u8 (" ثانية)");
     const int actions = actionCount();
-    if (actions == 0) return "التسجيل داخل المعيار — مفيش تدخّل";
-    return String (actions) + " تدخّل مقترح على التسجيل";
+    if (actions == 0) return aeq::ui::u8 ("التسجيل داخل المعيار — مفيش تدخّل");
+    return String (actions) + aeq::ui::u8 (" تدخّل مقترح على التسجيل");
 }
 
 String AeqAudioProcessorEditor::verdictSubtitle() const {
     if (! haveData_)
-        return "مفيش قياس لسه. أول ما الصوت يعدّي، الباندات بتتظبط على مقاس المشكلة "
-               "اللي بتتسمع فعلًا، ومش بنلمس حاجة غيرها.";
+        return aeq::ui::u8 ("مفيش قياس لسه. أول ما الصوت يعدّي، الباندات بتتظبط على مقاس "
+                            "المشكلة اللي بتتسمع فعلًا، ومش بنلمس حاجة غيرها.");
     if (! state_.settled)
-        return "بنقيس كل ثانية بتعدّي ونقارنها بالميكسات الـ١٥. الحكم النهائي مش بينزل "
-               "غير ما التحليل يستقر.";
+        return aeq::ui::u8 ("بنقيس كل ثانية بتعدّي ونقارنها بالميكسات الـ١٥. الحكم النهائي "
+                            "مش بينزل غير ما التحليل يستقر.");
     const int actions = actionCount();
     if (actions == 0)
-        return "كل منطقة داخل مدى المهندس. أي حركة هاندل هنا هتكون تقليل للجودة، "
-               "فالاقتراح الوحيد هو إنك تسيبه.";
-    return "الأرقام اللي تحت هي المسافة عن المعيار، ومش مقترح نلمس غير المناطق اللي "
-           "خارج المدى.";
+        return aeq::ui::u8 ("كل منطقة داخل مدى المهندس. أي حركة هاندل هنا هتكون تقليل "
+                            "للجودة، فالاقتراح الوحيد هو إنك تسيبه.");
+    return aeq::ui::u8 ("الأرقام اللي تحت هي المسافة عن المعيار، ومش مقترح نلمس غير "
+                        "المناطق اللي خارج المدى.");
 }
 
 Colour AeqAudioProcessorEditor::verdictColour() const {

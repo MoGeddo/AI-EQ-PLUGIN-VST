@@ -246,27 +246,41 @@ int main(int argc, char** argv) {
     stage(juce::String("embedded Cairo typeface: ")
           + (aeq::ui::embeddedFontLoaded() ? "loaded" : "NOT loaded - falling back to a system face"));
 
-    // ---- the three questions a wall of boxes can hide -------------------------
-    // 1. Did the Arabic literal survive the compiler?  (MSVC guesses the source
-    //    encoding from the machine's code page unless told /utf-8.)
-    // 2. Which typeface did the UI actually get?
-    // 3. Does that typeface have a glyph for an Arabic letter at all?
+    // ---- the gate: did the Arabic survive the compiler and the conversion? ----
+    // juce::String (const char*) reads its bytes as ASCII, so a UTF-8 literal that
+    // goes through it becomes one character per byte - "تخنة" arrives as
+    // U+00D8 U+00AA U+00D8 U+00AE ... and paints as .notdef boxes while the Latin
+    // in the same sentence renders.  That was the 1.2.1 bug.  Everything now goes
+    // through aeq::ui::u8(), and this checks the two things that can still go
+    // wrong: the compiler mangling the source (a code-page guess on MSVC), and the
+    // conversion itself.
     {
-        const juce::String fromSource("تخنة");                          // as written in the file
-        const juce::String fromEscapes("\u062a\u062e\u0646\u0629");   // code page cannot touch this
+        const juce::String escaped("\u062a\u062e\u0646\u0629");
+        const juce::String viaU8 = aeq::ui::u8("تخنة");
+        const juce::String viaRaw("تخنة");          // the old path, shown for the log
+
         juce::String hex;
-        for (auto c : fromSource) hex << juce::String::toHexString((int) c).paddedLeft('0', 4) << " ";
-        stage("literal codepoints: " + hex + " | escaped: "
-              + (fromSource == fromEscapes ? juce::String("identical") : juce::String("DIFFERENT")));
+        for (auto c : viaU8) hex << juce::String::toHexString((int) c).paddedLeft('0', 4) << " ";
+
+        stage("u8() of an Arabic literal gives: " + hex
+              + (viaU8 == escaped ? "" : "   *** NOT the expected code points ***"));
+        stage("the raw juce::String (const char*) path would have given "
+              + juce::String(int(viaRaw.length())) + " characters instead of "
+              + juce::String(int(escaped.length())));
+
+        if (viaU8 != escaped) {
+            stage("FAIL: Arabic did not survive compilation - check /utf-8 and ui::u8");
+            return 2;
+        }
 
         auto tf = aeq::ui::typeface(aeq::ui::Face::Regular);
+        const auto glyph = tf != nullptr ? tf->getNominalGlyphForCodepoint(0x062A).value_or(0) : 0;
         stage("typeface: " + (tf != nullptr ? tf->getName() : juce::String("null"))
-              + ", glyph for U+062A: "
-              + (tf != nullptr ? juce::String(int(tf->getNominalGlyphForCodepoint(0x062A).value_or(0)))
-                               : juce::String("n/a")));
-        auto f = aeq::ui::font(14.0f, aeq::ui::Face::Regular);
-        stage("font family the UI uses: " + f.getTypefaceName()
-              + ", height " + juce::String(f.getHeight(), 1));
+              + ", glyph for U+062A: " + juce::String(int(glyph)));
+        if (tf == nullptr || glyph == 0) {
+            stage("FAIL: the embedded typeface cannot draw Arabic");
+            return 3;
+        }
     }
 
     // Can this process paint an image at all, and can it shape the embedded font?

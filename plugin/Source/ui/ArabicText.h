@@ -28,6 +28,17 @@ namespace aeq::ui {
 
 enum class Face { Regular, SemiBold };
 
+// juce::String (const char*) treats the bytes as ASCII (juce_String.cpp:
+// createFromCharPointer (CharPointer_ASCII (t))).  Any byte above 127 therefore
+// becomes one character of its own, so a UTF-8 Arabic literal that says "تخنة"
+// arrives as the eight characters U+00D8 U+00AA U+00D8 U+00AE ... and the window
+// paints a row of .notdef boxes.  That is what the 1.2.1 build did, and it is why
+// the Latin in the same sentence rendered perfectly.
+//
+// Every string in this UI goes through here.  u8() is the only conversion, and it
+// is explicit, so nobody can rely on the implicit one by accident again.
+inline juce::String u8 (const char* utf8) { return juce::String::fromUTF8 (utf8); }
+
 // The embedded typefaces.  Loaded once, on first use, and cached for the process.
 juce::Typeface::Ptr typeface(Face face);
 
@@ -42,6 +53,11 @@ juce::Font font(float height, Face face);
 
 // The single funnel: UTF-8 in, correctly shaped right-to-left text out.
 // `text` is a UTF-8 literal; the string is laid out with bidi + shaping enabled.
+void draw(juce::Graphics& g, const char* utf8, juce::Rectangle<float> area,
+          juce::Justification just = juce::Justification::centredLeft,
+          float fontSize = 14.0f, juce::Colour colour = juce::Colours::white,
+          Face face = Face::Regular, float extraLineSpacing = 0.0f);
+
 void draw(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> area,
           juce::Justification just = juce::Justification::centredLeft,
           float fontSize = 14.0f, juce::Colour colour = juce::Colours::white,
@@ -49,6 +65,11 @@ void draw(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> ar
 
 // Same, but laid out at a natural size and never taller than `area` - used for the
 // explanatory paragraphs where clipping mid-word looks broken.
+void drawParagraph(juce::Graphics& g, const char* utf8, juce::Rectangle<float> area,
+                   juce::Justification just = juce::Justification::topLeft,
+                   float fontSize = 13.0f, juce::Colour colour = juce::Colours::white,
+                   Face face = Face::Regular);
+
 void drawParagraph(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> area,
                    juce::Justification just = juce::Justification::topLeft,
                    float fontSize = 13.0f, juce::Colour colour = juce::Colours::white,
@@ -56,5 +77,6 @@ void drawParagraph(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<
 
 // Width the string needs at that size, for laying out chips and pills.
 float measure(const juce::String& utf8, float fontSize, Face face = Face::Regular);
+float measure(const char* utf8, float fontSize, Face face = Face::Regular);
 
 } // namespace aeq::ui

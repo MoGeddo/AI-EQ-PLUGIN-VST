@@ -103,6 +103,15 @@ inline void label (juce::Graphics& g, const juce::String& text, juce::Rectangle<
     aeq::ui::draw (g, text, r.toFloat(), j, size, c, bold ? Face::SemiBold : Face::Regular);
 }
 
+// literals land here exactly, so a source-level Arabic string is converted once,
+// by u8(), instead of through juce::String's ASCII constructor
+inline void label (juce::Graphics& g, const char* text, juce::Rectangle<int> r,
+                   juce::Colour c, float size,
+                   juce::Justification j = juce::Justification::centredLeft,
+                   bool bold = false) {
+    label (g, u8 (text), r, c, size, j, bold);
+}
+
 // a tracked-out caption, the small all-caps line above a number.  Latin only, so
 // letter spacing is safe (Arabic must never be tracked).
 inline void caption (juce::Graphics& g, const juce::String& text, juce::Rectangle<int> r,
@@ -116,6 +125,14 @@ inline void caption (juce::Graphics& g, const juce::String& text, juce::Rectangl
     layout.draw (g, r.toFloat());
 }
 
+// (declared after the String version so the forward call resolves)
+inline void caption (juce::Graphics& g, const char* text, juce::Rectangle<int> r,
+                     juce::Colour c = Palette::dim(),
+                     juce::Justification j = juce::Justification::centredLeft) {
+    caption (g, u8 (text), r, c, j);
+}
+
+
 // small rounded tag: "F0 260 Hz"
 inline void chip (juce::Graphics& g, const juce::String& text, juce::Rectangle<float> r,
                   juce::Colour c, bool filled = false) {
@@ -127,6 +144,12 @@ inline void chip (juce::Graphics& g, const juce::String& text, juce::Rectangle<f
     g.drawRoundedRectangle (r.reduced (0.5f), r.getHeight() * 0.5f, 1.0f);
     aeq::ui::draw (g, text, r, juce::Justification::centred, 11.0f, c, Face::SemiBold);
 }
+
+inline void chip (juce::Graphics& g, const char* text, juce::Rectangle<float> r,
+                  juce::Colour c, bool filled = false) {
+    chip (g, u8 (text), r, c, filled);
+}
+
 
 // severity 0..1 -> colour, the same ramp the problem cards use
 inline juce::Colour severityColour (double s) {
