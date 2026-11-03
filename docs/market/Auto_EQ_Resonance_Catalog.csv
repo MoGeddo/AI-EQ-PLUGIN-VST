@@ -1,0 +1,124 @@
+#,الفئة,اسم المنتج / الموديول,الشركة / المطور,الوظيفة وحدود التصنيف,مصدر التحقق
+1,01 — Auto EQ / Tonal Balance,smart:EQ 4,sonible,AI EQ؛ موازنة ترددية وUnmasking,https://www.sonible.com/blog/sonible-plugin-series/
+2,01 — Auto EQ / Tonal Balance,pure:EQ,sonible,AI EQ مبسط,https://www.sonible.com/blog/sonible-plugin-series/
+3,01 — Auto EQ / Tonal Balance,learn:EQ,sonible,EQ ذكي بواجهة تعليمية,https://www.sonible.com/blog/sonible-plugin-series/
+4,01 — Auto EQ / Tonal Balance,smart:chain,sonible,Channel strip ذكي؛ يتضمن EQ وDe-harshing، وليس EQ مستقل فقط,https://www.jrrshop.com/sonible-smart-chain.html
+5,01 — Auto EQ / Tonal Balance,Curves AQ,Waves,توليد منحنيات EQ من تحليل الصوت,https://www.waves.com/plugins/curves-aq
+6,01 — Auto EQ / Tonal Balance,Curves AQ Live,Waves,نسخة Live من AQ؛ ليست عائلة منفصلة,https://www.waves.com/plugins/curves-aq
+7,01 — Auto EQ / Tonal Balance,Gullfoss,Soundtheory,Intelligent adaptive EQ؛ لا يعني ذلك بالضرورة Neural AI,https://www.soundtheory.com/gullfoss
+8,01 — Auto EQ / Tonal Balance,Gullfoss Master,Soundtheory,نسخة Mastering ضمن عائلة Gullfoss,https://www.soundtheory.com/gullfoss
+9,01 — Auto EQ / Tonal Balance,Gullfoss Live,Soundtheory,نسخة Live ضمن عائلة Gullfoss,https://www.soundtheory.com/gullfoss
+10,01 — Auto EQ / Tonal Balance,Bloom,oeksound,Adaptive tone shaper,https://oeksound.com/
+11,01 — Auto EQ / Tonal Balance,TEOTE,Voxengo,Automatic spectral balancer؛ DSP تكيفي,https://www.kvraudio.com/product/teote-by-voxengo
+12,01 — Auto EQ / Tonal Balance,Equalizer,Wavesfactory,EQ تلقائي لتوزيع طاقة الترددات,https://gearspace.com/board/product-alerts-older-than-2-months/1409034-wavesfactory-releases-equalizer.html
+13,01 — Auto EQ / Tonal Balance,ZeroEQ,HoRNet,تصحيح رنين وتوازن طيفي تلقائي,https://www.hornetplugins.com/plugins/hornet-zeroeq/
+14,01 — Auto EQ / Tonal Balance,BalancEQ,HoRNet,Automatic spectral balancing,https://www.hornetplugins.com/plugins/hornet-balanceq/
+15,01 — Auto EQ / Tonal Balance,HarmoniQ,HoRNet,إزالة ترددات غير توافقية تلقائيًا,https://www.hornetplugins.com/plugins/hornet-harmoniq/
+16,01 — Auto EQ / Tonal Balance,ThirtyOne MK2,HoRNet,Graphic EQ مع Auto EQ,https://www.hornetplugins.com/plugins/hornet-thirtyone-mk2/
+17,01 — Auto EQ / Tonal Balance,Euphonia 3,TBProAudio,Spectrum matching حسب منحنى هدف,https://www.tbproaudio.de/products/euphonia
+18,01 — Auto EQ / Tonal Balance,MAutoEqualizer,MeldaProduction,Auto EQ وفق هدف أو تحليل,https://blog.accusonus.com/pro-audio-production/best-auto-eq-plugin/
+19,01 — Auto EQ / Tonal Balance,MAutoEqualizerLP,MeldaProduction,نسخة Linear Phase ضمن عائلة MAutoEqualizer,https://blog.accusonus.com/pro-audio-production/best-auto-eq-plugin/
+20,01 — Auto EQ / Tonal Balance,MAutoDynamicEq,MeldaProduction,Auto/Match EQ مع Dynamic EQ,https://blog.accusonus.com/pro-audio-production/best-auto-eq-plugin/
+21,01 — Auto EQ / Tonal Balance,Ceilings Of Sound Pro / Hyper-EQ,AYAIC,تطبيق EQ وفق Ceiling هدف؛ ليس Neural AI مثبتًا,https://www.ayaicinc.com/cos-pro
+22,01 — Auto EQ / Tonal Balance,CARBON Q,Mastering The Mix,Connected EQ وتوازن مستويات وSmart Presets,https://www.kvraudio.com/news/mastering-the-mix-releases-carbon-q---connected-eq-plugin-vst3-au-and-aax-68823
+23,02 — Resonance / Spectral / De-harsh,Soothe3,oeksound,Dynamic resonance suppressor,https://oeksound.com/
+24,02 — Resonance / Spectral / De-harsh,RESO,Mastering The Mix,اقتراح أهداف رنين ثم Dynamic suppression,https://www.masteringthemix.com/blogs/learn/how-to-fix-harshness-in-your-mix-for-a-smoother-sound
+25,02 — Resonance / Spectral / De-harsh,Soften,Sonnox / Focusrite,تنعيم حدّة للفوكال والجيتار والـMix Bus,https://eu.focusrite.com/software/hitmaker-expansion
+26,02 — Resonance / Spectral / De-harsh,Smooth Operator Pro,BABY Audio,Spectral resonance suppression,https://www.gearnews.com/soothe-2-alternatives-studio/
+27,02 — Resonance / Spectral / De-harsh,Smooth Operator,BABY Audio,الإصدار الأصلي؛ Spectral smoothing,https://www.gearnews.com/soothe-2-alternatives-studio/
+28,02 — Resonance / Spectral / De-harsh,DSEQ3,TBProAudio,Dynamic spectral EQ؛ Smart setup,https://www.tbproaudio.de/download
+29,02 — Resonance / Spectral / De-harsh,Curves Equator,Waves,Resonance suppression وUnmasking,https://www.waves.com/plugins/curves-equator
+30,02 — Resonance / Spectral / De-harsh,Curves Equator Live,Waves,نسخة Live من Equator,https://www.waves.com/plugins/curves-equator
+31,02 — Resonance / Spectral / De-harsh,SpecCraft,Three-Body Technology,إزالة رنين وضغط وتعويض طيفي,https://www.plugin-alliance.com/products/speccraft
+32,02 — Resonance / Spectral / De-harsh,M-Clarity 2,Techivation,Adaptive resonance suppression,https://techivation.com/m-clarity/
+33,02 — Resonance / Spectral / De-harsh,AI-Clarity,Techivation,Machine-learning resonance suppressor؛ تحقق من التوفر الحالي,https://www.kvraudio.com/news/techivation-releases-ai-clarity---smart-resonance-suppressor-vst-au-and-aax-60933
+34,02 — Resonance / Spectral / De-harsh,Sleek,HoRNet,Automatic resonance suppression,https://www.kvraudio.com/product/hornet-sleek-by-hornet
+35,02 — Resonance / Spectral / De-harsh,Dove,Acustica Audio,عائلة Dynamic Harmonics Suppressor / De-Harsher,https://www.acustica-audio.com/shop/products/DOVE
+36,02 — Resonance / Spectral / De-harsh,Fire The Dove,Acustica Audio,Standalone مبسط داخل عائلة Dove,https://www.acustica-audio.com/shop/products/DOVE
+37,02 — Resonance / Spectral / De-harsh,SA-3 Spectral Processor,McDSP,تقليل القمم الطيفية والرنين,https://www.soundonsound.com/reviews/mcdsp-sa-3
+38,02 — Resonance / Spectral / De-harsh,DeFilter,Acon Digital,تصحيح تلوّن الترددات والرنين,https://blog.accusonus.com/pro-audio-production/best-auto-eq-plugin/
+39,02 — Resonance / Spectral / De-harsh,UNFILTER,Zynaptiq,Adaptive frequency-response correction,https://blog.accusonus.com/pro-audio-production/best-auto-eq-plugin/
+40,02 — Resonance / Spectral / De-harsh,Vastaus,Wavegrove,تنعيم الحدّة؛ ليس Auto EQ عام,https://houseofloop.com/best-resonance-suppressor-plugins/
+41,02 — Resonance / Spectral / De-harsh,ResSup,Kobito,Dynamic resonance suppressor,https://www.kvraudio.com/news/kobito-releases-ressup-dynamic-resonance-suppressor-plugin-vst3-and-au-67156
+42,02 — Resonance / Spectral / De-harsh,ANINA,CRQL,Spectral resonance suppression؛ مجاني,https://www.kvraudio.com/product/anina-by-crql
+43,02 — Resonance / Spectral / De-harsh,ZL Spectrum Equalizer,ZL Audio,FFT dynamic spectrum EQ؛ يحتاج إعداد النطاقات,https://dawplugins.net/vst-plugins/effects/equalizer/zl-spectrum-equalizer/
+44,02 — Resonance / Spectral / De-harsh,SUPPRESSOR,Afugazi,Dynamic resonance suppression؛ مطور أقل شهرة,https://www.kvraudio.com/news/afugazi-releases-suppressor-resonance-suppressor-fix-your-drums-and-free-stereo-sub-and-recoil-69357
+45,02 — Resonance / Spectral / De-harsh,QUANCE,Codwaves,Smart resonance suppression مع Learn,https://www.kvraudio.com/news/codwaves-releases-quance---resonance-suppressor-vst3-au-and-aax-69445
+46,02 — Resonance / Spectral / De-harsh,Dagon,Mercurial Tones,Smart spectral suppression؛ مجاني وفق خبر الإصدار,https://rekkerd.org/free-dagon-resonance-suppressor-effect-plugin-by-mercurial-tones/
+47,02 — Resonance / Spectral / De-harsh,Tamer,Rast Sound,Dynamic resonance suppressor,https://www.kvraudio.com/news/rast-sound-releases-tamer---dynamic-resonance-suppressor-plugin-au-vst3-aax-66713
+48,02 — Resonance / Spectral / De-harsh,Quell,Buhr Audio,Spectral resonance suppression؛ مطور مستقل,https://buhraudio.com/quell
+49,02 — Resonance / Spectral / De-harsh,PURGE Plus,quietformat,Dynamic resonance suppression,https://www.quietformat.com/purge-plus
+50,02 — Resonance / Spectral / De-harsh,SMOOTH,KERN Audio,Psychoacoustic suppression؛ DSP وليس Neural Network,https://kernaudio.io/smooth
+51,02 — Resonance / Spectral / De-harsh,DAMP,Pad Works,Dynamic resonance suppression؛ macOS,https://www.kvraudio.com/news/pad-works-releases-damp-a-dynamic-resonance-suppressor-for-macos-68577
+52,02 — Resonance / Spectral / De-harsh,Tau Null,Tau Plugins,Dynamic resonance correction,https://www.kvraudio.com/product/tau-null-by-tau-plugins
+53,02 — Resonance / Spectral / De-harsh,Tranqui,H-17 Music,Resonance suppressor مع Assistant,https://www.kvraudio.com/product/tranqui-by-h-17-music
+54,02 — Resonance / Spectral / De-harsh,Resonix / josé semedo Resonix,Semedo Audio,Dynamic resonance suppression؛ صفحة المنتج تتضارب بشأن توفر Mac,https://www.kvraudio.com/product/jose-semedo-resonix-by-semedo-audio
+55,02 — Resonance / Spectral / De-harsh,Pure Amber,Plea Tech / PleaTech Audio,Spectral shaping ورنين؛ Windows VST3,https://www.kvraudio.com/product/pure-amber-by-plea-tech
+56,02 — Resonance / Spectral / De-harsh,Pro-Q 4 — Spectral Dynamics,FabFilter,ميزة داخل Pro-Q 4؛ ليست Auto EQ شامل بضغطة,https://www.gearnews.com/soothe-2-alternatives-studio/
+57,02 — Resonance / Spectral / De-harsh,MSpectralDynamics,MeldaProduction,Spectral dynamics؛ موازنة ورنين وSidechain,https://www.pluginboutique.com/product/3-Studio-Tools/71-Dynamic-Processor/120-MSpectralDynamics
+58,02 — Resonance / Spectral / De-harsh,MSpectralDynamicsLE,MeldaProduction,نسخة LE من المعالج الطيفي,https://www.meldaproduction.com/18_Anniversary
+59,02 — Resonance / Spectral / De-harsh,DSM V3,ProAudioDSP,Dynamic Spectrum Mapper؛ يلتقط خصائص طيفية وديناميكية,https://www.plugin-alliance.com/products/dsm-v3
+60,03 — iZotope suites / modules,Ozone 12,iZotope,الحزمة الرئيسية؛ Master Assistant يضبط سلسلة معالجة تتضمن EQ,https://www.izotope.com/en/products/ozone
+61,03 — iZotope suites / modules,Ozone Stabilizer,iZotope,موديول / Component حسب النسخة؛ توازن طيفي تكيفي,https://www.izotope.com/en/products/ozone
+62,03 — iZotope suites / modules,Ozone Clarity,iZotope,موديول / Component حسب النسخة؛ تعزيز الوضوح الطيفي,https://www.izotope.com/en/products/ozone
+63,03 — iZotope suites / modules,Ozone Spectral Shaper,iZotope,موديول / Component حسب النسخة؛ تنعيم طيفي,https://www.izotope.com/en/products/ozone
+64,03 — iZotope suites / modules,Ozone Match EQ,iZotope,موديول / Component حسب النسخة؛ EQ matching,https://www.izotope.com/en/products/ozone
+65,03 — iZotope suites / modules,Ozone Low End Focus,iZotope,فئة قريبة لمعالجة وضوح المنطقة المنخفضة؛ ليس Auto EQ عام,https://www.izotope.com/en/products/ozone
+66,03 — iZotope suites / modules,Neutron 5,iZotope,الحزمة الرئيسية؛ Assistant مع EQ ومعالجة أخرى,https://www.izotope.com/products/neutron
+67,03 — iZotope suites / modules,Neutron Sculptor,iZotope,موديول / Component؛ تشكيل طيفي حسب Target,https://www.izotope.com/products/neutron
+68,03 — iZotope suites / modules,Neutron Unmask,iZotope,موديول / Component؛ تقليل التزاحم,https://www.izotope.com/products/neutron
+69,03 — iZotope suites / modules,Neutron Equalizer,iZotope,جزء من Assistant workflow؛ الموديول وحده ليس مساعدًا كاملًا,https://www.izotope.com/products/neutron
+70,03 — iZotope suites / modules,Nectar 4,iZotope,Vocal Assistant يتضمن ضبط EQ للفوكال,https://www.soundonsound.com/reviews/izotope-nectar-4-advanced
+71,04 — Unmasking / Spectral Ducking,Curves Resolve,Waves,حل تداخلات بين التراكات تلقائيًا,https://www.waves.com/plugins/curves-resolve
+72,04 — Unmasking / Spectral Ducking,Curves Resolve Live,Waves,نسخة صفر تأخير ضمن عائلة Resolve,https://www.waves.com/plugins/curves-resolve
+73,04 — Unmasking / Spectral Ducking,Trackspacer,Wavesfactory,Spectral sidechain؛ يتطلب مصدر Sidechain,https://www.gearnews.com/soothe-2-alternatives-studio/
+74,04 — Unmasking / Spectral Ducking,FUSER,Mastering The Mix,Conflict detection وDynamic EQ مقترح,https://www.masteringthemix.com/products/fuser
+75,04 — Unmasking / Spectral Ducking,pure:unmask,sonible,AI spectral unmasking,https://www.bestservice.com/en/pure_unmask.html
+76,04 — Unmasking / Spectral Ducking,learn:unmask,sonible,Unmasking بواجهة تعليمية,https://www.sonible.com/blog/sonible-plugin-series/
+77,04 — Unmasking / Spectral Ducking,FAST Reveal,Focusrite / sonible,Unmasking؛ منتج أقدم,https://vi-control.net/community/threads/fuser-unmasking-plugin.144143/
+78,04 — Unmasking / Spectral Ducking,Spectral Agent 2,Immanent Audio,Auto EQ بين تراكات متعددة وأولويات,https://www.kvraudio.com/marketplace/spectral-agent-2-by-immanent-audio
+79,04 — Unmasking / Spectral Ducking,Spectral Agent,Immanent Audio,الجيل السابق,https://www.kvraudio.com/marketplace/spectral-agent-2-by-immanent-audio
+80,04 — Unmasking / Spectral Ducking,M-Blender,Techivation,Spectral sidechain shaper,https://www.kvraudio.com/product/m-blender-by-techivation
+81,04 — Unmasking / Spectral Ducking,VoxDucker,SounDevice Digital / United Plugins,Spectral / multiband / broadband ducking,https://unitedplugins.com/VoxDucker/documentation
+82,05 — Speech / Vocal / De-essing,SpectralBalance,Accentize,AI automatic dialogue EQ,https://pluginfox.com/products/accentize-spectralbalance
+83,05 — Speech / Vocal / De-essing,magic.CURVE,MBM Audio / Music By Mattie,Automatic vocal EQ حسب أهداف صوتية,https://musicbymattie.com/magic-curve
+84,05 — Speech / Vocal / De-essing,Silk Vocal,Waves,معالجة رنين وتوازن للفوكال,https://www.waves.com/plugins/curves-equator
+85,05 — Speech / Vocal / De-essing,Voca — Soften section,Sonnox,قسم داخل Voca؛ ليس منتج Soften إضافيًا,https://bobbyowsinskiblog.com/new-music-gear-monday-focusrite-sonnex-soften-harshness-reducer-plugin/
+86,05 — Speech / Vocal / De-essing,IA De-Esser,Immanent Audio,De-essing ورنين مع Auto/Smart modes,https://immanentaudio.com/de-esser/
+87,05 — Speech / Vocal / De-essing,smart:deess,sonible,AI de-essing؛ فئة مجاورة لا Auto EQ شامل,https://www.sonible.com/blog/sonible-plugin-series/
+88,05 — Speech / Vocal / De-essing,pure:deess,sonible,De-essing مبسط؛ فئة مجاورة,https://www.sonible.com/blog/sonible-plugin-series/
+89,05 — Speech / Vocal / De-essing,AI-De-Esser,Techivation,Intelligent de-essing؛ فئة مجاورة,https://techivation.com/
+90,05 — Speech / Vocal / De-essing,M-De-Esser 2,Techivation,Spectral de-essing؛ فئة مجاورة,https://techivation.com/
+91,06 — Match EQ / Smart Operations,EQuivocate,Newfangled Audio / Eventide,Auditory EQ مع Match EQ,https://www.eventideaudio.com/plug-ins/equivocate/
+92,06 — Match EQ / Smart Operations,Equalizer Pro,ToneBoosters,Learn/Match EQ,https://www.toneboosters.com/tb_equalizer_pro.html
+93,06 — Match EQ / Smart Operations,MMatcher,MeldaProduction,Spectrum matching؛ ليس اختيار هدف مستقل,https://www.meldaproduction.com/18_Anniversary
+94,06 — Match EQ / Smart Operations,MFreeformEqualizer,MeldaProduction,Freeform / Match EQ؛ كلمة Freeform لا تعني مجاني,https://www.kvraudio.com/forum/viewtopic.php?t=512867
+95,06 — Match EQ / Smart Operations,CurveEQ,Voxengo,EQ matching,https://www.soundonsound.com/techniques/match-mix
+96,06 — Match EQ / Smart Operations,SEQ-S,NUGEN Audio,EQ matching وMorphing,https://nugenaudio.com/bob-pepek/
+97,06 — Match EQ / Smart Operations,Master Match X,IK Multimedia / T-RackS,Reference/genre-guided mastering؛ يتضمن مطابقة EQ,https://www.ikmultimedia.com/products/tr6/index.php?p=tracksintro
+98,06 — Match EQ / Smart Operations,Master Match,IK Multimedia / T-RackS,الجيل السابق من عائلة Master Match,https://www.kvraudio.com/forum/viewtopic.php?t=512867
+99,06 — Match EQ / Smart Operations,Carve EQ,Kilohearts,Match EQ؛ ليس Auto AI مستقل,https://www.kvraudio.com/forum/viewtopic.php?t=512867
+100,06 — Match EQ / Smart Operations,MIXROOM,Mastering The Mix,Smart targets وAdd Smart Bands,https://www.masteringthemix.com/blogs/learn/how-to-make-good-eq-decisions-without-expensive-gear
+101,06 — Match EQ / Smart Operations,BASSROOM,Mastering The Mix,Targets للـLow End؛ مساعدة وليس Auto EQ عام,https://www.masteringthemix.com/blogs/learn/how-to-use-reference-tracks-when-mastering
+102,06 — Match EQ / Smart Operations,NOVA GE,Tokyo Dawn Labs,Smart Operations: matching وإزالة رنين؛ غير Nova المجاني,https://www.tokyodawn.net/tdr-nova-ge/
+103,06 — Match EQ / Smart Operations,SlickEQ Mastering / SlickEQ M,Tokyo Dawn Labs,Smart matching واكتشاف رنين ثابت,https://www.tokyodawn.net/tdr-slickeq-m/
+104,06 — Match EQ / Smart Operations,ZL Equalizer 2,ZL Audio,Dynamic Learn وMatch workflow؛ غير ZL Spectrum Equalizer,https://bedroomproducersblog.com/2024/10/14/free-dynamic-eq-vst-plugins/
+105,07 — Legacy names / older generations,smart:EQ+,sonible,قديم / غير معروض للبيع؛ السابق لـsmart:EQ 4,https://www.sonible.com/blog/introducing-smart-eq-plus/
+106,07 — Legacy names / older generations,smart:EQ 2,sonible,جيل قديم,https://help.sonible.com/hc/en-us/articles/360017065019-Where-do-I-find-the-latest-manual-for-my-plug-in
+107,07 — Legacy names / older generations,smart:EQ 3,sonible,جيل قديم,https://help.sonible.com/hc/en-us/articles/360017065019-Where-do-I-find-the-latest-manual-for-my-plug-in
+108,07 — Legacy names / older generations,smart:EQ live,sonible,منتج Live أقدم؛ تحقق من التوافق والتوفر,https://www.hispasonic.com/noticias/smart-eq-live-inteligencia-artificial-aplicada-mezcla-directo/43328
+109,07 — Legacy names / older generations,frei:raum,sonible,منتج أقدم مع قسم Smart EQ,https://www.hispasonic.com/noticias/smart-eq-live-inteligencia-artificial-aplicada-mezcla-directo/43328
+110,07 — Legacy names / older generations,FAST Equaliser,Focusrite / sonible,منتج أقدم؛ لا تفترض توفر شراء جديد,https://www.musicradar.com/news/best-eq-plugins
+111,07 — Legacy names / older generations,Balancer,Focusrite / sonible,منتج أقدم؛ كان متاحًا مجانًا بعروض,https://www.production-expert.com/production-expert-1/2020/07/04/friday-free-plug-in-sonible-balancer-cw3sb
+112,07 — Legacy names / older generations,soothe2,oeksound,جيل سابق لـSoothe3,https://oeksound.com/support/missing-presets/
+113,07 — Legacy names / older generations,soothe,oeksound,الإصدار الأصلي,https://oeksound.com/support/missing-presets/
+114,07 — Legacy names / older generations,M-Clarity,Techivation,الجيل السابق لـM-Clarity 2,https://www.kvraudio.com/news/techivation-releases-ai-clarity---smart-resonance-suppressor-vst-au-and-aax-60933
+115,07 — Legacy names / older generations,ERA Voice AutoEQ,Accusonus,منتج قديم؛ تحقق من الترخيص والتوافق,https://blog.accusonus.com/pro-audio-production/best-auto-eq-plugin/
+116,"08 — Adjacent, not standalone VST Auto EQ",Boba,Osprey Instruments,Max for Live؛ ليس VST مستقل,https://ko-fi.com/s/c4a76e4f6a
+117,"08 — Adjacent, not standalone VST Auto EQ",Florah Lite,Ewan Bristow,Plugdata workflow؛ ليس VST مستقل تقليدي,https://soundshockaudio.com/florah-lite/
+118,"08 — Adjacent, not standalone VST Auto EQ",Florah,Ewan Bristow,عائلة معالجة طيفية؛ تحقق من صيغة التشغيل,https://soundshockaudio.com/florah-lite/
+119,"08 — Adjacent, not standalone VST Auto EQ",Ceilings Of Sound Xtended,AYAIC,دليل EQ وAuto ceiling generator؛ لا تخلطه بـCOS Pro المعالج,https://audiodeluxe.com/products/ayaicware-ceilings-sound-xtended
+120,"08 — Adjacent, not standalone VST Auto EQ",Claro,Sonnox,EQ مع Masking insights؛ ليس Auto AI EQ كامل,https://sonnox.com/products/claro
+121,"08 — Adjacent, not standalone VST Auto EQ",SurferEQ 2,Sound Radix,Pitch-tracking EQ؛ لا يقرر التوازن تلقائيًا,https://mynewmicrophone.com/top-best-dynamic-eq-plugins-for-your-daw/
+122,"08 — Adjacent, not standalone VST Auto EQ",LASER 2,Sweetsonics,Transient / multiband sidechainer؛ ليس Auto EQ عام,https://sweetsonics.com/plugins/laser-2
+123,"08 — Adjacent, not standalone VST Auto EQ",OD DeEdger,Ohlhorst Digital / Tokyo Dawn Labs,تقليل صلابة الترانزيانت؛ ليس متعقب رنين مثل soothe,https://www.kvraudio.com/forum/viewtopic.php?t=485244&start=15
