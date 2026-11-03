@@ -32,7 +32,7 @@ public:
     // the viewport calls this once; the list is its own content component
     void updateHeight() {
         const int rows = int (problems_.size());
-        height_ = juce::jmax (60, rows * 74 + 8);
+        height_ = juce::jmax (60, rows * (kCardH + kGap) + 8);
         setSize (getWidth(), height_);
     }
 
@@ -50,9 +50,9 @@ public:
 
         int y = 2;
         for (const auto& p : problems_) {
-            auto row = juce::Rectangle<float> (1.0f, float (y), float (getWidth()) - 2.0f, 68.0f);
+            auto row = juce::Rectangle<float> (1.0f, float (y), float (getWidth()) - 2.0f, float (kCardH));
             drawCard (g, row, p);
-            y += 74;
+            y += kCardH + kGap;
         }
     }
 
@@ -72,7 +72,10 @@ private:
         g.setColour (accent);
         g.fillRoundedRectangle (rail.withHeight (h).withY (rail.getBottom() - h), 2.0f);
 
-        auto inner = row.reduced (12.0f, 8.0f);
+        // title 20 + detail 30 + action 18 = 68, plus 2 x 10 of padding = 88: the
+        // three lines have room and cannot overlap, which is what the previous
+        // geometry got wrong (68 for 70 of content)
+        auto inner = row.reduced (12.0f, 10.0f);
 
         // title line
         auto title = inner.removeFromTop (20.0f);
@@ -82,12 +85,14 @@ private:
                Palette::text(), 13.0f, juce::Justification::topRight, true);
 
         // the measured evidence, in the same words the CLI prints
-        auto detail = inner.removeFromTop (18.0f);
-        label (g, juce::String::fromUTF8 (p.detailAr.c_str()), detail.toNearestInt(),
-               Palette::muted(), 11.5f, juce::Justification::topRight);
+        auto detail = inner.removeFromTop (30.0f);
+        // wrapped, not clipped: the evidence line is a sentence, and a sentence
+        // that gets cut mid-word is what made the last build look unfinished
+        aeq::ui::drawParagraph (g, juce::String::fromUTF8 (p.detailAr.c_str()), detail,
+                                juce::Justification::topRight, 10.5f, Palette::muted());
 
         // the action, or the reason there is none
-        auto act = inner.removeFromTop (16.0f);
+        auto act = inner.removeFromTop (18.0f);
         juce::String actionText;
         switch (p.action) {
             case aeq::Action::CutBroad:
@@ -118,6 +123,9 @@ private:
                evidence ? Palette::warn().withAlpha (0.85f) : Palette::accent(),
                11.0f, juce::Justification::topRight, true);
     }
+
+    static constexpr int kCardH = 88;   // title 20 + detail 30 + action 18 + padding
+    static constexpr int kGap   = 8;
 
     std::vector<aeq::Problem> problems_;
     int height_ = 60;

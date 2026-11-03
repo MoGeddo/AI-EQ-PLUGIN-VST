@@ -106,51 +106,44 @@ if ($code -ne 0) {
 # --------------------------------------------------------------- UI screenshot
 # The claim "the interface renders" has to come from the interface, not from a
 # drawing of it.  aeq_shot builds the real editor, feeds it a synthetic take and
-# snapshots the component tree, using the same Windows font stack that broke in
-# 1.2.0.  A missing shot is not a build failure: the exe is the deliverable.
+# snapshots it, using the same Windows font stack that broke in 1.2.0.
+#
+# Each stage runs as its own process: an access violation takes the process with
+# it, and one crash must not be able to hide the stages after it.
 Write-Host "== UI screenshot ==" -ForegroundColor Cyan
 $shot = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_shot.exe" | Select-Object -First 1
-if ($shot) {
-    # the repo dist folder, not the plugin folder: the artifact upload and the
-    # installer both work from there
-    $shotDir = Join-Path (Split-Path $root -Parent) "dist\ui"
-    New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
-    # The output is kept next to the images: when a renderer fails on a machine
-    # nobody can log into, the reason has to travel with the artifact.
-    & $shot.FullName $shotDir *>&1 |
-        Tee-Object -FilePath (Join-Path $shotDir "shot.log") | Write-Host
-    $shotCode = $LASTEXITCODE
-    Write-Host "   aeq_shot: $($shot.FullName) -> $shotDir (exit $shotCode)"
+if (-not $shot) { Fail "aeq_shot.exe was not built - the interface has not been seen to render" }
 
-    # a second attempt, relative to the repo root: the first one is the path the
-    # editor will actually be run from, this covers a path-handling mistake
-    $pngs = Get-ChildItem -Path $shotDir -Filter "ui-*.png" -ErrorAction SilentlyContinue
-    if (-not $pngs) {
-        Push-Location (Split-Path $root -Parent)
-        & $shot.FullName "dist\ui" *>&1 | Tee-Object -FilePath (Join-Path $shotDir "shot.log") -Append | Write-Host
-        Write-Host "   retry exit: $LASTEXITCODE"
-        Pop-Location
-        $pngs = Get-ChildItem -Path $shotDir -Filter "ui-*.png" -ErrorAction SilentlyContinue
-    }
+$shotDir = Join-Path (Split-Path $root -Parent) "dist\ui"
+New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
 
-    if (-not $pngs) {
-        foreach ($f in @("shot.log.txt", "shot.log")) {
-            if (Test-Path (Join-Path $shotDir $f)) {
-                Write-Host "--- $f ---"
-                Get-Content (Join-Path $shotDir $f) -Tail 30 | Write-Host
-            }
-        }
-        Fail "aeq_shot produced no image - the interface has not been seen to render"
+$stages = @("window", "components", "cards")
+$failed = @()
+foreach ($st in $stages) {
+    Write-Host "   -- $st --"
+    & $shot.FullName $shotDir $st *>&1 |
+        Tee-Object -FilePath (Join-Path $shotDir "shot-$st.log") | Write-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "   aeq_shot $st exited $LASTEXITCODE" -ForegroundColor Yellow
+        $failed += "$st ($LASTEXITCODE)"
     }
-    Write-Host "   rendered: $($pngs.Name -join ', ')" -ForegroundColor Green
-} else {
-    Fail "aeq_shot.exe was not built - the interface has not been seen to render"
+}
+
+$shots = Get-ChildItem -Path $shotDir -Filter "ui-*.png" -ErrorAction SilentlyContinue
+if (-not $shots) {
+    foreach ($f in (Get-ChildItem -Path $shotDir -Filter "shot-*.log" -ErrorAction SilentlyContinue)) {
+        Write-Host "--- $($f.Name) ---"
+        Get-Content $f.FullName -Tail 20 | Write-Host
+    }
+    Fail ("no window and no component was rendered - the interface has not been seen. "
+        + "Failed stages: " + ($failed -join ", "))
+}
+Write-Host "   rendered: $($shots.Name -join ', ')" -ForegroundColor Green
+if ($failed.Count -gt 0) {
+    Write-Host "   NOTE: stages that died: $($failed -join ', ').  See shot-*.log in the artifact." -ForegroundColor Yellow
 }
 
 # ----------------------------------------------------------- thread contract
-# TSAN is a GCC/Clang feature; on MSVC this binary is a plain run.  It still
-# catches the class of bug that crashed FL Studio (a lifetime violation across
-# threads) when it is deterministic.
 Write-Host "== thread contract ==" -ForegroundColor Cyan
 $thr = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_threads.exe" | Select-Object -First 1
 if ($thr) {
