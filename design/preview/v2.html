@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>AEQ Restore — تصميم B (المنحنى هو الواجهة)</title>
+<style>
+/* ===========================================================================
+   AEQ Restore - design B: the curve is the instrument.
+
+   What changed from A, and why (learned from the products in the catalog):
+
+   * FabFilter Pro-Q4 / soothe3 / Ozone all give the curve the whole window and
+     push every control into a 40 px strip.  A 24-card report column is a
+     dashboard, not a tool - it was the first thing the user rejected.
+   * So: the EQ curve, the take's spectrum and the Amir Mahrous target are the
+     interface.  Knobs are one row.  The report is a panel you open, not a
+     column that owns 30% of the window.
+   * The target line is the curve the plugin compiles in
+     (plugin/Source/model/EnvTargetCurve.h, 86 points, 12/octave from 100 Hz),
+     copied by design/preview/sync_target.py - not a shape drawn by hand.
+=========================================================================== */
+@font-face { font-family:'Cairo'; src:url('/plugin/Source/assets/Cairo-Regular.ttf') format('truetype'); font-weight:400; }
+@font-face { font-family:'Cairo'; src:url('/plugin/Source/assets/Cairo-SemiBold.ttf') format('truetype'); font-weight:600; }
+
+:root{
+  --bg:#0A0A0B; --plot:#0C0C0E; --strip:#0E0E10; --line:#1E1E21; --line2:#151517;
+  --text:#EDEAE4; --muted:#928D85; --dim:#5F5B55;
+  --gold:#C9A96B; --gold-dim:#7A6842; --take:#6FA6A0; --danger:#C4685A;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:#070708; color:var(--text); font-family:'Cairo','Segoe UI',Tahoma,sans-serif;
+  font-size:12.5px; -webkit-font-smoothing:antialiased; display:grid; place-items:center; padding:18px;
+}
+.win{
+  width:min(1280px,100%); height:min(760px,calc(100vh - 36px)); min-height:560px;
+  background:var(--bg); border:1px solid var(--line); border-radius:8px; overflow:hidden;
+  display:grid; grid-template-rows:44px 1fr 66px; box-shadow:0 40px 120px -60px #000;
+}
+
+/* ---------------------------------------------------------------- top strip */
+.top{display:flex;align-items:center;gap:14px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--strip)}
+.mark{width:24px;height:24px;border-radius:5px;border:1px solid #2A2723;display:grid;place-items:center;flex:none}
+.mark svg{width:14px;height:14px}
+.name{font-size:13px;font-weight:600;letter-spacing:.2px}
+.name span{color:var(--dim);font-weight:400;font-size:11px;margin-inline-start:8px}
+.grow{flex:1}
+.tab, .mini{
+  height:24px;padding:0 10px;border-radius:5px;border:1px solid var(--line);background:transparent;
+  color:var(--muted);font-family:inherit;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+}
+.tab:hover,.mini:hover{color:var(--text);border-color:#2C2C31}
+.tab.on{color:#151208;background:var(--gold);border-color:var(--gold);font-weight:600}
+.read{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.read b{color:var(--muted);font-weight:600}
+
+/* ------------------------------------------------------------------- plot */
+.stage{position:relative;min-height:0;background:var(--plot)}
+canvas{display:block;width:100%;height:100%}
+
+.pill{
+  position:absolute;top:10px;inset-inline-start:14px;display:flex;align-items:center;gap:8px;
+  height:26px;padding:0 11px;border-radius:999px;background:#121214cc;border:1px solid #26241F;
+  font-size:11px;color:var(--gold);backdrop-filter:blur(4px);font-variant-numeric:tabular-nums;
+}
+.pill b{color:var(--dim);font-weight:400}
+
+/* overlays --------------------------------------------------------------- */
+.panel{
+  position:absolute;top:0;bottom:0;width:340px;background:#0D0D0Ff2;border-inline-start:1px solid var(--line);
+  backdrop-filter:blur(6px);padding:12px 14px;overflow:auto;display:none;z-index:3;
+}
+.panel.right{inset-inline-end:0}
+.panel.left{inset-inline-start:0;width:268px;border-inline-end:1px solid var(--line);border-inline-start:0}
+.panel.open{display:block}
+.panel h4{margin:2px 0 10px;font-size:10.5px;font-weight:600;color:var(--dim);letter-spacing:.4px;display:flex;align-items:center}
+.panel h4 .max{cursor:pointer;color:var(--muted);margin-inline-start:auto;font-size:14px;line-height:1}
+
+.card{border:1px solid #1D1D20;border-radius:6px;padding:9px 10px;margin-bottom:7px;background:#121214}
+.card b{display:block;font-size:11.5px;font-weight:600;margin-bottom:3px}
+.card p{margin:0;font-size:10.5px;color:var(--muted);line-height:1.65}
+.card em{display:block;margin-top:5px;font-style:normal;font-size:10.5px;color:var(--gold)}
+
+.flt{display:grid;grid-template-columns:8px 46px 1fr 54px;gap:7px;align-items:center;height:27px;font-size:11px;
+     font-variant-numeric:tabular-nums;color:var(--muted);cursor:pointer;border-radius:4px;padding:0 4px}
+.flt:hover{background:#17171A}
+.flt .led{width:5px;height:5px;border-radius:50%;background:#2A2A2F}
+.flt.on .led{background:var(--gold)}
+.flt .t{color:var(--dim);font-size:10px;letter-spacing:.3px}
+.flt.on .t{color:var(--text)}
+.flt .g{text-align:left;direction:ltr;color:var(--dark,#8A857D)}
+.flt.on .g{color:var(--gold)}
+.flt .g.minus{color:var(--danger)}
+
+/* ---------------------------------------------------------------- bottom */
+.dock{display:grid;grid-template-columns:158px 1fr auto;align-items:center;gap:10px;padding:0 14px;
+      border-top:1px solid var(--line);background:var(--strip)}
+.play{height:34px;border-radius:6px;border:1px solid #3A3222;background:linear-gradient(180deg,#2A2318,#1B1710);
+      color:var(--gold);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+.play:hover{border-color:#54472E}
+.knobs{display:flex;gap:2px;justify-content:flex-start}
+.knob{width:78px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;border-radius:6px;cursor:pointer}
+.knob:hover{background:#141416}
+.dial{width:34px;height:34px;border-radius:50%;position:relative;
+  background:conic-gradient(from 205deg,var(--gold) calc(var(--v)*0.9%), #202024 0 100%);
+  -webkit-mask:radial-gradient(circle,transparent 0 12px,#000 12.5px 15.5px,transparent 16px);
+          mask:radial-gradient(circle,transparent 0 12px,#000 12.5px 15.5px,transparent 16px);}
+.knob .k{font-size:10px;color:var(--dim);white-space:nowrap}
+.knob .v{font-size:10.5px;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+.knob .v.g{color:var(--gold)}
+.end{display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<div class="win">
+
+  <!-- top strip ---------------------------------------------------------- -->
+  <div class="top">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#C9A96B" stroke-width="1.7" stroke-linecap="round">
+        <path d="M3 13v-2M7 17V7M11 20V4M15 16v-8M19 14v-4M21 12v0"/>
+      </svg>
+    </div>
+    <div class="name">AEQ Restore <span>أول EQ في السلسلة</span></div>
+    <div class="grow"></div>
+    <div class="read">F0 <b>196</b> Hz</div>
+    <div class="read">سمع <b>21.4</b> ث · تثبّت</div>
+    <button class="tab on" id="mRestore">Restore</button>
+    <button class="tab" id="mMatch">Match</button>
+    <button class="tab" id="btnFilters">الفلاتر <b id="nFlt" style="color:inherit">9</b></button>
+    <button class="tab" id="btnReport">التقرير</button>
+  </div>
+
+  <!-- plot --------------------------------------------------------------- -->
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="pill" id="pill">بيشتغل على: <b id="region">101 Hz قطع · 202 · 214 Hz رنين · 250 Hz رفع · +4</b></div>
+
+    <div class="panel right" id="report">
+      <h4>التقرير <span class="max" data-close="report">×</span></h4>
+      <div class="card"><b>صندوقية عند 664 Hz</b>
+        <p>زيادة ٤٫٨ dB على مظروف الصوت مقارنةً بمنحنى أمير محروس، ومتوسط الكوربس ±3.1 بدل ±1.6</p>
+        <em>خصم ٣٫٥ dB · عرض 0.9</em></div>
+      <div class="card"><b>رنين ثابت عند 202 Hz</b>
+        <p>ثابت على مدى الأداء: متوسط +40 dB فوق الجيران، وتغيّر 15 dB فقط</p>
+        <em>notch ٧٫٠ dB · عرض 8.0 · ديناميكي</em></div>
+      <div class="card"><b>حدّة عند 3.4 kHz</b>
+        <p>داخل المدى، بس عند الحد: 0.2 dB تحت الشرط</p>
+        <em>دليل، مش قرار</em></div>
+      <div class="card"><b>قاع تحت 101 Hz</b>
+        <p>طاقة 17 dB تحت المرجع، ومفيش F0 تحت 197 Hz في التيك ده</p>
+        <em>HPF اتظبط على 101 Hz</em></div>
+    </div>
+
+    <div class="panel left" id="filters">
+      <h4>قائمة الفلاتر <span class="max" data-close="filters">×</span></h4>
+      <div id="fltList"></div>
+      <h4 style="margin-top:14px">الطبقة اللي بتشتغل</h4>
+      <div class="card" style="padding:8px 9px"><p style="line-height:1.75">
+        HPF تكيّفي · ٣ باندات تصحيحية · ٢ notch · De-ess ديناميكي · Air.<br>
+        الـTilt والـLPF جاهزين وبانتظار تفعيل، والباند الديناميكي هو الخطوة الجاية (٣٧ منتج من ١٢٣ في الكتالوج بيشتغلوا كده).</p></div>
+    </div>
+  </div>
+
+  <!-- bottom ------------------------------------------------------------- -->
+  <div class="dock">
+    <button class="play" id="play">▶ ابدأ التحليل</button>
+    <div class="knobs" id="knobs"></div>
+    <div class="end">
+      <div class="read">OUT <b>0.0</b> dB</div>
+      <button class="tab" id="bypass">Bypass</button>
+    </div>
+  </div>
+</div>
+
+<script src="target.js"></script>
+<script>
+/* ------------------------------------------------------------------ data */
+const T = window.AEQ_TARGET;
+const FMIN = 30, FMAX = 18000, DBTOP = 18, DBBOT = -30;
+const LMIN = Math.log10(FMIN), LMAX = Math.log10(FMAX);
+
+const freqOf = i => T.fmin * Math.pow(2, i / T.pointsPerOct);
+
+/* The target, sampled on the preview's own log axis.  Undefined points (the
+   corpus cannot measure below its own fundamentals) are skipped, not faked. */
+function targetDb(f) {
+  if (f < T.fmin) return null;
+  const pos = Math.log2(f / T.fmin) * T.pointsPerOct;
+  const i = Math.floor(pos), t = pos - i;
+  if (i < 0 || i + 1 >= T.level.length) return null;
+  const a = T.level[i], b = T.level[i + 1];
+  if (a >= T.undefined || b >= T.undefined) return null;
+  return a + (b - a) * t;
+}
+function targetSd(f) {
+  const pos = Math.log2(f / T.fmin) * T.pointsPerOct;
+  const i = Math.max(0, Math.min(T.sd.length - 1, Math.round(pos)));
+  return T.sd[i] >= T.undefined ? 1.5 : T.sd[i];
+}
+
+/* Bands: what the engine can run.  "on" = in the signal path right now. */
+const BANDS = [
+  { t:'HPF',  n:'قطع تحت', f:101,   g:null, q:null, on:true,  dyn:false },
+  { t:'BELL', n:'رنين',    f:202,   g:-7.0, q:8.0,  on:true,  dyn:true  },
+  { t:'BELL', n:'رنين',    f:214,   g:-7.0, q:8.0,  on:true,  dyn:true  },
+  { t:'LOW',  n:'تدفئة',   f:250,   g:+2.5, q:0.9,  on:true,  dyn:false },
+  { t:'BELL', n:'صندوقية', f:664,   g:-3.5, q:0.9,  on:true,  dyn:false },
+  { t:'BELL', n:'حضور',    f:3400,  g:+1.2, q:0.8,  on:true,  dyn:false },
+  { t:'HIGH', n:'Air',     f:9000,  g:+1.5, q:0.7,  on:true,  dyn:false },
+  { t:'TILT', n:'ميل',     f:1000,  g:0.0,  q:null, on:false, dyn:false },
+  { t:'LPF',  n:'قطع فوق', f:16000, g:null, q:null, on:false, dyn:false },
+];
+
+/* A take's spectrum: illustrative, and the panel says so.  The shapes match the
+   synthetic take the gates use (196 Hz voice + a boom + a 230 Hz bell). */
+function spectrumDb(f) {
+  const lf = Math.log2(f / 196);
+  const harm = 6 * Math.exp(-Math.pow(lf / 0.9, 2)) - 12 * Math.exp(-Math.pow((lf + 2.2) / 0.8, 2));
+  const bell = 9 * Math.exp(-Math.pow(Math.log2(f / 230) / 0.12, 2));
+  const air  = f > 6000 ? -6 * Math.log2(f / 6000) : 0;
+  return harm + bell + air - 3;
+}
+function correctionDb(f) {
+  let d = 0;
+  for (const b of BANDS) {
+    if (!b.on || b.g == null || !b.g) continue;
+    const w = b.t === 'LOW' || b.t === 'HIGH' ? 0.7 : b.t === 'BELL' ? Math.max(0.16, 1 / (b.q || 1)) : 0.5;
+    if (b.t === 'LOW')  d += b.g * (f < b.f ? 1 : Math.exp(-Math.pow(Math.log2(f / b.f) / w, 2)));
+    else if (b.t === 'HIGH') d += b.g * (f > b.f ? 1 : Math.exp(-Math.pow(Math.log2(f / b.f) / w, 2)));
+    else d += b.g * Math.exp(-Math.pow(Math.log2(f / b.f) / w, 2));
+  }
+  if (BANDS[0].on) d -= f < 101 ? 6 * Math.log2(101 / f) : 0;   // the HPF skirt
+  return d;
+}
+
+/* ----------------------------------------------------------------- paint */
+const cv = document.getElementById('cv');
+let hover = -1, selected = -1;
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#0C0C0E'; g.fillRect(0, 0, w, h);
+
+  const padR = 54, padL = 10, padT = 12, padB = 24;
+  const iw = w - padR - padL, ih = h - padT - padB;
+  const X = f => padL + (Math.log10(f) - LMIN) / (LMAX - LMIN) * iw;
+  const Y = db => padT + (DBTOP - db) / (DBTOP - DBBOT) * ih;
+  const fOf = x => Math.pow(10, LMIN + (x - padL) / iw * (LMAX - LMIN));
+
+  /* grid: octave lines, 6 dB lines */
+  g.lineWidth = 1;
+  const freqs = [30,50,80,100,200,300,500,800,1000,2000,3000,5000,8000,10000,16000];
+  freqs.forEach(f => {
+    const major = [100,1000,10000].includes(f);
+    g.strokeStyle = major ? '#212124' : '#171719';
+    g.beginPath(); g.moveTo(X(f), padT); g.lineTo(X(f), padT + ih); g.stroke();
+    g.fillStyle = major ? '#7C776F' : '#4E4A45';
+    g.font = `${major ? 10.5 : 9.5}px Cairo`; g.textAlign = 'center';
+    g.fillText(f >= 1000 ? (f/1000) + 'k' : f, X(f), h - 8);
+  });
+  for (let db = DBTOP; db >= DBBOT; db -= 6) {
+    g.strokeStyle = db === 0 ? '#26262A' : '#171719';
+    g.beginPath(); g.moveTo(padL, Y(db)); g.lineTo(padL + iw, Y(db)); g.stroke();
+    g.fillStyle = db === 0 ? '#8A857D' : '#4E4A45';
+    g.font = '9.5px Cairo'; g.textAlign = 'right';
+    g.fillText((db > 0 ? '+' : '') + db, w - 10, Y(db) + 3);
+  }
+
+  /* the corpus spread first, so the lines sit on top of it */
+  g.beginPath();
+  let started = false;
+  for (let x = padL; x <= padL + iw; x += 1) {
+    const f = fOf(x), t = targetDb(f);
+    if (t === null) { started = false; continue; }
+    const y = Y(t + targetSd(f));
+    started ? g.lineTo(x, y) : g.moveTo(x, y); started = true;
+  }
+  for (let x = padL + iw; x >= padL; x -= 1) {
+    const f = fOf(x), t = targetDb(f);
+    if (t === null) continue;
+    g.lineTo(x, Y(t - targetSd(f)));
+  }
+  g.closePath(); g.fillStyle = 'rgba(201,169,107,0.055)'; g.fill();
+
+  /* the take, in the same language as the curve but quieter */
+  g.beginPath();
+  for (let x = padL; x <= padL + iw; x += 1) {
+    const y = Y(spectrumDb(fOf(x)));
+    x === padL ? g.moveTo(x, y) : g.lineTo(x, y);
+  }
+  g.strokeStyle = 'rgba(111,166,160,0.55)'; g.lineWidth = 1; g.stroke();
+
+  /* the Amir Mahrous target itself */
+  g.beginPath(); started = false;
+  for (let x = padL; x <= padL + iw; x += 1) {
+    const f = fOf(x), t = targetDb(f);
+    if (t === null) { started = false; continue; }
+    const y = Y(t);
+    started ? g.lineTo(x, y) : g.moveTo(x, y); started = true;
+  }
+  g.setLineDash([1, 3]); g.strokeStyle = '#6B6357'; g.lineWidth = 1.1; g.stroke(); g.setLineDash([]);
+
+  /* what the plugin is doing, and where the take ends up */
+  const curve = (extraDb) => {
+    g.beginPath(); started = false;
+    for (let x = padL; x <= padL + iw; x += 1) {
+      const f = fOf(x), t = targetDb(f);
+      const base = t === null ? spectrumDb(f) : t;
+      const y = Y(base + correctionDb(f) + extraDb(f));
+      started ? g.lineTo(x, y) : g.moveTo(x, y); started = true;
+    }
+  };
+  curve(() => 0);
+  g.lineTo(padL + iw, padT + ih); g.lineTo(padL, padT + ih); g.closePath();
+  const grad = g.createLinearGradient(0, padT, 0, padT + ih);
+  grad.addColorStop(0, 'rgba(201,169,107,0.16)'); grad.addColorStop(1, 'rgba(201,169,107,0)');
+  g.fillStyle = grad; g.fill();
+
+  curve(() => 0);
+  g.strokeStyle = '#C9A96B'; g.lineWidth = 1.7; g.stroke();
+
+  /* band handles */
+  BANDS.forEach((b, i) => {
+    if (!b.on) return;
+    const hot = (i === hover || i === selected);
+    const t = targetDb(b.f), base = t === null ? spectrumDb(b.f) : t;
+    const x = X(b.f), y = Y(base + correctionDb(b.f));
+    g.beginPath(); g.arc(x, y, hot ? 5.5 : 3.2, 0, 7);
+    g.fillStyle = hot ? '#EDEAE4' : (b.dyn ? '#C4685A' : '#C9A96B'); g.fill();
+    if (hot) {
+      g.strokeStyle = 'rgba(201,169,107,0.25)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x, padT); g.lineTo(x, padT + ih); g.stroke();
+      g.font = '600 11px Cairo';
+      g.fillStyle = '#EDEAE4';
+      const txt = `${b.t} · ${b.f < 1000 ? b.f + ' Hz' : (b.f/1000).toFixed(1) + ' kHz'}` +
+                  (b.g == null ? '' : ` · ${b.g > 0 ? '+' : ''}${b.g.toFixed(1)} dB` +
+                  (b.q ? ` · Q ${b.q.toFixed(1)}` : '')) + (b.dyn ? ' · ديناميكي' : '');
+      const wide = g.measureText(txt).width;
+      g.textAlign = 'right';
+      g.fillText(txt, Math.min(x + wide + 12, padL + iw - 6), y - 12);
+      g.fillStyle = 'rgba(12,12,14,0.82)';
+      g.fillRect(Math.min(x + wide + 12, padL + iw - 6) - wide - 6, y - 26, wide + 10, 18);
+      g.fillStyle = '#EDEAE4';
+      g.fillText(txt, Math.min(x + wide + 12, padL + iw - 6) - 6, y - 13);
+    }
+  });
+
+  /* meters, far right */
+  const mx = w - 26, mh = ih - 20;
+  [['IN', -8.5], ['OUT', -7.0]].forEach(([label, db], k) => {
+    const bx = mx + k * 10, top = padT + 10;
+    g.fillStyle = '#141416'; g.fillRect(bx, top, 6, mh);
+    const frac = Math.max(0, Math.min(1, (db + 60) / 60));
+    g.fillStyle = k ? '#8F8A80' : '#6FA6A0';
+    g.fillRect(bx, top + mh * (1 - frac), 6, mh * frac);
+    g.fillStyle = '#4E4A45'; g.font = '8.5px Cairo'; g.textAlign = 'center';
+    g.fillText(label, bx + 3, top - 4);
+  });
+
+  /* the region sentence lives over the plot, not in a card column */
+  const none = 'لسه مفيش قياس — شغّل التسجيل من الأول';
+  if (!painted) {
+    g.fillStyle = 'rgba(237,234,228,0.30)'; g.font = '600 12.5px Cairo'; g.textAlign = 'center';
+    g.fillText(none, padL + iw / 2, padT + ih * 0.52);
+  }
+}
+let painted = true;
+
+/* --------------------------------------------------------------- filters */
+function renderFilters() {
+  const host = document.getElementById('fltList');
+  host.innerHTML = '';
+  BANDS.forEach((b, i) => {
+    const row = document.createElement('div');
+    row.className = 'flt' + (b.on ? ' on' : '');
+    const g = b.g == null ? '—' : (b.g > 0 ? '+' : '') + b.g.toFixed(1) + ' dB';
+    row.innerHTML = `<span class="led"></span><span class="t">${b.t}</span>
+      <span>${b.n} · ${b.f < 1000 ? b.f + ' Hz' : (b.f/1000).toFixed(1) + ' kHz'}${b.dyn ? ' · dyn' : ''}</span>
+      <span class="g${b.g < 0 ? ' minus' : ''}">${g}</span>`;
+    row.onclick = () => { selected = (selected === i ? -1 : i); draw(); };
+    row.onmouseenter = () => { hover = i; draw(); };
+    row.onmouseleave = () => { hover = -1; draw(); };
+    host.appendChild(row);
+  });
+  document.getElementById('nFlt').textContent = BANDS.filter(b => b.on).length;
+}
+
+/* ----------------------------------------------------------------- knobs */
+const KNOBS = [
+  { k:'المقدار',    v:'100',  n:100, gold:true },
+  { k:'قطع تحت',    v:'AUTO', n:58 },
+  { k:'De-ess',     v:'AUTO', n:44 },
+  { k:'دفء ← مظهر', v:'0.00', n:50 },
+  { k:'جسم ← هوا',  v:'0.00', n:50 },
+  { k:'Air',        v:'0.0',  n:50 },
+];
+document.getElementById('knobs').innerHTML = KNOBS.map(x => `
+  <div class="knob" title="${x.k}">
+    <div class="dial" style="--v:${x.n}"></div>
+    <div class="k">${x.k}</div>
+    <div class="v ${x.gold ? 'g' : ''}">${x.v}</div>
+  </div>`).join('');
+
+/* --------------------------------------------------------------- wiring */
+const toggle = (id, cls) => {
+  const p = document.getElementById(id);
+  p.classList.toggle('open');
+};
+document.getElementById('btnFilters').onclick = () => toggle('filters');
+document.getElementById('btnReport').onclick = () => toggle('report');
+document.querySelectorAll('[data-close]').forEach(el => {
+  el.onclick = () => document.getElementById(el.dataset.close).classList.remove('open');
+});
+document.getElementById('bypass').onclick = (e) => e.target.classList.toggle('on');
+document.getElementById('play').onclick = (e) => {
+  painted = !painted;
+  e.target.textContent = painted ? '▶ ابدأ التحليل' : '■ إيقاف';
+  document.getElementById('cv').style.opacity = painted ? 1 : 0.98;
+  draw();
+};
+const mr = document.getElementById('mRestore'), mm = document.getElementById('mMatch');
+mr.onclick = () => { mr.classList.add('on'); mm.classList.remove('on'); };
+mm.onclick = () => { mm.classList.add('on'); mr.classList.remove('on'); };
+
+window.addEventListener('resize', draw);
+renderFilters(); draw();
+</script>
+</body>
+</html>

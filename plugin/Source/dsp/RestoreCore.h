@@ -83,6 +83,7 @@ public:
     void reset() {
         fifoRead_.store(fifoWrite_.load(std::memory_order_acquire), std::memory_order_release);
         fifoDropped_.store(0);
+        version_.fetch_add(1, std::memory_order_release);
         analyzer_.reset();
         eqLeft_.reset(); eqRight_.reset();
         hpf_.reset(); deEsser_.reset();
@@ -287,6 +288,7 @@ public:
             state_.settled = state_.analyzedSeconds >= settings_.settleSeconds;
             state_.valid = true;
             measurements_ = m;
+            version_.fetch_add(1, std::memory_order_release);
         }
 
         // hand the solution to the audio thread; it applies it at the top of the
@@ -339,7 +341,11 @@ public:
     }
 
     // ------------------------------------------------------------- settings
-    void setSettings(const RestoreSettings& s) { settings_ = s; updateBands(); }
+    void setSettings(const RestoreSettings& s) {
+        settings_ = s;
+        updateBands();
+        version_.fetch_add(1, std::memory_order_release);
+    }
     const RestoreSettings& settings() const { return settings_; }
 
     RestoreState state() const {
@@ -350,6 +356,12 @@ public:
         std::lock_guard<std::mutex> lk(stateMx_);
         return measurements_;
     }
+    // Bumped whenever the published state changes.  The editor polls this integer
+    // instead of copying the state, the measurements, the band list and the problem
+    // texts twelve times a second - at 4 Hz of real change that was three quarters of
+    // the UI thread's work thrown away, and it showed up as a window that stuttered
+    // while the audio played.
+    long version() const { return version_.load(std::memory_order_acquire); }
     double learnProgress() const { return learnProgress_.load(); }
     long   samplesAnalysed() const { return analyzer_.samplesSeen(); }
     Analyzer& analyzer() { return analyzer_; }
@@ -368,6 +380,7 @@ public:
         if (index < 0 || index >= static_cast<int>(trimDb_.size())) return;
         trimDb_[index].store(std::clamp(db, -12.0, 12.0));
         trimsDirty_.store(true, std::memory_order_release);
+        version_.fetch_add(1, std::memory_order_release);
     }
     double bandTrim(int index) const {
         if (index < 0 || index >= static_cast<int>(trimDb_.size())) return 0.0;
@@ -376,6 +389,7 @@ public:
     void clearTrims() {
         for (auto& t : trimDb_) t.store(0.0);
         trimsDirty_.store(true, std::memory_order_release);
+        version_.fetch_add(1, std::memory_order_release);
     }
 
     std::vector<BandSpec> activeBands() const {
@@ -493,6 +507,7 @@ private:
     std::array<std::atomic<double>, 8> trimDb_{};   // UI gain offsets, per corrective band
     std::atomic<bool> trimsDirty_{false};           // the editor moved a handle
     std::atomic<double> learnProgress_{0.0};
+    std::atomic<long> version_{0};
     double outGain_ = 1.0;
 
     mutable std::mutex stateMx_;

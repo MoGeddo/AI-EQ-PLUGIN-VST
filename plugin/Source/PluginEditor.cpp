@@ -181,7 +181,7 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor (AeqAudioProcessor& p)
     setSize (defaultWidth(), defaultHeight());
     resized();
 
-    startTimerHz (12);
+    startTimerHz (8);   // the solver publishes at 4 Hz; polling faster only burns the UI thread
 }
 
 // The window used to open at 1240 x 800 whatever the screen was.  On a display
@@ -532,6 +532,18 @@ void AeqAudioProcessorEditor::timerCallback() {
     // Everything below runs on the message thread and only reads copies.  The
     // editor never touches the filter objects: that is the audio thread's job, and
     // the previous build crashed FL Studio by doing exactly that.
+    //
+    // Nothing below runs unless the published state actually changed.  This timer is
+    // a poll, and the solver publishes at 4 Hz; at 12 Hz the window was copying the
+    // state, the measurements, the whole band list and 24 problem texts, running a
+    // z-scan over 86 bands, rebuilding the report list and repainting the entire
+    // window three times for every update that existed.  That is what a slightly
+    // sticky window is made of, and it is pure waste.
+    if (proc_.core().version() == lastVersion_ && getWidth() == lastWidth_)
+        return;
+    lastVersion_ = proc_.core().version();
+    lastWidth_ = getWidth();
+
     state_ = proc_.core().state();
     meas_ = proc_.core().measurements();
     bands_ = proc_.core().activeBands();

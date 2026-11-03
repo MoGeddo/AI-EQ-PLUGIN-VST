@@ -29,6 +29,9 @@ public:
     void resized() override;
 
 private:
+    long lastVersion_ = -1;   // see timerCallback(): poll, do not poll-copy
+    int  lastWidth_ = -1;
+
     void timerCallback() override;
     void buildControls();
     static int defaultWidth();

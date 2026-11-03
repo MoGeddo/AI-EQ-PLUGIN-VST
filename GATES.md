@@ -208,3 +208,14 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EVIDENCE_NOTE: measured, same test, same machine - released 1.2.4: 4 allocations
       inside processBlock, worst block 3.946 ms; this build: 0 allocations, worst block
       0.055 ms, worst 10 ms drop -1.34 dB, no sample-step discontinuity
+
+- [x] G28: the window does no work when nothing changed - the editor polled at 12 Hz
+  EVIDENCE: automatic-evidence=v1; definition-sha256=0d6368aa79d33bf472c18553f81f4cd1b253899ada6478c2ae285800162ec683; exit=0; EXPECT=matched; output-sha256=64df72a2d1d4fe76c5bfc71e1011459117deac1224f857e8ce40d89fa49a7133; output-bytes=63; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      while the solver publishes at 4 Hz, and every tick copied the published state, the
+      measurement vectors, the band list and up to 24 problem texts, ran a z-scan over
+      86 bands, rebuilt the report list and repainted the whole window: three quarters
+      of the UI thread's work thrown away, which is what a sticky window feels like.
+      RestoreCore::version() is bumped only when the published state changes and
+      timerCallback() returns on its first line when it has not; the timer runs at 8 Hz
+  CHECK: python3 analysis/scripts/check_ui_poll.py
+  EXPECT: does no work when nothing changed
