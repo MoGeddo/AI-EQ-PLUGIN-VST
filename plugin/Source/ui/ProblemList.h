@@ -95,13 +95,17 @@ private:
         auto act = inner.removeFromTop (18.0f);
         juce::String actionText;
         switch (p.action) {
+            // Numbers are separated with a middot instead of brackets.  Two
+            // reasons: brackets in an Arabic run are mirrored glyphs that make the
+            // line read wrong, and they were the one construct that could take the
+            // DirectWrite layout down when a card was drawn offscreen.
             case aeq::Action::CutBroad:
                 actionText = "خصم " + juce::String (std::abs (p.gainDb), 1) + " dB عند "
-                           + juce::String (int (p.freq)) + " Hz (Q " + juce::String (p.q, 1) + ")";
+                           + juce::String (int (p.freq)) + " هرتز · عرض " + juce::String (p.q, 1);
                 break;
             case aeq::Action::CutNarrow:
-                actionText = "notch عند " + juce::String (int (p.freq)) + " Hz  Q "
-                           + juce::String (p.q, 1) + "  " + juce::String (p.gainDb, 1) + " dB";
+                actionText = "notch عند " + juce::String (int (p.freq)) + " هرتز · عرض "
+                           + juce::String (p.q, 1) + " · " + juce::String (p.gainDb, 1) + " dB";
                 break;
             case aeq::Action::RaiseHpf:
                 actionText = "قصّ تحت " + juce::String (int (p.freq)) + " Hz";
