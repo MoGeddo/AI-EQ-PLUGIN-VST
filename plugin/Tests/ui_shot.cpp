@@ -201,33 +201,21 @@ int runCards(const juce::File& dir) {
             juce::String action = juce::String::fromUTF8("خصم ");
             action << juce::String(std::abs(p.gainDb), 1) << " dB عند "
                    << juce::String(int(p.freq)) << " Hz (Q " << juce::String(p.q, 1) << ")";
-            stage("three lines, one image");
-            {
-                // The action line on its own, on an ARGB image: an RGB target
-                // silently drops every glyph, which made the earlier probes lie.
-                juce::Image a(juce::Image::ARGB, 336, 40, true);
-                juce::Graphics ag(a);
-                ag.fillAll(aeq::ui::Palette::surface());
-                stage("action line alone");
-                aeq::ui::label(ag, action, { 12, 10, 312, 18 }, aeq::ui::Palette::accent(), 11.0f,
-                               juce::Justification::topRight, true);
-                stage("action line drawn");
-                savePng(a, dir.getChildFile("probe-action.png"));
-            }
-            juce::Image im(juce::Image::ARGB, 336, 88, true);
-            juce::Graphics gg(im);
-            gg.fillAll(aeq::ui::Palette::surface());
-            aeq::ui::label(gg, title, { 12, 10, 312, 20 }, juce::Colours::white, 13.0f,
-                           juce::Justification::topRight, true);
-            stage("line 1 drawn");
-            aeq::ui::drawParagraph(gg, detail, { 12.0f, 30.0f, 312.0f, 30.0f },
-                                   juce::Justification::topRight, 10.5f,
-                                   aeq::ui::Palette::muted());
-            stage("line 2 drawn");
-            aeq::ui::label(gg, action, { 12, 60, 312, 18 }, aeq::ui::Palette::accent(), 11.0f,
-                           juce::Justification::topRight, true);
-            stage("line 3 drawn");
-            savePng(im, dir.getChildFile("probe-three-lines.png"));
+        // Which line of the card is fatal?  Render the same card three times with
+        // one line removed each time; component snapshots are the path the real UI
+        // uses, so these probes can be trusted (a plain Image drops every glyph).
+        const char* variant[] = { "detail removed", "title removed", "both removed" };
+        for (int v = 0; v < 3; ++v) {
+            if (i != 2) break;
+            auto q = p;
+            if (v == 0 || v == 2) q.detailAr.clear();
+            if (v == 1 || v == 2) q.labelAr.clear();
+            stage(juce::String("card 2, ") + variant[v]);
+            aeq::ui::ProblemList sv;
+            sv.setSize(336, 400);
+            sv.setProblems(std::vector<aeq::Problem>{ q });
+            savePng(sv.createComponentSnapshot(sv.getLocalBounds(), false, 1.0f),
+                    dir.getChildFile("probe-card2-" + juce::String(v) + ".png"));
         }
 
         aeq::ui::ProblemList one;
