@@ -152,6 +152,13 @@ int runWindow(const juce::File& dir) {
         editor->setSize(s.w, s.h);
         juce::MessageManager::getInstance()->runDispatchLoopUntil(500);
         stage("timer pumped");
+        for (int i = 0; i < editor->getNumChildComponents(); ++i) {
+            auto* c = editor->getChildComponent(i);
+            if (c == nullptr) continue;
+            stage(juce::String("  child ") + juce::String(i) + " " + typeid(*c).name()
+                  + " " + c->getBounds().toString()
+                  + (c->isVisible() ? "" : " HIDDEN"));
+        }
         const auto img = editor->createComponentSnapshot(editor->getLocalBounds(), false, 1.0f);
         stage("snapshot taken");
         savePng(img, dir.getChildFile(s.name));
