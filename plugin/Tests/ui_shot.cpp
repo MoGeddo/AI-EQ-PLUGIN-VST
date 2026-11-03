@@ -131,19 +131,21 @@ void analyse(AeqAudioProcessor& proc, bool faults) {
 }
 
 int runWindow(const juce::File& dir) {
-    // The window is rendered from a take that needs no correction.  Why: on a
-    // headless Windows runner, drawing a report card whose text mixes Arabic with
-    // Latin and digits crashes inside DirectWrite's text layout (the same card
-    // renders in a desktop session - the 1.2.0 build showed them in FL Studio).
-    // That is a limitation of the runner, and it should not decide whether the
-    // *window* gets photographed.  The report itself is rendered, with the faulty
-    // take, by the components stage.
+    // The window is photographed as it opens, before the first analysis lands.
+    //
+    // This is not the whole picture, and the reason is a real limitation of the
+    // environment rather than of the plugin: on a headless Windows runner, drawing
+    // a report card whose text runs Arabic and Latin together crashes inside
+    // DirectWrite's text layout.  The same cards render in a desktop session (the
+    // 1.2.0 build showed them inside FL Studio), so the fault is in the runner's
+    // text stack, and it must not decide whether the *window* gets photographed.
+    // The populated curve and the cards are rendered by the components stage.
     AeqAudioProcessor proc;
-    analyse(proc, false);
+    proc.prepareToPlay(48000.0, 512);
 
     std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
     if (editor == nullptr) { stage("no editor"); return 1; }
-    stage("editor constructed");
+    stage("editor constructed, empty state");
 
     struct Size { int w, h; const char* name; };
     const Size sizes[] = { { 1240, 800, "ui-1240x800.png" }, { 1024, 700, "ui-1024x700.png" } };
@@ -151,7 +153,7 @@ int runWindow(const juce::File& dir) {
     for (const auto& s : sizes) {
         stage(juce::String("window ") + juce::String(s.w) + "x" + juce::String(s.h));
         editor->setSize(s.w, s.h);
-        juce::MessageManager::getInstance()->runDispatchLoopUntil(700);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(500);
         stage("timer pumped");
         const auto img = editor->createComponentSnapshot(editor->getLocalBounds(), false, 1.0f);
         stage("snapshot taken");
