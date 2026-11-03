@@ -22,7 +22,9 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 
 #include <cinttypes>
+#include <cstdlib>
 #include <random>
+#include <string>
 #include <typeinfo>
 
 #include "PluginEditor.h"
@@ -189,6 +191,33 @@ int runCards(const juce::File& dir) {
         stage(juce::String("card ") + juce::String(int(i)) + " " + juce::String::fromUTF8(p.labelAr.c_str())
               + " action=" + juce::String(int(p.action)) + " f=" + juce::String(p.freq, 0)
               + " sev=" + juce::String(p.severity, 2));
+        if (i == 2) {
+            // The card that kills the process.  Reproduce it with raw draws: the
+            // three lines of that card, one image, in the same order.  If this
+            // survives, the text engines are innocent and the fault is in the
+            // card's own geometry.
+            const juce::String title = juce::String::fromUTF8(p.labelAr.c_str());
+            const juce::String detail = juce::String::fromUTF8(p.detailAr.c_str());
+            const juce::String action = juce::String::fromUTF8(
+                "خصم " + std::to_string(std::abs(p.gainDb)).substr(0, 4) + " dB عند "
+                + std::to_string(int(p.freq)) + " Hz (Q 0.8)");
+            stage("three lines, one image");
+            juce::Image im(juce::Image::RGB, 336, 88, true);
+            juce::Graphics gg(im);
+            gg.fillAll(aeq::ui::Palette::surface());
+            aeq::ui::label(gg, title, { 12, 10, 312, 20 }, juce::Colours::white, 13.0f,
+                           juce::Justification::topRight, true);
+            stage("line 1 drawn");
+            aeq::ui::drawParagraph(gg, detail, { 12.0f, 30.0f, 312.0f, 30.0f },
+                                   juce::Justification::topRight, 10.5f,
+                                   aeq::ui::Palette::muted());
+            stage("line 2 drawn");
+            aeq::ui::label(gg, action, { 12, 60, 312, 18 }, aeq::ui::Palette::accent(), 11.0f,
+                           juce::Justification::topRight, true);
+            stage("line 3 drawn");
+            savePng(im, dir.getChildFile("probe-three-lines.png"));
+        }
+
         aeq::ui::ProblemList one;
         one.setSize(336, 400);
         one.setProblems(std::vector<aeq::Problem>{ p });
