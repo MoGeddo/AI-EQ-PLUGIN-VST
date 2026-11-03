@@ -135,8 +135,8 @@ if (-not $shots) {
         Write-Host "--- $($f.Name) ---"
         Get-Content $f.FullName -Tail 20 | Write-Host
     }
-    Fail ("no window and no component was rendered - the interface has not been seen. "
-        + "Failed stages: " + ($failed -join ", "))
+    $why = "no window and no component was rendered - the interface has not been seen. Failed stages: " + ($failed -join ", ")
+    Fail $why
 }
 Write-Host "   rendered: $($shots.Name -join ', ')" -ForegroundColor Green
 if ($failed.Count -gt 0) {
