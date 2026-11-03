@@ -153,6 +153,20 @@ if ($thr) {
     Write-Host "   aeq_threads.exe was not built" -ForegroundColor Yellow
 }
 
+# --------------------------------------------------------------- hostile host
+# FL Studio closed within two seconds of playback in 1.2.2 because the audio thread
+# wrote past a buffer sized from prepareToPlay's block size - a host may legitimately
+# send a bigger block.  This gate does what hosts do and is built with
+# AddressSanitizer when the toolchain has it.
+Write-Host "== hostile host ==" -ForegroundColor Cyan
+$bnd = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_bounds.exe" | Select-Object -First 1
+if (-not $bnd) { Fail "aeq_bounds.exe was not built" }
+& $bnd.FullName 2>&1 | Tee-Object -Variable boundsOut | Write-Host
+if ($LASTEXITCODE -ne 0) {
+    $last = ($boundsOut | Select-Object -Last 14) -join "`n"
+    Fail "a host was allowed to break the plugin - do not load this build in a DAW.`nLast lines:`n$last"
+}
+
 # ----------------------------------------------------------------------- output
 $vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.vst3" | Select-Object -First 1
 $exe  = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.exe" | Select-Object -First 1

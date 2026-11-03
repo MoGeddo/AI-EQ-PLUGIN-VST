@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(AEQRestore VERSION 1.2.2 LANGUAGES CXX)
+project(AEQRestore VERSION 1.2.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -144,3 +144,38 @@ target_include_directories(aeq_threads PRIVATE Source)
 target_link_libraries(aeq_threads PRIVATE aeq_tsan)
 set_target_properties(aeq_threads PROPERTIES CXX_STANDARD 17)
 add_test(NAME thread_contract COMMAND aeq_threads)
+
+# AddressSanitizer for the hostile-host test.  That test asserts on behaviour, but
+# its real job is to turn an out-of-bounds write on the audio thread into a failure
+# on this machine rather than a crash in somebody's DAW - which is exactly how the
+# 1.2.2 FL Studio exit was found (heap-buffer-overflow WRITE of size 4,
+# RestoreCore.h:108).  Detected rather than assumed, so a toolchain without it still
+# builds the gate; it is only weaker, never absent.
+set(CMAKE_REQUIRED_FLAGS "-fsanitize=address")
+set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=address")
+check_cxx_source_compiles("int main(){return 0;}" AEQ_HAVE_ASAN)
+if (MSVC)
+    set(CMAKE_REQUIRED_FLAGS "/fsanitize=address /Zi")
+    set(CMAKE_REQUIRED_LINK_OPTIONS "/fsanitize=address")
+    check_cxx_source_compiles("int main(){return 0;}" AEQ_HAVE_ASAN_MSVC)
+endif()
+unset(CMAKE_REQUIRED_FLAGS)
+unset(CMAKE_REQUIRED_LINK_OPTIONS)
+add_library(aeq_asan INTERFACE)
+if (AEQ_HAVE_ASAN_MSVC)
+    target_compile_options(aeq_asan INTERFACE /fsanitize=address /Zi /Od)
+    target_link_options(aeq_asan INTERFACE /fsanitize=address)
+    message(STATUS "AEQ: AddressSanitizer enabled for aeq_bounds (MSVC)")
+elseif (AEQ_HAVE_ASAN AND NOT MSVC)
+    target_compile_options(aeq_asan INTERFACE -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1)
+    target_link_options(aeq_asan INTERFACE -fsanitize=address,undefined)
+    message(STATUS "AEQ: AddressSanitizer enabled for aeq_bounds")
+endif()
+
+# A host may hand over a block bigger than the one it prepared with, change the
+# size on every callback, run mono, or call prepareToPlay() again mid-playback.
+add_executable(aeq_bounds Tests/test_bounds.cpp)
+target_include_directories(aeq_bounds PRIVATE Source)
+target_link_libraries(aeq_bounds PRIVATE aeq_asan)
+set_target_properties(aeq_bounds PROPERTIES CXX_STANDARD 17)
+add_test(NAME hostile_host COMMAND aeq_bounds)

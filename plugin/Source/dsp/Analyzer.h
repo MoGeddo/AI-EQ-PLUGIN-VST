@@ -126,6 +126,7 @@ public:
     bool   ready() const { return nActive_ >= 40; }
     int    bandCount() const { return nBands_; }
     long   activeFrames() const { return nActive_; }
+    long   samplesSeen()  const { return totalSamples_; }   // every sample handed to processBlock
     double lastGateDb() const { return lastGate_; }
     const BandGrid& grid() const { return grid_; }
     double sampleRate() const { return fs_; }

@@ -32,7 +32,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
 - [x] G3: nothing else regressed - the original gates still pass, and G8/G16 add asserts
   CHECK: sh -c "ulimit -s 512; build/aeq_tests"
   EXPECT: 28 passed, 0 failed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=22ae5270ed89573d9a11e2e666fa852662075523c417355197d0013ebbfa9003; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=6c0535fbf53014890cd6475d35f6ae5115147ceb0a57393612cf02bdd4b3322d; exit=0; EXPECT=matched; output-sha256=20da56d581a816e21b51a944640dff04b4fe6811ee7b3f59d02047ca2bbabbda; output-bytes=3251; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
 
 - [x] G4: determinism survives the new accumulator
   CHECK: sh -c "ulimit -s 512; build/aeq_tests"
@@ -105,7 +105,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: no leftover %% in any report line
 
 - [x] G17: the gate binary runs inside 512 KB of stack, because Windows gives 1 MB and
-  EVIDENCE: automatic-evidence=v1; definition-sha256=3f4af598502f43fcc3378b49920b2dac382efed817e0617fd2629d6eb0817f50; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=6d87f7d81dfef6659c55bf4b8438f09c3f4e1ddecfe33f67362fe8d25c67b7bd; exit=0; EXPECT=matched; output-sha256=20da56d581a816e21b51a944640dff04b4fe6811ee7b3f59d02047ca2bbabbda; output-bytes=3251; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
       a 210 KB RestoreCore on the stack (three 8192-point double arrays in the analyser)
       plus ten of them in one function killed the MSVC build with 0xC00000FD before it
       printed a line
@@ -127,6 +127,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: wrote
 
 - [x] G21: the report prints its numbers, not its format string - a tilt card carries four
+  EVIDENCE: automatic-evidence=v1; definition-sha256=98fbb45b2c0fee5ef7ca4b35552796b58a590ef66fc0dfe7876d880f7025da1a; exit=0; EXPECT=matched; output-sha256=20da56d581a816e21b51a944640dff04b4fe6811ee7b3f59d02047ca2bbabbda; output-bytes=3251; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
       numbers and the formatter only had cases for three, so every low-end card in the
       window read "القاع أثقل من الجسم بـ % .1f dB".  G16 missed it because its take
       never produced that line; this one renders a tilted take on purpose
@@ -134,6 +135,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: no leftover %% in any report line of the tilted take
 
 - [x] G22: the audio thread and the editor never touch the same object unprotected - the
+  EVIDENCE: automatic-evidence=v1; definition-sha256=6138485228bb4fcff38fbcf9ab777ff1b9d184b0c996d74a3595d063bc4e8b62; exit=0; EXPECT=matched; output-sha256=6037ea7a48043b0ead4a83b7d8b422dd716ae20d9b10395eadae089e54482bc2; output-bytes=181; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
       crash in FL Studio was setBandTrim() rebuilding the biquad cascade under the audio
       thread.  600 blocks of audio, 40 analyses and 200 handle drags on three threads,
       built with ThreadSanitizer where the compiler has it
@@ -141,6 +143,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 2 passed, 0 failed
 
 - [x] G23: the Arabic reaches the binary as Arabic - juce::String(const char*) reads its
+  EVIDENCE: automatic-evidence=v1; definition-sha256=abb83d1626f6b8c7198bd63a6c8fa1bb31fd8666824677aa1a89939dc4eaee9b; exit=0; EXPECT=matched; output-sha256=7fd39dfde0cfc86d3a1872d301abdcadec2fa0e6a430842e0f45b38588276afd; output-bytes=128; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
       bytes as ASCII, so a UTF-8 literal that goes through it becomes one character per
       byte ("تخنة" arrived as U+00D8 U+00AA U+00D8 U+00AE and painted as .notdef boxes while
       the Latin in the same sentence rendered).  Every string now goes through ui::u8();
@@ -151,6 +154,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 0 non-ASCII literal(s) bypassing the UTF-8 funnel
 
 - [x] G24: the window lays out its controls at the size it opens at - resized() runs
+  EVIDENCE: automatic-evidence=v1; definition-sha256=2b2d8f4b9377d9d1e1806862d074056be987af48fecbe27cdc3f43030eb098ca; exit=0; EXPECT=matched; output-sha256=53ea1caea4022e5d15f31c2afdbfd1093cc47ae994ec7bdfd967f7a5a0042a25; output-bytes=109; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
       inside setSize(), the constructor called setSize() before buildControls(), so the
       only layout pass ran over an empty control list and every knob, label and value
       stayed at 0x0.  The default size also came from nowhere: on a laptop the bottom row
@@ -158,3 +162,18 @@ at any vocal stem first; the other gates need nothing but the source tree.
       the window fits inside 6/7 of the display it is opened on
   CHECK: python3 analysis/scripts/check_layout.py
   EXPECT: layout OK
+
+- [x] G25: a host may use a block size it never announced - `scratch_` was sized from
+  EVIDENCE: automatic-evidence=v1; definition-sha256=c0453e38c4c85bc965fd73fd9ddac443040700b367093fd9766ebc6373c018ba; exit=0; EXPECT=matched; output-sha256=ee3801b365ace52117bfb846b265d4b034d19c831e2b5008a7dc6dbb548c4fd3; output-bytes=921; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      the block size prepareToPlay() was given, and FL Studio hands over bigger blocks,
+      so the audio thread wrote past the end of a heap vector.  ASan in 1.2.2:
+      "heap-buffer-overflow WRITE of size 4 ... RestoreCore.h:108"; in FL the heap came
+      apart a second or two later and the whole host exited.  The buffer is now a fixed
+      member std::array fed in <=2048-sample chunks, and this gate performs the things
+      hosts do: an 8192-sample block after prepare(64), a block size that changes on
+      every one of 270 callbacks, mono with a null right channel, four sample-rate
+      changes mid-playback, reset() between blocks, 0/negative sample counts, a 4 Hz
+      analysis thread running throughout, and a check that every delivered sample
+      reached the analyser
+  CHECK: ./build/aeq_bounds
+  EXPECT: 8 passed, 0 failed

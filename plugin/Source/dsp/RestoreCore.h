@@ -75,7 +75,7 @@ public:
         deEsser_.prepare(fs_);
         eqLeft_.reset();
         eqRight_.reset();
-        scratch_.assign(maxBlock_, 0.0f);
+        scratch_.assign(maxBlock_, 0.0f);   // kept for the report; processBlock never trusts it
         state_.valid = false;
         updateBands();
     }
@@ -84,8 +84,16 @@ public:
         analyzer_.reset();
         eqLeft_.reset(); eqRight_.reset();
         hpf_.reset(); deEsser_.reset();
-        std::lock_guard<std::mutex> lk(stateMx_);
-        state_ = RestoreState{};
+        {
+            std::lock_guard<std::mutex> lk(stateMx_);
+            state_ = RestoreState{};
+        }
+        // The lock above must be *released* before this: updateBands() calls
+        // activeBands(), which takes stateMx_ again.  std::mutex is not recursive,
+        // so holding it across that call deadlocked the calling thread - and that
+        // caller is the audio thread (via requestReset) or the editor's Reset
+        // button.  A frozen audio thread inside a DAW looks exactly like a crash:
+        // the host stops the engine and, in FL Studio, drops the plugin.
         updateBands();
     }
 
@@ -104,11 +112,23 @@ public:
         //    drop this block.  These are long-term statistics, so a dropped
         //    block changes nothing and the audio thread never waits.
         if (settings_.learn && !settings_.bypass) {
-            for (int i = 0; i < n; ++i)
-                scratch_[i] = 0.5f * (left[i] + (right ? right[i] : left[i]));
+            // Chunked into a fixed-size member array.  This used to write into a
+            // std::vector sized by prepareToPlay's block size, and a host is allowed
+            // to hand over a bigger block than the one it prepared with - FL Studio
+            // does exactly that.  ASan: "heap-buffer-overflow WRITE of size 4 ...
+            // RestoreCore.h:108"; in FL the heap came apart a second or two later
+            // and the process disappeared.  A std::array cannot overflow and
+            // cannot allocate, so the audio thread has nothing to get wrong here.
             std::unique_lock<std::mutex> lk(analyzeMx_, std::try_to_lock);
             if (lk.owns_lock()) {
-                analyzer_.processBlock(scratch_.data(), n);
+                for (int off = 0; off < n; off += kMaxChunk) {
+                    const int len = std::min(kMaxChunk, n - off);
+                    for (int i = 0; i < len; ++i) {
+                        const int j = off + i;
+                        scratchChunk_[size_t(i)] = 0.5f * (left[j] + (right ? right[j] : left[j]));
+                    }
+                    analyzer_.processBlock(scratchChunk_.data(), len);
+                }
                 learnProgress_ = analyzer_.activeFraction();
             }
         }
@@ -308,6 +328,7 @@ public:
         return measurements_;
     }
     double learnProgress() const { return learnProgress_.load(); }
+    long   samplesAnalysed() const { return analyzer_.samplesSeen(); }
     Analyzer& analyzer() { return analyzer_; }
 
     // the full correction that is actually running (for the UI curve / delta)
@@ -405,7 +426,9 @@ private:
     DeEsser deEsser_;
     EqSolver solver_;
     ProblemDetector detector_;
-    std::vector<float> scratch_;
+    static constexpr int kMaxChunk = 2048;         // 8 KB of stack-adjacent member
+    std::array<float, kMaxChunk> scratchChunk_{};  // processBlock's only scratch
+    std::vector<float> scratch_;                    // legacy: sized by prepareToPlay
     std::vector<int> tmpCount_;
     std::array<std::atomic<double>, 8> trimDb_{};   // UI gain offsets, per corrective band
     std::atomic<bool> trimsDirty_{false};           // the editor moved a handle
