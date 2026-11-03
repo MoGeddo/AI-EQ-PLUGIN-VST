@@ -198,9 +198,9 @@ int runCards(const juce::File& dir) {
             // card's own geometry.
             const juce::String title = juce::String::fromUTF8(p.labelAr.c_str());
             const juce::String detail = juce::String::fromUTF8(p.detailAr.c_str());
-            const juce::String action = juce::String::fromUTF8(
-                "خصم " + std::to_string(std::abs(p.gainDb)).substr(0, 4) + " dB عند "
-                + std::to_string(int(p.freq)) + " Hz (Q 0.8)");
+            juce::String action = juce::String::fromUTF8("خصم ");
+            action << juce::String(std::abs(p.gainDb), 1) << " dB عند "
+                   << juce::String(int(p.freq)) << " Hz (Q " << juce::String(p.q, 1) << ")";
             stage("three lines, one image");
             juce::Image im(juce::Image::RGB, 336, 88, true);
             juce::Graphics gg(im);
