@@ -191,16 +191,6 @@ int runCards(const juce::File& dir) {
         stage(juce::String("card ") + juce::String(int(i)) + " " + juce::String::fromUTF8(p.labelAr.c_str())
               + " action=" + juce::String(int(p.action)) + " f=" + juce::String(p.freq, 0)
               + " sev=" + juce::String(p.severity, 2));
-        if (i == 2) {
-            // The card that kills the process.  Reproduce it with raw draws: the
-            // three lines of that card, one image, in the same order.  If this
-            // survives, the text engines are innocent and the fault is in the
-            // card's own geometry.
-            const juce::String title = juce::String::fromUTF8(p.labelAr.c_str());
-            const juce::String detail = juce::String::fromUTF8(p.detailAr.c_str());
-            juce::String action = juce::String::fromUTF8("خصم ");
-            action << juce::String(std::abs(p.gainDb), 1) << " dB عند "
-                   << juce::String(int(p.freq)) << " Hz (Q " << juce::String(p.q, 1) << ")";
         // Which line of the card is fatal?  Render the same card three times with
         // one line removed each time; component snapshots are the path the real UI
         // uses, so these probes can be trusted (a plain Image drops every glyph).
