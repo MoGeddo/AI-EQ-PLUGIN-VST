@@ -95,10 +95,13 @@ target_compile_definitions(aeq_shot PRIVATE
     JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1 JUCE_STANDALONE_APPLICATION=1
     JUCE_MODAL_LOOPS_PERMITTED=1
-    # The renderer, not the font path: a headless CI session has no desktop, and
-    # Direct2D needs one.  Text still goes through DirectWrite, which is exactly
-    # the code that decides whether the Arabic has glyphs.
-    JUCE_DIRECT2D=0)
+    # Direct2D stays ON, exactly as in the plugin.  Turning it off was a mistake
+    # worth recording: the software renderer on Windows draws glyphs through GDI,
+    # GDI cannot use a font that lives in memory, so it substitutes an installed
+    # face - and the window came out as a wall of boxes even though the embedded
+    # Cairo had loaded.  The screenshot has to use the same renderer as the
+    # product or it is measuring the wrong thing.
+    JUCE_DIRECT2D=1)
 target_link_libraries(aeq_shot PRIVATE
     AEQRestoreFonts
     juce::juce_audio_utils juce::juce_audio_processors juce::juce_dsp

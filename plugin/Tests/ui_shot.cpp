@@ -131,21 +131,13 @@ void analyse(AeqAudioProcessor& proc, bool faults) {
 }
 
 int runWindow(const juce::File& dir) {
-    // The window is photographed as it opens, before the first analysis lands.
-    //
-    // This is not the whole picture, and the reason is a real limitation of the
-    // environment rather than of the plugin: on a headless Windows runner, drawing
-    // a report card whose text runs Arabic and Latin together crashes inside
-    // DirectWrite's text layout.  The same cards render in a desktop session (the
-    // 1.2.0 build showed them inside FL Studio), so the fault is in the runner's
-    // text stack, and it must not decide whether the *window* gets photographed.
-    // The populated curve and the cards are rendered by the components stage.
+    // The window with a populated report: what a mixer actually sees.
     AeqAudioProcessor proc;
-    proc.prepareToPlay(48000.0, 512);
+    analyse(proc, true);          // the full report: the window as a mixer sees it
 
     std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
     if (editor == nullptr) { stage("no editor"); return 1; }
-    stage("editor constructed, empty state");
+    stage("editor constructed");
 
     struct Size { int w, h; const char* name; };
     const Size sizes[] = { { 1240, 800, "ui-1240x800.png" }, { 1024, 700, "ui-1024x700.png" } };
