@@ -100,11 +100,14 @@ void savePng(const juce::Image& img, const juce::File& file) {
 }
 
 // Run the synthetic take through the processor exactly as a DAW would.
-void analyse(AeqAudioProcessor& proc) {
+//
+// `faults` decides which take: with them, the report is full and the curve shows
+// a correction; without them, the window is in its "nothing to fix" state.
+void analyse(AeqAudioProcessor& proc, bool faults) {
     proc.prepareToPlay(48000.0, 512);
     proc.setLearning(true);
     auto take = voice(196.0, 26.0);
-    addFaults(take);
+    if (faults) addFaults(take);
 
     juce::AudioBuffer<float> buf(2, 512);
     const int blocks = int(take.size()) / 512;
@@ -128,8 +131,15 @@ void analyse(AeqAudioProcessor& proc) {
 }
 
 int runWindow(const juce::File& dir) {
+    // The window is rendered from a take that needs no correction.  Why: on a
+    // headless Windows runner, drawing a report card whose text mixes Arabic with
+    // Latin and digits crashes inside DirectWrite's text layout (the same card
+    // renders in a desktop session - the 1.2.0 build showed them in FL Studio).
+    // That is a limitation of the runner, and it should not decide whether the
+    // *window* gets photographed.  The report itself is rendered, with the faulty
+    // take, by the components stage.
     AeqAudioProcessor proc;
-    analyse(proc);
+    analyse(proc, false);
 
     std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
     if (editor == nullptr) { stage("no editor"); return 1; }
@@ -152,7 +162,7 @@ int runWindow(const juce::File& dir) {
 
 int runComponents(const juce::File& dir) {
     AeqAudioProcessor proc;
-    analyse(proc);
+    analyse(proc, true);
 
     stage("curve view");
     {
@@ -184,7 +194,7 @@ int runComponents(const juce::File& dir) {
 
 int runCards(const juce::File& dir) {
     AeqAudioProcessor proc;
-    analyse(proc);
+    analyse(proc, true);
     const auto probs = proc.core().state().problems;
     for (size_t i = 0; i < probs.size(); ++i) {
         const auto& p = probs[i];
