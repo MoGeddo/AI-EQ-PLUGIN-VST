@@ -35,6 +35,8 @@ private:
     static int defaultHeight();
 
     void drawTitleBar (juce::Graphics&, juce::Rectangle<int>);
+    // what the plugin is working on, one line, for the report header
+    juce::String regionsText() const;
     void drawVerdict (juce::Graphics&, juce::Rectangle<int>);
     void drawDockFrame (juce::Graphics&, juce::Rectangle<int>);
 

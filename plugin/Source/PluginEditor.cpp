@@ -289,15 +289,52 @@ void AeqAudioProcessorEditor::paint (Graphics& g) {
                         i == 0 ? Palette::accent() : Palette::text(), 12.5f);
     }
 
-    // the report column header, above the cards
+    // What the plugin is actually doing, in one line, before the cards.
+    //
+    // The tool's whole promise is that it decides for itself, so "which region are
+    // you touching?" has to be answerable without reading twenty-four cards: the
+    // high-pass corner and the frequencies of every band that is running.
     if (! verdictBounds_.isEmpty()) {
-        auto head = verdictBounds_.withY (verdictBounds_.getBottom() + 14).withHeight (16);
+        auto head = verdictBounds_.withY (verdictBounds_.getBottom() + 12).withHeight (16);
         aeq::ui::caption (g, "the report", head.reduced (2, 0), Palette::dim(),
                           Justification::centredLeft);
         aeq::ui::label (g, "التقرير", head.reduced (2, 0), Palette::muted(), 10.5f,
                         Justification::centredRight);
+        aeq::ui::label (g, regionsText(), head.translated (0, 18).withHeight (18).reduced (1, 0),
+                        Palette::accent(), 11.5f, Justification::centredRight, true);
     }
     juce::ignoreUnused (curveBounds_);
+}
+
+juce::String AeqAudioProcessorEditor::regionsText() const {
+    const auto st = proc_.core().state();
+    if (! st.valid) return aeq::ui::u8 ("بسمع… لسه مفيش منطقة محددة");
+
+    std::vector<std::pair<double, juce::String>> parts;   // frequency -> what it is
+    parts.reserve (12);
+    if (st.hpfHz > 0.0)
+        parts.push_back (std::make_pair (st.hpfHz, aeq::ui::u8 ("قطع تحت")));
+    for (const auto& r : st.resonance)
+        parts.push_back (std::make_pair (r.f0, aeq::ui::u8 ("رنين")));
+    for (const auto& b : st.corrective)
+        parts.push_back (std::make_pair (b.f0, b.gainDb < 0 ? aeq::ui::u8 ("خصم") : aeq::ui::u8 ("رفع")));
+    std::sort (parts.begin(), parts.end(),
+               [] (const auto& a, const auto& b) { return a.first < b.first; });
+
+    juce::String out = aeq::ui::u8 ("بيشتغل على: ");
+    if (parts.empty())
+        return out + aeq::ui::u8 ("مفيش حاجة — الصوت داخل المدى");
+
+    const int shown = juce::jmin (4, int (parts.size()));
+    for (int i = 0; i < shown; ++i) {
+        if (i) out << aeq::ui::u8 (" · ");
+        const double f = parts[size_t (i)].first;
+        out << (f < 1000.0 ? juce::String (int (std::lround (f))) + " Hz"
+                           : juce::String (f / 1000.0, 1) + " kHz");
+        out << " " << parts[size_t (i)].second;
+    }
+    if (int (parts.size()) > shown) out << aeq::ui::u8 (" · ‎+") << juce::String (int (parts.size()) - shown);
+    return out;
 }
 
 void AeqAudioProcessorEditor::drawTitleBar (Graphics& g, Rectangle<int> r) {
@@ -482,7 +519,7 @@ void AeqAudioProcessorEditor::resized() {
     body.removeFromRight (14);
 
     verdictBounds_ = rightCol.removeFromTop (140);
-    rightCol.removeFromTop (36);              // the report column caption
+    rightCol.removeFromTop (58);              // the report caption + the region line
     reportView_.setBounds (rightCol);
     problems_.setSize (jmax (100, rightCol.getWidth() - 8), problems_.contentHeight());
 
