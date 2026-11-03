@@ -49,6 +49,20 @@ target_sources(AEQRestore PRIVATE
 
 target_include_directories(AEQRestore PRIVATE Source)
 
+# The interface is written in Arabic, so the source files contain non-ASCII
+# literals.  MSVC guesses the source encoding from the machine's code page unless
+# it is told otherwise, and this machine is not always in UTF-8 mode: the literals
+# then arrive in the binary as something that is not Arabic, and the window fills
+# with .notdef boxes while the Latin text in the same string renders fine.  That is
+# exactly the failure the user photographed.  /utf-8 says: the file is UTF-8 and the
+# narrow literals are UTF-8.  Belt and braces: the strings themselves are written as
+# \uXXXX escapes in UiStrings.h, which no code page can change.
+if (MSVC)
+    target_compile_options(AEQRestore PRIVATE /utf-8)
+else()
+    target_compile_options(AEQRestore PRIVATE -finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
+
 target_compile_definitions(AEQRestore PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
@@ -91,6 +105,9 @@ target_sources(aeq_shot PRIVATE
     Source/PluginEditor.cpp
     Source/ui/ArabicText.cpp)
 target_include_directories(aeq_shot PRIVATE Source)
+if (MSVC)
+    target_compile_options(aeq_shot PRIVATE /utf-8)
+endif()
 target_compile_definitions(aeq_shot PRIVATE
     JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1 JUCE_STANDALONE_APPLICATION=1

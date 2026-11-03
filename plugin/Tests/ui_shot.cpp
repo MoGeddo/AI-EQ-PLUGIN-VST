@@ -246,6 +246,29 @@ int main(int argc, char** argv) {
     stage(juce::String("embedded Cairo typeface: ")
           + (aeq::ui::embeddedFontLoaded() ? "loaded" : "NOT loaded - falling back to a system face"));
 
+    // ---- the three questions a wall of boxes can hide -------------------------
+    // 1. Did the Arabic literal survive the compiler?  (MSVC guesses the source
+    //    encoding from the machine's code page unless told /utf-8.)
+    // 2. Which typeface did the UI actually get?
+    // 3. Does that typeface have a glyph for an Arabic letter at all?
+    {
+        const juce::String fromSource("تخنة");                          // as written in the file
+        const juce::String fromEscapes("\u062a\u062e\u0646\u0629");   // code page cannot touch this
+        juce::String hex;
+        for (auto c : fromSource) hex << juce::String::toHexString((int) c).paddedLeft('0', 4) << " ";
+        stage("literal codepoints: " + hex + " | escaped: "
+              + (fromSource == fromEscapes ? juce::String("identical") : juce::String("DIFFERENT")));
+
+        auto tf = aeq::ui::typeface(aeq::ui::Face::Regular);
+        stage("typeface: " + (tf != nullptr ? tf->getName() : juce::String("null"))
+              + ", glyph for U+062A: "
+              + (tf != nullptr ? juce::String(int(tf->getNominalGlyphForCodepoint(0x062A).value_or(0)))
+                               : juce::String("n/a")));
+        auto f = aeq::ui::font(14.0f, aeq::ui::Face::Regular);
+        stage("font family the UI uses: " + f.getTypefaceName()
+              + ", height " + juce::String(f.getHeight(), 1));
+    }
+
     // Can this process paint an image at all, and can it shape the embedded font?
     // Both are cheap, and both answer a question a stack trace would not.
     {
