@@ -237,16 +237,23 @@ int main(int argc, char** argv) {
                 for (unsigned char ch : pp.labelAr) hex2 << juce::String::toHexString ((int) ch).paddedLeft ('0', 2) << " ";
                 stage (hex2.toRawUTF8());
 
-                const juce::String strs[] = { juce::String::fromUTF8 (pp.labelAr.c_str()),
-                                              juce::String::fromUTF8 (pp.detailAr.c_str()) };
-                for (int k = 0; k < 2; ++k) {
-                    stage (("string " + juce::String (k) + " alone").toRawUTF8());
+                // Isolate what kills the shaper: the Arabic, the ASCII part, the
+                // parentheses, or the two scripts in one run.
+                const juce::String cases[] = {
+                    juce::String::fromUTF8 (pp.labelAr.c_str()),          // "تخنة (Boom)"
+                    juce::String::fromUTF8 ("تخنة"),                       // Arabic only
+                    juce::String::fromUTF8 ("(Boom)"),                     // ASCII only
+                    juce::String::fromUTF8 ("Boom"),                       // ASCII, no parens
+                    juce::String::fromUTF8 ("تخنة \u061C(Boom)"),          // with an Arabic letter mark
+                };
+                for (int k = 0; k < 5; ++k) {
+                    stage (("string " + juce::String (k) + ": "
+                            + cases[k].toRawUTF8()).toRawUTF8());
                     juce::Image im (juce::Image::RGB, 320, 60, true);
                     juce::Graphics gg (im);
                     gg.fillAll (aeq::ui::Palette::surface());
-                    aeq::ui::draw (gg, strs[k], im.getBounds().toFloat().reduced (4.0f),
-                                   juce::Justification::topRight, k == 0 ? 13.0f : 11.5f,
-                                   juce::Colours::white);
+                    aeq::ui::draw (gg, cases[k], im.getBounds().toFloat().reduced (4.0f),
+                                   juce::Justification::topRight, 13.0f, juce::Colours::white);
                     savePng (im, dir.getChildFile ("probe-str-" + juce::String (k) + ".png"));
                 }
                 stage ("strings survived");
