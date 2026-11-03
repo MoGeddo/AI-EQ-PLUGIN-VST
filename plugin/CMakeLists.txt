@@ -151,25 +151,27 @@ add_test(NAME thread_contract COMMAND aeq_threads)
 # 1.2.2 FL Studio exit was found (heap-buffer-overflow WRITE of size 4,
 # RestoreCore.h:108).  Detected rather than assumed, so a toolchain without it still
 # builds the gate; it is only weaker, never absent.
-set(CMAKE_REQUIRED_FLAGS "-fsanitize=address")
-set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=address")
-check_cxx_source_compiles("int main(){return 0;}" AEQ_HAVE_ASAN)
-if (MSVC)
-    set(CMAKE_REQUIRED_FLAGS "/fsanitize=address /Zi")
-    set(CMAKE_REQUIRED_LINK_OPTIONS "/fsanitize=address")
-    check_cxx_source_compiles("int main(){return 0;}" AEQ_HAVE_ASAN_MSVC)
+# MSVC is deliberately left alone: cl accepts /fsanitize=address and CMake's
+# try_compile reports success, but the target links through link.exe where the flag
+# is rejected with LNK4044 and the resulting binary exits with no output - which is
+# how the first 1.2.3 build failed its own gate.  A gate that cannot be trusted is
+# worse than one that is merely weaker, so Windows gets the same test built plainly
+# (it still catches a deadlock and a dropped block) and the sanitizer runs on the
+# Linux gate, where it is the tool that actually found the overflow.
+if (NOT MSVC)
+    set(CMAKE_REQUIRED_FLAGS "-fsanitize=address,undefined")
+    set(CMAKE_REQUIRED_LINK_OPTIONS "-fsanitize=address,undefined")
+    check_cxx_source_compiles("int main(){return 0;}" AEQ_HAVE_ASAN)
+    unset(CMAKE_REQUIRED_FLAGS)
+    unset(CMAKE_REQUIRED_LINK_OPTIONS)
 endif()
-unset(CMAKE_REQUIRED_FLAGS)
-unset(CMAKE_REQUIRED_LINK_OPTIONS)
 add_library(aeq_asan INTERFACE)
-if (AEQ_HAVE_ASAN_MSVC)
-    target_compile_options(aeq_asan INTERFACE /fsanitize=address /Zi /Od)
-    target_link_options(aeq_asan INTERFACE /fsanitize=address)
-    message(STATUS "AEQ: AddressSanitizer enabled for aeq_bounds (MSVC)")
-elseif (AEQ_HAVE_ASAN AND NOT MSVC)
+if (AEQ_HAVE_ASAN AND NOT MSVC)
     target_compile_options(aeq_asan INTERFACE -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1)
     target_link_options(aeq_asan INTERFACE -fsanitize=address,undefined)
     message(STATUS "AEQ: AddressSanitizer enabled for aeq_bounds")
+else()
+    message(STATUS "AEQ: aeq_bounds built without AddressSanitizer (behavioural checks only)")
 endif()
 
 # A host may hand over a block bigger than the one it prepared with, change the

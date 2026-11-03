@@ -31,6 +31,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 #include <atomic>
 #include <thread>
@@ -62,7 +63,26 @@ bool allFinite(const std::vector<float>& x) {
 
 } // namespace
 
+static std::atomic<bool> finished{false};
+
+// reset() used to take stateMx_ and then call updateBands(), which takes the same
+// mutex, so the calling thread stopped forever - on the audio thread, inside the
+// host's callback.  A hung gate is worse than a failing one (CI would sit there
+// until the job timeout), so the deadlock is turned into a failure with a name.
+static void startWatchdog() {
+    std::thread([] {
+        for (int i = 0; i < 180; ++i) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            if (finished.load()) return;
+        }
+        std::printf("\nWATCHDOG: the audio thread never came back - deadlock\n");
+        std::fflush(stdout);
+        std::_Exit(9);
+    }).detach();
+}
+
 int main() {
+    startWatchdog();
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     std::printf("\n===== AEQ RESTORE - hostile host =====\n");
 
@@ -184,6 +204,7 @@ int main() {
         checkTrue(got == n, "one second in, all of it analysed");
     }
 
+    finished.store(true);
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);
     return gFail ? 1 : 0;
 }

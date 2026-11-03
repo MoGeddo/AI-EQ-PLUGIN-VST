@@ -224,6 +224,36 @@ int runCards(const juce::File& dir) {
                     dir.getChildFile("probe-card2-" + juce::String(v) + ".png"));
         }
 
+        // Which *string* takes the process down?  One line at a time, through the
+        // same component-snapshot path, so a crash names the text instead of the
+        // card.  A row of Arabic with Latin units in it is the shape that has been
+        // killing the renderer, and this is how we find out which row.
+        struct OneLine : juce::Component {
+            juce::String text; float size = 13.0f; bool paragraph = false;
+            void paint (juce::Graphics& g) override {
+                const auto r = getLocalBounds().reduced (8);
+                if (paragraph) aeq::ui::drawParagraph (g, text, r.toFloat(), juce::Justification::topRight,
+                                                       size, aeq::ui::Palette::muted());
+                else aeq::ui::label (g, text, r, aeq::ui::Palette::text(), size,
+                                     juce::Justification::topRight, true);
+            }
+        };
+        auto probeText = [&] (const juce::String& t, const juce::String& what, float size, bool paragraph) {
+            stage ("  text " + what + " (" + juce::String (t.length()) + " chars) "
+                   + juce::String::toHexString (int (t[0])).paddedLeft ('0', 4) + "..");
+            OneLine l;
+            l.text = t; l.size = size; l.paragraph = paragraph;
+            l.setSize (336, 104);
+            savePng (l.createComponentSnapshot (l.getLocalBounds(), false, 1.0f),
+                     dir.getChildFile ("probe-text-" + juce::String (int (i)) + "-" + what + ".png"));
+        };
+        probeText (juce::String::fromUTF8 (p.labelAr.c_str()), "title", 13.0f, false);
+        probeText (juce::String::fromUTF8 (p.labelAr.c_str()).replace ("(", "").replace (")", ""),
+                   "title-noparen", 13.0f, false);
+        probeText (juce::String::fromUTF8 (p.detailAr.c_str()), "detail", 10.5f, true);
+        probeText (juce::String::fromUTF8 (p.detailAr.c_str()).replace ("(", "").replace (")", ""),
+                   "detail-noparen", 10.5f, true);
+
         aeq::ui::ProblemList one;
         one.setSize(336, 400);
         one.setProblems(std::vector<aeq::Problem>{ p });

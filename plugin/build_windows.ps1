@@ -162,6 +162,7 @@ Write-Host "== hostile host ==" -ForegroundColor Cyan
 $bnd = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_bounds.exe" | Select-Object -First 1
 if (-not $bnd) { Fail "aeq_bounds.exe was not built" }
 & $bnd.FullName 2>&1 | Tee-Object -Variable boundsOut | Write-Host
+Write-Host "   aeq_bounds exit: $LASTEXITCODE"
 if ($LASTEXITCODE -ne 0) {
     $last = ($boundsOut | Select-Object -Last 14) -join "`n"
     Fail "a host was allowed to break the plugin - do not load this build in a DAW.`nLast lines:`n$last"
