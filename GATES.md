@@ -177,3 +177,16 @@ at any vocal stem first; the other gates need nothing but the source tree.
       reached the analyser
   CHECK: ./build/aeq_bounds
   EXPECT: 8 passed, 0 failed
+
+- [x] G26: an Arabic paragraph is laid out right-to-left even when it starts with a
+  EVIDENCE: automatic-evidence=v1; definition-sha256=b9b3653caf4a7807ab7707481e7cdce20eeacab67065d3261e9d248b6142c749; exit=0; EXPECT=matched; output-sha256=9933eae3a7f9e67b05e5cf6873ba69dacf1b45f3b08b7dd1f475d042444e0ab3; output-bytes=59; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      number - the base direction comes from the first strong character, so a card
+      reading "202 Hz ثابت على مدى الأداء ..." was built as a left-to-right paragraph
+      with Arabic runs inside it.  On the Windows runner that layout took the process
+      down: rendering the cards' lines one at a time (probe-text-*.png) showed every
+      paragraph beginning with a number dying and every one beginning with Arabic
+      surviving.  `withRtlBase()` now puts a RIGHT-TO-LEFT MARK in front of such a
+      string, in the three entry points of the text funnel, and this gate fails if a
+      call disappears or if anything outside the funnel builds its own TextLayout
+  CHECK: python3 analysis/scripts/check_bidi.py
+  EXPECT: every paragraph goes through the RTL-base funnel

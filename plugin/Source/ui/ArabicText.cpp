@@ -42,6 +42,26 @@ juce::Typeface::Ptr buildTypeface(Face face) {
         BinaryData::CairoRegular_ttf, BinaryData::CairoRegular_ttfSize);
 }
 
+// The base direction of a paragraph is decided by its first strong character
+// (bidi rule P2/P3).  In an Arabic report one card reads
+//
+//     202 Hz ثابت على مدى الأداء (متوسط +40.1 dB، تغيّر 15.0 dB)
+//
+// so the paragraph is laid out left-to-right with Arabic runs inside it, and the
+// Windows text stack takes the process down on exactly those: every card whose
+// paragraph began with Arabic survived, and every one that began with a number
+// died (found by rendering the cards' lines one at a time on the runner - see
+// probe-text-*.png).  A RIGHT-TO-LEFT MARK in front of the text fixes the base
+// level and prints nothing; the design wanted an RTL report anyway, and a right
+// aligned paragraph with a digit in front of it is a bug even where it does not
+// crash.
+juce::String withRtlBase(const juce::String& s) {
+    if (s.isEmpty()) return s;
+    const juce::juce_wchar c = s[0];
+    const bool strongLtr = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+    return strongLtr ? juce::String::charToString(0x200F) + s : s;
+}
+
 // One TextLayout, shaped and bidi, for every string in the interface.  This is the
 // path JUCE 8 runs BidiAlgorithm + SimpleShapedText on; Graphics::drawText is not.
 juce::TextLayout buildLayout(const juce::String& utf8, float width, float fontSize,
@@ -97,7 +117,7 @@ void draw(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> ar
           juce::Justification just, float fontSize, juce::Colour colour, Face face,
           float extraLineSpacing) {
     if (utf8.isEmpty() || area.getWidth() < 2.0f) return;
-    auto layout = buildLayout(utf8, area.getWidth(), fontSize, colour, face, just, extraLineSpacing);
+    auto layout = buildLayout(withRtlBase(utf8), area.getWidth(), fontSize, colour, face, just, extraLineSpacing);
     g.setColour(colour);
     layout.draw(g, area);
 }
@@ -110,10 +130,11 @@ void drawParagraph(juce::Graphics& g, const char* utf8, juce::Rectangle<float> a
 void drawParagraph(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> area,
                    juce::Justification just, float fontSize, juce::Colour colour, Face face) {
     if (utf8.isEmpty() || area.getWidth() < 2.0f) return;
+    const auto text = withRtlBase(utf8);
     juce::AttributedString as;
     as.setJustification(just);
     as.setLineSpacing(0.12f);
-    as.append(utf8, font(fontSize, face), colour);
+    as.append(text, font(fontSize, face), colour);
     as.setWordWrap(juce::AttributedString::WordWrap::byWord);
     juce::TextLayout layout;
     layout.createLayout(as, area.getWidth());
@@ -124,7 +145,7 @@ void drawParagraph(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<
 float measure(const juce::String& utf8, float fontSize, Face face) {
     if (utf8.isEmpty()) return 0.0f;
     auto f = font(fontSize, face);
-    return juce::GlyphArrangement::getStringWidth(f, utf8);
+    return juce::GlyphArrangement::getStringWidth(f, withRtlBase(utf8));
 }
 
 float measure(const char* utf8, float fontSize, Face face) {
