@@ -202,7 +202,19 @@ int runCards(const juce::File& dir) {
             action << juce::String(std::abs(p.gainDb), 1) << " dB عند "
                    << juce::String(int(p.freq)) << " Hz (Q " << juce::String(p.q, 1) << ")";
             stage("three lines, one image");
-            juce::Image im(juce::Image::RGB, 336, 88, true);
+            {
+                // The action line on its own, on an ARGB image: an RGB target
+                // silently drops every glyph, which made the earlier probes lie.
+                juce::Image a(juce::Image::ARGB, 336, 40, true);
+                juce::Graphics ag(a);
+                ag.fillAll(aeq::ui::Palette::surface());
+                stage("action line alone");
+                aeq::ui::label(ag, action, { 12, 10, 312, 18 }, aeq::ui::Palette::accent(), 11.0f,
+                               juce::Justification::topRight, true);
+                stage("action line drawn");
+                savePng(a, dir.getChildFile("probe-action.png"));
+            }
+            juce::Image im(juce::Image::ARGB, 336, 88, true);
             juce::Graphics gg(im);
             gg.fillAll(aeq::ui::Palette::surface());
             aeq::ui::label(gg, title, { 12, 10, 312, 20 }, juce::Colours::white, 13.0f,
@@ -249,7 +261,7 @@ int main(int argc, char** argv) {
     // Both are cheap, and both answer a question a stack trace would not.
     {
         stage("probe plain image");
-        juce::Image probe(juce::Image::RGB, 64, 24, true);
+        juce::Image probe(juce::Image::ARGB, 64, 24, true);
         juce::Graphics pg(probe);
         pg.setColour(juce::Colours::red);
         pg.fillRect(probe.getBounds());
@@ -257,7 +269,7 @@ int main(int argc, char** argv) {
     }
     {
         stage("probe embedded font");
-        juce::Image probe(juce::Image::RGB, 480, 90, true);
+        juce::Image probe(juce::Image::ARGB, 480, 90, true);
         juce::Graphics pg(probe);
         pg.fillAll(aeq::ui::Palette::surface());
         aeq::ui::draw(pg, juce::String::fromUTF8(u8"AEQ Restore — الخط العربي داخل الـplugin"),
