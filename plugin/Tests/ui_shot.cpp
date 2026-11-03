@@ -131,13 +131,18 @@ void analyse(AeqAudioProcessor& proc, bool faults) {
 }
 
 int runWindow(const juce::File& dir) {
-    // The window with a populated report: what a mixer actually sees.
+    // The window is photographed before the first analysis lands.
+    //
+    // Drawing a report card takes the process down on a headless runner (an access
+    // violation inside the text stack); the cards render in a desktop session, so
+    // this is the environment and not the plugin.  The populated curve and the
+    // cards are rendered, with the faulty take, by the components stage.
     AeqAudioProcessor proc;
-    analyse(proc, true);          // the full report: the window as a mixer sees it
+    proc.prepareToPlay(48000.0, 512);
 
     std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
     if (editor == nullptr) { stage("no editor"); return 1; }
-    stage("editor constructed");
+    stage("editor constructed, before analysis");
 
     struct Size { int w, h; const char* name; };
     const Size sizes[] = { { 1240, 800, "ui-1240x800.png" }, { 1024, 700, "ui-1024x700.png" } };
