@@ -31,6 +31,8 @@ public:
 private:
     void timerCallback() override;
     void buildControls();
+    static int defaultWidth();
+    static int defaultHeight();
 
     void drawTitleBar (juce::Graphics&, juce::Rectangle<int>);
     void drawVerdict (juce::Graphics&, juce::Rectangle<int>);

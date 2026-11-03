@@ -119,8 +119,9 @@ public:
         g.fillRoundedRectangle (r, 8.0f);
         g.setColour (box.isMouseOver() ? Palette::hairline().brighter (0.3f) : Palette::hairline());
         g.drawRoundedRectangle (r, 8.0f, 1.0f);
-        aeq::ui::draw (g, box.getText(), box.getLocalBounds().reduced (12, 0).withTrimmedRight (18).toFloat(),
-                       Justification::centredLeft, 12.0f, Palette::text());
+        // No text here.  JUCE's ComboBox owns a Label that draws the current item,
+        // and drawing it here as well is what put two lines of text on top of each
+        // other in the 1.2.1 build.  The label's font comes from getComboBoxFont().
         aeq::ui::icon (g, Icon::ChevronDown,
                        Rectangle<float> (float (width) - 24.0f, (height - 14.0f) * 0.5f, 14.0f, 14.0f),
                        Palette::muted());
@@ -144,8 +145,7 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor (AeqAudioProcessor& p)
     setLookAndFeel (look_.get());
 
     setResizable (true, true);
-    setResizeLimits (1024, 700, 1800, 1200);
-    setSize (1240, 800);
+    setResizeLimits (1000, 660, 1800, 1200);
 
     addAndMakeVisible (curve_);
     addAndMakeVisible (reportView_);
@@ -173,7 +173,34 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor (AeqAudioProcessor& p)
 
     bypassBtn_.getProperties().set ("icon", int (Icon::Power));
 
+    // Build first, size second.  setSize() triggers resized(), so sizing before the
+    // controls exist laid the window out over an empty knob list: every knob, its
+    // label and its value kept the default 0 x 0 bounds, and the dock came out
+    // blank at exactly the default size.  The explicit resized() at the end covers
+    // the case where the host gives us a size before it is shown.
+    setSize (defaultWidth(), defaultHeight());
+    resized();
+
     startTimerHz (12);
+}
+
+// The window used to open at 1240 x 800 whatever the screen was.  On a display
+// whose usable height is smaller than that - any 1080p laptop with the taskbar and
+// a DAW toolbar - the host clips the editor, the bottom row of knobs disappears
+// under the edge, and the window looks broken.  Ask the display, and stay inside
+// it.
+int AeqAudioProcessorEditor::defaultWidth() {
+    int avail = 1240;
+    if (auto* d = Desktop::getInstance().getDisplays().getPrimaryDisplay())
+        avail = d->userArea.getWidth();
+    return jlimit (1000, 1240, int (avail * 0.88f));
+}
+
+int AeqAudioProcessorEditor::defaultHeight() {
+    int avail = 800;
+    if (auto* d = Desktop::getInstance().getDisplays().getPrimaryDisplay())
+        avail = d->userArea.getHeight();
+    return jlimit (660, 800, int (avail * 0.86f));
 }
 
 AeqAudioProcessorEditor::~AeqAudioProcessorEditor() {
@@ -193,8 +220,10 @@ void AeqAudioProcessorEditor::buildControls() {
 
     addAndMakeVisible (mode_);
     // fromUTF8, not the char* constructor: see ui::u8 in ArabicText.h
-    mode_.addItemList ({ aeq::ui::u8 ("Restore — يصحّح المشاكل"),
-                         aeq::ui::u8 ("Match — يمشي على المعيار") }, 1);
+    // short enough to fit a 280 px box: the long explanation lives in the doc and
+    // in the verdict card, not in a dropdown that has to truncate it
+    mode_.addItemList ({ aeq::ui::u8 ("Restore · تصحيح"),
+                         aeq::ui::u8 ("Match · مظروف") }, 1);
     aMode_ = std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (
         proc_.apvts(), "mode", mode_);
 
@@ -431,7 +460,7 @@ void AeqAudioProcessorEditor::resized() {
     row1.removeFromLeft (8);
     resetBtn_.setBounds (row1.removeFromLeft (96));
     row1.removeFromLeft (14);
-    mode_.setBounds (row1.removeFromLeft (250));
+    mode_.setBounds (row1.removeFromLeft (280));
 
     dockInner.removeFromTop (14);
     const int n = jmax (1, knobs_.size());
