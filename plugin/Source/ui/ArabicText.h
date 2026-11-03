@@ -31,6 +31,12 @@ enum class Face { Regular, SemiBold };
 // The embedded typefaces.  Loaded once, on first use, and cached for the process.
 juce::Typeface::Ptr typeface(Face face);
 
+// False when the platform refused to build a typeface from the embedded bytes.
+// Windows goes through DirectWrite's custom font collection, which can fail (it
+// does on a headless runner).  When it fails the UI must still be readable, so
+// font() falls back to a system face and this reports which path was taken.
+bool embeddedFontLoaded();
+
 // A font at a given height, in the embedded face.
 juce::Font font(float height, Face face);
 

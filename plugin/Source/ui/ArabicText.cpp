@@ -42,8 +42,22 @@ juce::Typeface::Ptr typeface(Face face) {
     return face == Face::SemiBold ? semibold : regular;
 }
 
+bool embeddedFontLoaded() { return typeface(Face::Regular) != nullptr; }
+
 juce::Font font(float height, Face face) {
-    return juce::Font(juce::FontOptions().withTypeface(typeface(face)).withHeight(height));
+    if (auto tf = typeface(face))
+        return juce::Font(juce::FontOptions().withTypeface(tf).withHeight(height));
+
+    // The embedded face could not be built.  Rather than hand the OS a font that
+    // may have no Arabic glyphs and paint a wall of boxes - the 1.2.0 failure -
+    // ask for a family that does, in order of how likely it is to be installed.
+    static const char* const candidates[] = { "Segoe UI", "Tahoma", "Arial", "DejaVu Sans" };
+    juce::Font best(juce::FontOptions().withHeight(height));
+    for (auto* name : candidates) {
+        juce::Font f(juce::FontOptions().withHeight(height).withName(name));
+        if (f.getTypefacePtr() != nullptr && f.getTypefacePtr()->getName().isNotEmpty()) { best = f; break; }
+    }
+    return best;
 }
 
 void draw(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<float> area,

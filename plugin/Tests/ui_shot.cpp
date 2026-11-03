@@ -246,6 +246,8 @@ int main(int argc, char** argv) {
     const juce::ScopedJuceInitialiser_GUI init;
     g_log = dir.getChildFile("shot.log.txt");
     stage("start, mode " + mode + ", output " + dir.getFullPathName());
+    stage(juce::String("embedded Cairo typeface: ")
+          + (aeq::ui::embeddedFontLoaded() ? "loaded" : "NOT loaded - falling back to a system face"));
 
     // Can this process paint an image at all, and can it shape the embedded font?
     // Both are cheap, and both answer a question a stack trace would not.
