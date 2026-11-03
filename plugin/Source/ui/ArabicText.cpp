@@ -1,16 +1,43 @@
 #include "ArabicText.h"
 
+#if JUCE_WINDOWS
+ #include <windows.h>
+#endif
+
 namespace aeq::ui {
 namespace {
+
+// DirectWrite is happy with a font that lives in memory (it builds a custom
+// collection from the bytes).  GDI is not: it looks a font up by name, and JUCE's
+// software renderer draws glyphs through GDI.  So on a machine that falls back to
+// the software renderer - a remote session, a GPU-less box, and every offscreen
+// Image - the embedded face would be substituted for something without Arabic and
+// the window would fill with boxes, which is the 1.2.0 failure wearing a
+// different hat.  Registering the same bytes with GDI as well costs nothing and
+// makes both renderers agree.
+void registerWithGdi(const void* data, int size) {
+   #if JUCE_WINDOWS
+    static bool done = false;
+    if (done || data == nullptr || size <= 0) return;
+    done = true;
+    DWORD installed = 0;
+    AddFontMemResourceEx (const_cast<void*> (data), (DWORD) size, nullptr, &installed);
+   #else
+    juce::ignoreUnused (data, size);
+   #endif
+}
 
 // The bytes come from juce_add_binary_data (see CMakeLists.txt):
 //   CairoRegular_ttf / CairoSemiBold_ttf
 juce::Typeface::Ptr buildTypeface(Face face) {
     // Bytes are compiled in by juce_add_binary_data (CMakeLists.txt), so this never
     // touches the filesystem and never asks the OS which font to use.
-    if (face == Face::SemiBold)
+    if (face == Face::SemiBold) {
+        registerWithGdi (BinaryData::CairoSemiBold_ttf, BinaryData::CairoSemiBold_ttfSize);
         return juce::Typeface::createSystemTypefaceFor(
             BinaryData::CairoSemiBold_ttf, BinaryData::CairoSemiBold_ttfSize);
+    }
+    registerWithGdi (BinaryData::CairoRegular_ttf, BinaryData::CairoRegular_ttfSize);
     return juce::Typeface::createSystemTypefaceFor(
         BinaryData::CairoRegular_ttf, BinaryData::CairoRegular_ttfSize);
 }
