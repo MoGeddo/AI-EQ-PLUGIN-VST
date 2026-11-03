@@ -168,6 +168,20 @@ if ($LASTEXITCODE -ne 0) {
     Fail "a host was allowed to break the plugin - do not load this build in a DAW.`nLast lines:`n$last"
 }
 
+# ------------------------------------------------------------ audio smoothness
+# "مش سلس بيقطع": the analysis ran inside processBlock and the cascade was rebuilt
+# from scratch four times a second.  This gate counts heap traffic on the audio
+# thread, times the worst callback against the buffer budget, and looks for clicks.
+Write-Host "== audio smoothness ==" -ForegroundColor Cyan
+$sm = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_smooth.exe" | Select-Object -First 1
+if (-not $sm) { Fail "aeq_smooth.exe was not built" }
+& $sm.FullName 2>&1 | Tee-Object -Variable smoothOut | Write-Host
+Write-Host "   aeq_smooth exit: $LASTEXITCODE"
+if ($LASTEXITCODE -ne 0) {
+    $last = ($smoothOut | Select-Object -Last 14) -join "`n"
+    Fail "the audio path is not smooth - do not ship this.`nLast lines:`n$last"
+}
+
 # ----------------------------------------------------------------------- output
 $vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.vst3" | Select-Object -First 1
 $exe  = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.exe" | Select-Object -First 1

@@ -100,6 +100,7 @@ int main() {
         auto l = tone(n), r = l;
         core.processBlock(l.data(), r.data(), n);
         checkTrue(allFinite(l) && allFinite(r), "finite output for a 8192-sample block");
+        core.refresh();                        // the 4 Hz timer: drains the queue into the analyser
         checkTrue(core.samplesAnalysed() == n, "the analyser saw every one of the 8192 samples");
     }
 
@@ -199,6 +200,7 @@ int main() {
         const int n = 48000;                    // exactly one second, one callback
         auto l = tone(n);
         core.processBlock(l.data(), l.data(), n);
+        core.refresh();
         const long got = core.samplesAnalysed();
         std::printf("       %ld samples analysed of %d delivered\n", got, n);
         checkTrue(got == n, "one second in, all of it analysed");

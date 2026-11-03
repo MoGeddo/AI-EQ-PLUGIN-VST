@@ -74,6 +74,13 @@ public:
         fftInit();
         frameEnv_.assign(nBands_, -120.0);
         cRe_.assign(kFft, 0.0); cIm_.assign(kFft, 0.0);
+        // Everything processFrame() needs is sized here, in prepare(), where an
+        // allocation is allowed to happen.  power_ and frameBand_ used to be resized
+        // on the first frame - i.e. inside the host's audio callback.
+        power_.assign(kFft / 2, 0.0);
+        frameBand_.assign(nBands_, -120.0);
+        yinD_.assign(kFft / 2 + 2, 0.0);
+        yinCm_.assign(kFft / 2 + 2, 0.0);
         envValid_.assign(nBands_, false);
         reset();
     }
@@ -276,7 +283,7 @@ private:
         double rms = 0.0;
         for (int i = 0; i < kFft; ++i) rms += bufRe_[i] * bufRe_[i];
         // power spectrum (recompute after inverse-free magnitude)
-        power_.resize(kFft / 2);
+        if (int(power_.size()) != kFft / 2) power_.assign(kFft / 2, 0.0);
         double flatNum = 0.0, flatDen = 0.0;
         for (int b = 1; b < kFft / 2; ++b) {
             const double p = (bufRe_[b] * bufRe_[b] + bufIm_[b] * bufIm_[b]) / (wss_ * fs_);
@@ -331,7 +338,7 @@ private:
         sumFlat_ += flatness;
 
         // band powers -> dB, Welford accumulate
-        frameBand_.resize(nBands_);
+        if (int(frameBand_.size()) != nBands_) frameBand_.assign(nBands_, -120.0);
         for (int i = 0; i < nBands_; ++i) {
             // mean spectral density inside the band (NOT the bin sum: bands are
             // log-spaced while bins are linear, so a sum would inflate the top
@@ -483,9 +490,13 @@ private:
         const int W = N - tauMax;
         if (W < 128) return;
 
-        static thread_local std::vector<double> d, cm;
-        d.assign(tauMax + 1, 0.0);
-        cm.assign(tauMax + 1, 0.0);
+        // members, not thread_local statics: a static vector allocates on first
+        // use, and "first use" was the first audio callback
+        auto& d  = yinD_;
+        auto& cm = yinCm_;
+        if (int(d.size()) < tauMax + 1) { d.assign(size_t(tauMax) + 1, 0.0); cm.assign(size_t(tauMax) + 1, 0.0); }
+        std::fill(d.begin(), d.end(), 0.0);
+        std::fill(cm.begin(), cm.end(), 0.0);
 
         double e0 = 0.0;
         for (int i = 0; i < W; ++i) e0 += src[i] * src[i];
@@ -552,6 +563,7 @@ private:
     int ringPos_ = 0, framesInRing_ = 0, sinceHop_ = 0;
 
     double mean_[256]{}, m2_[256]{};
+    std::vector<double> yinD_, yinCm_;          // pitch scratch, sized in prepare (see prepare())
     std::vector<double> pSum_{256, 0.0};
     double exMean_[256]{}, exM2_[256]{}, exN_[256]{};
     std::vector<double> cRe_, cIm_;             // scratch for the cepstral lift

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(AEQRestore VERSION 1.2.4 LANGUAGES CXX)
+project(AEQRestore VERSION 1.2.5 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -181,3 +181,14 @@ target_include_directories(aeq_bounds PRIVATE Source)
 target_link_libraries(aeq_bounds PRIVATE aeq_asan)
 set_target_properties(aeq_bounds PROPERTIES CXX_STANDARD 17)
 add_test(NAME hostile_host COMMAND aeq_bounds)
+
+# Is the audio path smooth?  The analysis used to run inside processBlock (an
+# FFT-8192, a cepstrum and a pitch tracker, once every 2048 samples) and it allocated
+# there on the first frame; the EQ rebuilt its whole cascade 4 times a second, which
+# both allocated and zeroed every filter's memory.  In FL that is heard as stutter and
+# clicks.  This measures all three: heap traffic on the audio thread, the worst block
+# time against the buffer budget, and the largest sample step in the output.
+add_executable(aeq_smooth Tests/test_smooth.cpp)
+target_include_directories(aeq_smooth PRIVATE Source)
+set_target_properties(aeq_smooth PROPERTIES CXX_STANDARD 17)
+add_test(NAME audio_smoothness COMMAND aeq_smooth)

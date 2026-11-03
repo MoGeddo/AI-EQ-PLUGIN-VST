@@ -157,42 +157,103 @@ inline std::vector<double> bandsMagDb(const std::vector<BandSpec>& bands,
 // --------------------------------------------------------------------------- //
 class BiquadCascade {
 public:
+    // Fixed capacity: no heap.  setBands() used to clear() and push_back() into a
+    // std::vector on the audio thread, four times a second, which both allocates
+    // inside processBlock and throws away every filter's memory (z1/z2) - a click
+    // at 4 Hz that reads as "the plugin stutters".
+    static constexpr int kMaxSections = 24;
+
+    void prepare(double fs) { fs_ = fs; reset(); }
+
     void setBands(const std::vector<BandSpec>& bands, double fs) {
-        sections_.clear();
-        for (const auto& b : bands) {
+        setBands(bands.data(), int(bands.size()), fs);
+    }
+
+    // Build the new cascade without allocating, carry each section's memory over,
+    // and crossfade from the old one so the change is a slope, not a step.
+    void setBands(const BandSpec* bands, int count, double fs) {
+        if (fs > 0.0) fs_ = fs;
+        std::array<Biquad, kMaxSections> next{};
+        int n = 0;
+        for (int i = 0; i < count && n < kMaxSections; ++i) {
+            const BandSpec& b = bands[i];
             if (std::abs(b.gainDb) < 1e-6) continue;
             const double q = std::max(b.q, 0.1);
+            Biquad sec;
             switch (b.type) {
-                case BandType::Peak:      sections_.push_back(Biquad::peaking(b.f0, q, b.gainDb, fs)); break;
-                case BandType::LowShelf:  sections_.push_back(Biquad::lowShelf(b.f0, q, b.gainDb, fs)); break;
-                case BandType::HighShelf: sections_.push_back(Biquad::highShelf(b.f0, q, b.gainDb, fs)); break;
+                case BandType::Peak:      sec = Biquad::peaking(f0Safe(b.f0, fs_), q, b.gainDb, fs_); break;
+                case BandType::LowShelf:  sec = Biquad::lowShelf(f0Safe(b.f0, fs_), q, b.gainDb, fs_); break;
+                case BandType::HighShelf: sec = Biquad::highShelf(f0Safe(b.f0, fs_), q, b.gainDb, fs_); break;
             }
+            // the section that was in this slot keeps its delay line: the filter is
+            // being retuned, not replaced
+            if (n < nCur_) { sec.z1 = cur_[size_t(n)].z1; sec.z2 = cur_[size_t(n)].z2; }
+            next[size_t(n++)] = sec;
         }
+
+        if (n == nCur_ && sameCoefficients(next, n)) return;   // nothing to do: no click, no work
+
+        prev_ = cur_;
+        nPrev_ = nCur_;
+        cur_ = next;
+        nCur_ = n;
+        fadePos_ = 0;
+        fadeLen_ = int(std::max(32.0, fs_ * 0.15));    // 150 ms
+        fading_ = true;
     }
-    void reset() { for (auto& s : sections_) s.reset(); }
+
+    void reset() { for (auto& s : cur_) s.reset(); for (auto& s : prev_) s.reset(); nCur_ = nPrev_ = 0; fading_ = false; fadePos_ = 0; }
 
     inline double process(double x) noexcept {
-        for (auto& s : sections_) x = s.process(x);
-        return x;
+        double y = x;
+        for (int i = 0; i < nCur_; ++i) y = cur_[size_t(i)].process(y);
+        if (! fading_) return y;
+        double old = x;
+        for (int i = 0; i < nPrev_; ++i) old = prev_[size_t(i)].process(old);
+        const double t = double(fadePos_) / double(fadeLen_);
+        if (++fadePos_ >= fadeLen_) { fading_ = false; nPrev_ = 0; }
+        return old + (y - old) * t;
     }
+
     std::vector<double> magDb(const std::vector<double>& freqs, double fs) const {
         std::vector<double> out(freqs.size(), 0.0);
-        for (const auto& s : sections_)
-            for (size_t i = 0; i < freqs.size(); ++i) out[i] += s.magDb(freqs[i], fs);
+        for (int s = 0; s < nCur_; ++s)
+            for (size_t i = 0; i < freqs.size(); ++i) out[i] += cur_[size_t(s)].magDb(freqs[i], fs);
         return out;
     }
-    size_t size() const { return sections_.size(); }
+    size_t size() const { return size_t(nCur_); }
+    bool   isFading() const { return fading_; }
 
 private:
-    std::vector<Biquad> sections_;
+    bool sameCoefficients(const std::array<Biquad, kMaxSections>& a, int n) const {
+        for (int i = 0; i < n; ++i) {
+            const auto& x = a[size_t(i)];
+            const auto& y = cur_[size_t(i)];
+            if (x.b0 != y.b0 || x.b1 != y.b1 || x.b2 != y.b2 || x.a1 != y.a1 || x.a2 != y.a2) return false;
+        }
+        return true;
+    }
+
+    std::array<Biquad, kMaxSections> cur_{}, prev_{};
+    int nCur_ = 0, nPrev_ = 0;
+    int fadePos_ = 0, fadeLen_ = 1;
+    bool fading_ = false;
+    double fs_ = 48000.0;
 };
 
-// 24 dB/oct high-pass built from two cascaded 12 dB/oct sections
 class HighPass24 {
 public:
+    // Retuning keeps the delay lines.  Assigning a freshly built Biquad - which is
+    // what this did - zeroed z1/z2, so every retune (twice a second while the
+    // measurement updates) punched a hole in the low end instead of sliding the
+    // corner.
     void set(double f0, double fs) {
-        a_ = Biquad::highPass(f0, 0.54119610, fs);   // Butterworth pair
-        b_ = Biquad::highPass(f0, 1.30656296, fs);
+        const Biquad na = Biquad::highPass(f0, 0.54119610, fs);   // Butterworth pair
+        const Biquad nb = Biquad::highPass(f0, 1.30656296, fs);
+        const Biquad oldA = a_, oldB = b_;
+        a_ = na; b_ = nb;
+        a_.z1 = oldA.z1; a_.z2 = oldA.z2;
+        b_.z1 = oldB.z1; b_.z2 = oldB.z2;
         fs_ = fs; f0_ = f0;
     }
     void reset() { a_.reset(); b_.reset(); }

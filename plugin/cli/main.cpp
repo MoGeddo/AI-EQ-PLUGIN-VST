@@ -224,13 +224,16 @@ int main(int argc, char** argv) {
     // pass 1: learn over the whole take
     const int blk = 512;
     std::vector<float> L(blk), R(blk);
+    int blocks = 0;
     for (size_t off = 0; off < w.L.size(); off += blk) {
         const int n = (int)std::min<size_t>(blk, w.L.size() - off);
         for (int i = 0; i < n; ++i) {
             L[i] = w.L[off + i];
             R[i] = w.R.empty() ? w.L[off + i] : w.R[off + i];
         }
-        core.processBlock(L.data(), R.data(), n);   // analysis only happens here
+        core.processBlock(L.data(), R.data(), n);   // audio thread: queue only
+        // analysis runs on the caller's thread now, so the offline reader pumps it
+        if (++blocks % 40 == 0) core.refresh();
     }
     core.refresh();
     printReport(core);

@@ -190,3 +190,21 @@ at any vocal stem first; the other gates need nothing but the source tree.
       call disappears or if anything outside the funnel builds its own TextLayout
   CHECK: python3 analysis/scripts/check_bidi.py
   EXPECT: every paragraph goes through the RTL-base funnel
+
+- [x] G27: the audio callback is smooth - "مش سلس بيقطع" turned out to be three things
+  EVIDENCE: automatic-evidence=v1; definition-sha256=a234bc601c8b04b1fdd2e40be253352525eac2cdd9ba12b4f8d41881bf37c09c; exit=0; EXPECT=matched; output-sha256=924b0535611c0781140f62f98a42e899f94ef29ea3aab79843cbe957dfef47c2; output-bytes=521; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      in the callback, none of which a test that only checks "the output is finite"
+      could see.  (a) The whole analysis ran inside processBlock: FFT-8192 + cepstrum +
+      pitch tracker every 2048 samples, under a lock - 3.95 ms in a 10.7 ms budget in
+      the released build.  (b) It allocated on the first frame (power_, frameBand_ and
+      two thread_local vectors were sized lazily).  (c) setBands() cleared and
+      re-filled a std::vector and replaced every biquad four times a second, so the
+      filters' memory was zeroed at 4 Hz: a click, and an HPF that punched a hole in
+      the low end every time it was retuned.  Analysis now runs off the audio thread
+      through a lock-free ring, the callback only copies samples and runs biquads, the
+      cascade is a fixed array crossfaded over 150 ms, and retuning keeps filter state
+  CHECK: ./build/aeq_smooth
+  EXPECT: 5 passed, 0 failed
+  EVIDENCE_NOTE: measured, same test, same machine - released 1.2.4: 4 allocations
+      inside processBlock, worst block 3.946 ms; this build: 0 allocations, worst block
+      0.055 ms, worst 10 ms drop -1.34 dB, no sample-step discontinuity

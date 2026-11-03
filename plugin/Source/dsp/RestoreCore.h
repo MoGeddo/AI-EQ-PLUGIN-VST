@@ -81,6 +81,8 @@ public:
     }
 
     void reset() {
+        fifoRead_.store(fifoWrite_.load(std::memory_order_acquire), std::memory_order_release);
+        fifoDropped_.store(0);
         analyzer_.reset();
         eqLeft_.reset(); eqRight_.reset();
         hpf_.reset(); deEsser_.reset();
@@ -106,33 +108,29 @@ public:
         //    objects are never written from another thread.
         pollAndApply();
 
-        // 1. feed the analyser a mono view (vocal is essentially mono).
-        //    The analyser is shared with the background solver, so we take the
-        //    lock only if it is free: if the solver happens to be reading, we
-        //    drop this block.  These are long-term statistics, so a dropped
-        //    block changes nothing and the audio thread never waits.
+        // 1. hand the analyser a mono view (a vocal is essentially mono) through a
+        //    ring buffer, and nothing else.
+        //
+        //    The FFT-8192, the cepstrum and the pitch tracker used to run *inside*
+        //    this callback: ~1000x the work of a biquad, once every 2048 samples,
+        //    with a lock around it.  In FL Studio with a 512-sample buffer that is a
+        //    multi-millisecond spike in a 10 ms budget - audible as the plugin
+        //    stuttering and cutting out - and it allocated on the first frame, too.
+        //    Analysis now happens on the timer thread (refresh() drains this FIFO);
+        //    the audio thread only copies samples, which cannot fail, cannot block
+        //    and cannot allocate.
         if (settings_.learn && !settings_.bypass) {
-            // Chunked into a fixed-size member array.  This used to write into a
-            // std::vector sized by prepareToPlay's block size, and a host is allowed
-            // to hand over a bigger block than the one it prepared with - FL Studio
-            // does exactly that.  ASan: "heap-buffer-overflow WRITE of size 4 ...
-            // RestoreCore.h:108"; in FL the heap came apart a second or two later
-            // and the process disappeared.  A std::array cannot overflow and
-            // cannot allocate, so the audio thread has nothing to get wrong here.
-            std::unique_lock<std::mutex> lk(analyzeMx_, std::try_to_lock);
-            if (lk.owns_lock()) {
-                for (int off = 0; off < n; off += kMaxChunk) {
-                    const int len = std::min(kMaxChunk, n - off);
-                    for (int i = 0; i < len; ++i) {
-                        const int j = off + i;
-                        scratchChunk_[size_t(i)] = 0.5f * (left[j] + (right ? right[j] : left[j]));
-                    }
-                    analyzer_.processBlock(scratchChunk_.data(), len);
+            unsigned long long w = fifoWrite_.load(std::memory_order_relaxed);
+            const unsigned long long r = fifoRead_.load(std::memory_order_acquire);
+            for (int j = 0; j < n; ++j) {
+                if (w - r >= (unsigned long long) kFifoSize) {   // consumer is behind: drop
+                    fifoDropped_.fetch_add(n - j, std::memory_order_relaxed);
+                    break;
                 }
-                learnProgress_ = analyzer_.activeFraction();
+                fifo_[size_t(w++ & kFifoMask)] = 0.5f * (left[j] + (right ? right[j] : left[j]));
             }
+            fifoWrite_.store(w, std::memory_order_release);
         }
-
         if (settings_.bypass) return;
 
         // 2. chain
@@ -158,7 +156,25 @@ public:
     // Call from a timer (message/timer thread) - never from the audio thread.
     void refresh() {
         std::lock_guard<std::mutex> lk(analyzeMx_);
+        drainFromAudioThread();
         refreshLocked();
+    }
+
+    // Everything the audio thread wrote into the ring, handed to the analyser.  This
+    // is the only place Analyzer::processBlock is called from now, and it runs on
+    // whichever thread called refresh() - in the plugin, the 4 Hz timer.
+    void drainFromAudioThread() {
+        for (;;) {
+            const unsigned long long r = fifoRead_.load(std::memory_order_relaxed);
+            const unsigned long long w = fifoWrite_.load(std::memory_order_acquire);
+            if (r >= w) break;
+            const size_t n = size_t(std::min<unsigned long long>(w - r, (unsigned long long) kMaxChunk));
+            std::array<float, kMaxChunk> chunk{};
+            for (size_t i = 0; i < n; ++i) chunk[i] = fifo_[size_t((r + i) & kFifoMask)];
+            fifoRead_.store(r + n, std::memory_order_release);
+            analyzer_.processBlock(chunk.data(), int(n));
+            learnProgress_ = analyzer_.activeFraction();
+        }
     }
 
     // Which blocks may call refresh(): the background thread (plugin) or the
@@ -277,7 +293,7 @@ public:
         // next block, so no processing object is ever written from here
         {
             std::lock_guard<std::mutex> lk(pendingMx_);
-            pendingBands_ = activeBandsLocked();
+            pendingCount_ = activeBandsIntoLocked(pendingBands_.data(), kBands);
             pendingHpf_ = corner;
             pendingDeEssOn_ = deGr > 0.05;
             pendingDeThr_ = deThr;
@@ -302,13 +318,20 @@ public:
         // curve would otherwise be a different filter every few seconds during
         // the first pass, which is both audible and dishonest.
         const bool settled = pendingSettled_ || settings_.settleSeconds <= 0.0;
-        std::vector<BandSpec> bands = settled ? pendingBands_ : manualBands();
-        for (size_t i = 0; i < bands.size() && i < trimDb_.size(); ++i) {
-            const double t = trimDb_[i].load(std::memory_order_relaxed);
-            if (std::abs(t) > 0.001) bands[i].gainDb = static_cast<float>(std::clamp<double>(bands[i].gainDb + t, -18.0, 18.0));
+        std::array<BandSpec, kBands> bands{};
+        int count = 0;
+        if (settled) {
+            count = std::min(pendingCount_, kBands);
+            for (int i = 0; i < count; ++i) bands[size_t(i)] = pendingBands_[size_t(i)];
+        } else {
+            count = manualBandsInto(bands.data(), kBands);
         }
-        eqLeft_.setBands(bands, fs_);
-        eqRight_.setBands(bands, fs_);
+        for (int i = 0; i < count && i < int(trimDb_.size()); ++i) {
+            const double t = trimDb_[size_t(i)].load(std::memory_order_relaxed);
+            if (std::abs(t) > 0.001) bands[size_t(i)].gainDb = static_cast<float>(std::clamp<double>(bands[size_t(i)].gainDb + t, -18.0, 18.0));
+        }
+        eqLeft_.setBands(bands.data(), count, fs_);
+        eqRight_.setBands(bands.data(), count, fs_);
         hpf_.set(settled && pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
         deEsser_.setEnabled(settled && pendingDeEssOn_);
         if (settled) deEsser_.setParameters(pendingDeThr_, pendingDeGr_);
@@ -360,29 +383,51 @@ public:
         return activeBandsLocked();
     }
 
-    // the bands the *user* asked for, independent of any analysis (audio thread)
+    // The bands the *user* asked for, independent of any analysis.  Written into a
+    // caller-provided array: this runs on the audio thread, and returning a vector
+    // from it meant a heap allocation inside every block that had no solution yet.
+    int manualBandsInto(BandSpec* out, int cap) const {
+        int n = 0;
+        auto push = [&](BandType t, double f, double q, double g) {
+            if (n < cap) out[n++] = BandSpec{t, f, q, g};
+        };
+        if (std::abs(settings_.airTrimDb) > 0.01) push(BandType::HighShelf, 9000.0, 0.7, settings_.airTrimDb);
+        push(BandType::Peak, 250.0, 0.9, 2.5 * settings_.axis1);   // PC1 warm
+        push(BandType::Peak, 330.0, 0.9, 1.5 * settings_.axis1);
+        push(BandType::Peak, 3500.0, 0.8, 1.2 * settings_.axis1);  // PC1 presence
+        push(BandType::Peak, 200.0, 1.0, 2.0 * settings_.axis2);   // PC2 body
+        push(BandType::Peak, 2200.0, 1.2, 1.5 * settings_.axis2);
+        return n;
+    }
+
+    // message-thread convenience
     std::vector<BandSpec> manualBands() const {
-        std::vector<BandSpec> out;
-        if (std::abs(settings_.airTrimDb) > 0.01)
-            out.push_back({BandType::HighShelf, 9000.0, 0.7, settings_.airTrimDb});
-        out.push_back({BandType::Peak, 250.0, 0.9, 2.5 * settings_.axis1});   // PC1 warm
-        out.push_back({BandType::Peak, 330.0, 0.9, 1.5 * settings_.axis1});
-        out.push_back({BandType::Peak, 3500.0, 0.8, 1.2 * settings_.axis1});  // PC1 presence
-        out.push_back({BandType::Peak, 200.0, 1.0, 2.0 * settings_.axis2});   // PC2 body
-        out.push_back({BandType::Peak, 2200.0, 1.2, 1.5 * settings_.axis2});
-        return out;
+        std::array<BandSpec, kBands> b{};
+        const int n = manualBandsInto(b.data(), kBands);
+        return std::vector<BandSpec>(b.begin(), b.begin() + n);
+    }
+
+    // Writes the running correction into a fixed array (audio thread, no heap).
+    // state_ is read by the caller under its own lock when it needs one.
+    int activeBandsIntoLocked(BandSpec* out, int cap) const {
+        int n = 0;
+        auto push = [&](const BandSpec& b) { if (n < cap) out[n++] = b; };
+        for (size_t i = 0; i < state_.corrective.size() && n < cap; ++i) {
+            BandSpec b = state_.corrective[i];
+            if (i < trimDb_.size()) {
+                const double t = trimDb_[i].load();
+                if (std::abs(t) > 0.001) b.gainDb = float(std::clamp<double>(b.gainDb + t, -18.0, 18.0));
+            }
+            push(b);
+        }
+        for (const auto& r : state_.resonance) push(r);
+        return n + manualBandsInto(out + n, cap - n);
     }
 
     std::vector<BandSpec> activeBandsLocked() const {
-        std::vector<BandSpec> out = state_.corrective;
-        for (size_t i = 0; i < out.size() && i < trimDb_.size(); ++i) {
-            const double t = trimDb_[i].load();
-            if (std::abs(t) > 0.001) out[i].gainDb = std::clamp(out[i].gainDb + t, -18.0, 18.0);
-        }
-        out.insert(out.end(), state_.resonance.begin(), state_.resonance.end());
-        const auto man = manualBands();
-        out.insert(out.end(), man.begin(), man.end());
-        return out;
+        std::array<BandSpec, kBands> b{};
+        const int n = activeBandsIntoLocked(b.data(), kBands);
+        return std::vector<BandSpec>(b.begin(), b.begin() + n);
     }
 
     double hpfFreq() const { std::lock_guard<std::mutex> lk(stateMx_); return state_.hpfHz; }
@@ -406,9 +451,14 @@ public:
 
 private:
     void updateBands() {
-        std::vector<BandSpec> bands = activeBands();
-        eqLeft_.setBands(bands, fs_);
-        eqRight_.setBands(bands, fs_);
+        std::array<BandSpec, kBands> bands{};
+        int count = 0;
+        {
+            std::lock_guard<std::mutex> lk(stateMx_);
+            count = activeBandsIntoLocked(bands.data(), kBands);
+        }
+        eqLeft_.setBands(bands.data(), count, fs_);
+        eqRight_.setBands(bands.data(), count, fs_);
         const double hf = hpfFreq();
         hpf_.set(hf > 0 ? hf : 70.0, fs_);
         RestoreState st;
@@ -427,7 +477,17 @@ private:
     EqSolver solver_;
     ProblemDetector detector_;
     static constexpr int kMaxChunk = 2048;         // 8 KB of stack-adjacent member
-    std::array<float, kMaxChunk> scratchChunk_{};  // processBlock's only scratch
+    std::array<float, kMaxChunk> scratchChunk_{};  // drain scratch (analysis thread)
+
+    // Audio thread -> analysis thread.  Sized for > 2 s at 48 kHz so a slow solve
+    // can never make the audio thread wait; if it ever does overflow, the samples
+    // are counted as dropped instead of overwriting the reader's position.
+    static constexpr int kFifoBits = 17;
+    static constexpr int kFifoSize = 1 << kFifoBits;
+    static constexpr int kFifoMask = kFifoSize - 1;
+    std::array<float, kFifoSize> fifo_{};
+    std::atomic<unsigned long long> fifoWrite_{0}, fifoRead_{0};
+    std::atomic<long> fifoDropped_{0};
     std::vector<float> scratch_;                    // legacy: sized by prepareToPlay
     std::vector<int> tmpCount_;
     std::array<std::atomic<double>, 8> trimDb_{};   // UI gain offsets, per corrective band
@@ -438,7 +498,9 @@ private:
     mutable std::mutex stateMx_;
     std::mutex analyzeMx_;                    // guards Analyzer (audio <-> solver)
     std::mutex pendingMx_;                    // guards the hand-off below
-    std::vector<BandSpec> pendingBands_;
+    static constexpr int kBands = 24;                   // fixed band capacity, no heap
+    std::array<BandSpec, kBands> pendingBands_{};
+    int pendingCount_ = 0;
     double pendingHpf_ = 70.0, pendingDeThr_ = -30.0, pendingDeGr_ = 0.0;
     bool pendingDeEssOn_ = false;
     bool pendingSettled_ = true;

@@ -136,10 +136,13 @@ static std::vector<float> runPipeline(const std::vector<float>& in, RestoreCore&
     core.prepare(sr, 512);
     core.setSettings(s);
     std::vector<float> buf(512), r(512, 0.f);
+    int blocks = 0;
     for (size_t off = 0; off < in.size(); off += 512) {
         const int n = int(std::min<size_t>(512, in.size() - off));
         for (int i = 0; i < n; ++i) { buf[i] = in[off + i]; r[i] = buf[i]; }
         core.processBlock(buf.data(), r.data(), n);
+        // the plugin's 4 Hz timer, in proportion: processBlock only queues audio now
+        if (++blocks % 40 == 0) core.refresh();
     }
     core.refresh();
     if (learnOnly) return in;
