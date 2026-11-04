@@ -501,10 +501,16 @@ private:
     static constexpr int kMaxChunk = 2048;         // 8 KB of stack-adjacent member
     std::array<float, kMaxChunk> scratchChunk_{};  // drain scratch (analysis thread)
 
-    // Audio thread -> analysis thread.  Sized for > 2 s at 48 kHz so a slow solve
-    // can never make the audio thread wait; if it ever does overflow, the samples
-    // are counted as dropped instead of overwriting the reader's position.
-    static constexpr int kFifoBits = 17;
+    // Audio thread -> analysis thread.  1.36 s at 48 kHz, drained four times a
+    // second: a slow solve can never make the audio thread wait, and if the ring ever
+    // does fill up the samples are counted as dropped instead of overwriting the
+    // reader's position.
+    //
+    // NOTE: with the analyser and this ring inside it, RestoreCore is ~470 KB.  It is
+    // a *member* of the processor, which is correct; it must not be a local.  The
+    // Windows gate found that the hard way - 0xC00000FD, stack overflow, in the test
+    // that created three of them on the stack.
+    static constexpr int kFifoBits = 16;          // 65 536 samples = 1.36 s at 48 kHz
     static constexpr int kFifoSize = 1 << kFifoBits;
     static constexpr int kFifoMask = kFifoSize - 1;
     std::array<float, kFifoSize> fifo_{};
@@ -532,5 +538,10 @@ private:
     RestoreState state_;
     Measurements measurements_;
 };
+
+// It is big by design (analyser ring, FFT buffers, the audio FIFO), and it is a
+// member of the processor for a reason.  If this ever fires, the object has become
+// too large to be sane anywhere near a stack - heap it, or shrink what grew.
+static_assert(sizeof(RestoreCore) < 768 * 1024, "RestoreCore is heap-only; see kFifoBits");
 
 } // namespace aeq

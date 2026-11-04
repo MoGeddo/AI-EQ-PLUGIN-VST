@@ -30,6 +30,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <memory>
 #include <cstdlib>
 #include <new>
 #include <thread>
@@ -109,7 +110,9 @@ int main() {
     }
     auto sample = [&](long i) { return take[size_t(i)]; };
 
-    aeq::RestoreCore core;
+    // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
     core.prepare(kSr, 512);
     core.setSettings(s);
 

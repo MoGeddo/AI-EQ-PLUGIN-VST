@@ -22,6 +22,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <memory>
 #include <vector>
 #include <random>
 
@@ -85,7 +86,9 @@ struct RunResult {
 
 // Exactly what the processor does, with nobody watching: blocks in, refresh at 4 Hz.
 static RunResult playAuto(const std::vector<float>& take, double settleSeconds) {
-    aeq::RestoreCore core;
+    // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
     aeq::RestoreSettings s;               // the plugin's defaults, minus the UI
     s.learn = true;
     s.settleSeconds = settleSeconds;
@@ -176,7 +179,9 @@ int main() {
     // ---- 4. bypass still bypasses ---------------------------------------------
     {
         std::printf("\n[4] the one control it does have\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         aeq::RestoreSettings s; s.learn = true; s.settleSeconds = 0.0; s.bypass = true;
         core.prepare(kSr, 512); core.setSettings(s);
         const auto take = dryVocal(196.0, 2.0, 120.0, 230.0);

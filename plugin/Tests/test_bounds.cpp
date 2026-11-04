@@ -31,6 +31,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <memory>
 #include <cstdlib>
 #include <vector>
 #include <atomic>
@@ -93,7 +94,9 @@ int main() {
     // ---- 1. a block much larger than the prepared one -----------------------
     {
         std::printf("\n[1] block bigger than prepareToPlay was told\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         core.prepare(kSr, 64);                 // the host promised 64
         core.setSettings(s);
         const int n = 8192;                    // and then sends 8192
@@ -107,7 +110,9 @@ int main() {
     // ---- 2. the block size changes every callback ---------------------------
     {
         std::printf("\n[2] a different block size on every callback\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         core.prepare(kSr, 256);
         core.setSettings(s);
         const int sizes[] = { 1, 4096, 7, 1024, 33, 8191, 2, 512, 3000 };
@@ -126,7 +131,9 @@ int main() {
     // ---- 3. mono -----------------------------------------------------------
     {
         std::printf("\n[3] mono in, mono out\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         core.prepare(kSr, 512);
         core.setSettings(s);
         auto l = tone(1024);
@@ -137,7 +144,9 @@ int main() {
     // ---- 4. prepare() again mid-playback, at another rate ------------------
     {
         std::printf("\n[4] prepare() again mid-playback at 96 kHz, then back\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         core.prepare(kSr, 512);
         core.setSettings(s);
         bool finite = true;
@@ -156,7 +165,9 @@ int main() {
     // ---- 5. reset() between blocks, and an empty/negative block ------------
     {
         std::printf("\n[5] reset between blocks, and 0 / negative sample counts\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         core.prepare(kSr, 512);
         core.setSettings(s);
         auto l = tone(512);
@@ -170,7 +181,9 @@ int main() {
     // ---- 6. the analysis lock is held while a block arrives ----------------
     {
         std::printf("\n[6] the message thread holds the analyser while a block arrives\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         core.prepare(kSr, 512);
         core.setSettings(s);
         std::atomic<bool> stop{false};
@@ -194,7 +207,9 @@ int main() {
     // ---- 7. every sample reaches the analyser ------------------------------
     {
         std::printf("\n[7] no sample is silently dropped when the block is chunked\n");
-        aeq::RestoreCore core;
+        // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
+    auto coreOwner = std::make_unique<aeq::RestoreCore>();
+    aeq::RestoreCore& core = *coreOwner;
         core.prepare(kSr, 512);
         core.setSettings(s);
         const int n = 48000;                    // exactly one second, one callback
