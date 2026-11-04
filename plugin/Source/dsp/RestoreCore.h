@@ -155,6 +155,14 @@ public:
 
     // ------------------------------------------------------------- analysis
     // Call from a timer (message/timer thread) - never from the audio thread.
+    // Move whatever the audio thread wrote into the analyser without solving.
+    // The plugin calls this between solves: the measurements stay current, and the
+    // expensive part (solver + detector + problem text) runs at its own pace.
+    void drainPending() {
+        std::lock_guard<std::mutex> lk(analyzeMx_);
+        drainFromAudioThread();
+    }
+
     void refresh() {
         std::lock_guard<std::mutex> lk(analyzeMx_);
         drainFromAudioThread();

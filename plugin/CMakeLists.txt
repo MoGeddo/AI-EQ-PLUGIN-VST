@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(AEQRestore VERSION 1.2.7 LANGUAGES CXX)
+project(AEQRestore VERSION 1.2.8 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -192,3 +192,11 @@ add_executable(aeq_smooth Tests/test_smooth.cpp)
 target_include_directories(aeq_smooth PRIVATE Source)
 set_target_properties(aeq_smooth PROPERTIES CXX_STANDARD 17)
 add_test(NAME audio_smoothness COMMAND aeq_smooth)
+
+# The product, not the maths: with no editor open and nobody touching anything, does
+# the plugin listen, decide and apply?  This drives the core exactly as the
+# processor's 4 Hz timer does and asserts the decision is there.
+add_executable(aeq_auto Tests/test_auto.cpp)
+target_include_directories(aeq_auto PRIVATE Source)
+set_target_properties(aeq_auto PROPERTIES CXX_STANDARD 17)
+add_test(NAME automatic_by_default COMMAND aeq_auto)

@@ -158,10 +158,17 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor (AeqAudioProcessor& p)
 
     buildControls();
 
-    learnBtn_.setClickingTogglesState (true);
+    // There is no "Analyse" button: the plugin analyses as soon as audio arrives,
+    // and this control is the readout of that.  Clicking it starts over - which is
+    // the only action a user of an automatic tool ever needs.
+    learnBtn_.setClickingTogglesState (false);
     learnBtn_.setToggleState (true, dontSendNotification);
     learnBtn_.getProperties().set ("icon", int (Icon::Wave));
-    learnBtn_.onClick = [this] { proc_.setLearning (learnBtn_.getToggleState()); };
+    learnBtn_.onClick = [this] {
+        proc_.requestReset();
+        learnBtn_.setButtonText (aeq::ui::u8 ("بسمع…"));
+        repaint();
+    };
 
     resetBtn_.getProperties().set ("icon", int (Icon::Reset));
     resetBtn_.onClick = [this] {
@@ -539,10 +546,26 @@ void AeqAudioProcessorEditor::timerCallback() {
     // z-scan over 86 bands, rebuilding the report list and repainting the entire
     // window three times for every update that existed.  That is what a slightly
     // sticky window is made of, and it is pure waste.
-    if (proc_.core().version() == lastVersion_ && getWidth() == lastWidth_)
+    const auto autoNow = proc_.autoState();
+    const int heardTick = int (autoNow.heardSeconds);     // the countdown, in seconds
+    if (proc_.core().version() == lastVersion_ && getWidth() == lastWidth_
+        && heardTick == lastHeardTick_ && autoNow.stage == lastStage_)
         return;
-    lastVersion_ = proc_.core().version();
-    lastWidth_ = getWidth();
+    lastVersion_  = proc_.core().version();
+    lastWidth_    = getWidth();
+    lastHeardTick_ = heardTick;
+    lastStage_    = autoNow.stage;
+
+    // one line, always true, never asking the user to do anything
+    if (autoNow.stage == AeqAudioProcessor::AutoState::Applied) {
+        learnBtn_.setButtonText (aeq::ui::u8 ("اتظبط ✓"));
+        learnBtn_.setToggleState (true, dontSendNotification);
+    } else if (autoNow.needSeconds >= 1.0) {
+        learnBtn_.setButtonText (aeq::ui::u8 ("بسمع ") + juce::String (heardTick) + aeq::ui::u8 (" / ")
+                                 + juce::String (int (autoNow.needSeconds)) + aeq::ui::u8 (" ث"));
+    } else {
+        learnBtn_.setButtonText (aeq::ui::u8 ("بسمع…"));
+    }
 
     state_ = proc_.core().state();
     meas_ = proc_.core().measurements();

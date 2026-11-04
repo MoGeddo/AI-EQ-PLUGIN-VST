@@ -51,8 +51,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout AeqAudioProcessor::createLay
     l.add(std::make_unique<AudioParameterFloat>(kAir, "Air trim",
               NormalisableRange<float>(-6.f, 6.f, 0.1f), 0.f,
               AudioParameterFloatAttributes().withLabel("dB")));
+    // How long it listens before the correction is allowed into the signal path.
+    // 30 s was the first guess and it was wrong for the way the tool is used: with a
+    // verse in front of it, half a minute of "nothing happened" reads as "it does not
+    // work".  Eight seconds is a phrase; the correction keeps refining afterwards.
     l.add(std::make_unique<AudioParameterFloat>(kSettle, "Analyze first",
-              NormalisableRange<float>(0.f, 90.f, 5.f), 30.f,
+              NormalisableRange<float>(0.f, 90.f, 1.f), 8.f,
               AudioParameterFloatAttributes().withLabel("s")
                 .withStringFromValueFunction([](float v, int) {
                     return v < 1.f ? juce::String("OFF") : juce::String((int)v) + " s";
@@ -119,8 +123,31 @@ void AeqAudioProcessor::settingsFromParams() {
 }
 
 void AeqAudioProcessor::timerCallback() {
-    // Analysis/solving happens here, never in processBlock.
-    if (learning_.load()) core_.refresh();
+    // Analysis and solving happen here, never in processBlock, and never only
+    // because the editor is open: the timer lives in the processor, so the plugin
+    // works with its window closed - which is what "automatic" has to mean.
+    if (! learning_.load()) {
+        core_.drainPending();
+        return;
+    }
+    const auto st = core_.state();
+    const bool settled = st.valid && st.settled;
+    // While it is still learning the take, solve as often as the timer fires (4 Hz).
+    // Once it has, keep adapting slowly: re-solving four times a second forever is
+    // the message thread doing work nobody asked for.
+    if (! settled || (++slowTick_ % 8 == 0)) core_.refresh();
+    else                                  core_.drainPending();
+}
+
+AeqAudioProcessor::AutoState AeqAudioProcessor::autoState() const {
+    AutoState a;
+    const auto st = core_.state();
+    a.stage        = (st.valid && st.settled) ? AutoState::Applied : AutoState::Listening;
+    a.heardSeconds = st.analyzedSeconds;
+    a.needSeconds  = settings_.settleSeconds > 0.0 ? settings_.settleSeconds : 0.0;
+    a.hpfHz        = st.hpfHz;
+    a.bands        = int(core_.activeBands().size());
+    return a;
 }
 
 void AeqAudioProcessor::requestReset() { resetRequested_ = true; }

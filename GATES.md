@@ -219,3 +219,24 @@ at any vocal stem first; the other gates need nothing but the source tree.
       timerCallback() returns on its first line when it has not; the timer runs at 8 Hz
   CHECK: python3 analysis/scripts/check_ui_poll.py
   EXPECT: does no work when nothing changed
+
+- [x] G29: it does the job on its own - the product is an automatic vocal EQ, so the
+  EVIDENCE: automatic-evidence=v1; definition-sha256=f87f81ab65b7bb5927ea3e709fb1eee95fc594f2d13be23dd32d4df12510c405; exit=0; EXPECT=matched; output-sha256=6eb808abe73f5f9703c23c7310e186c17bb69dd3d16acff71b455f86c0d4b3a2; output-bytes=965; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      test that matters is not "a button works" but "nobody touched it and the take is
+      fixed".  With no editor open and no clicks, the core is driven the way the
+      processor's 4 Hz timer drives it: it settles by itself (8 s of sung audio), puts
+      bands in the signal path, chooses a low cut, and keeps adapting after it has
+      decided instead of freezing on its first guess.  Two voices an octave apart get
+      two different low cuts, so it is not a preset in disguise
+  CHECK: ./build/aeq_auto
+  EXPECT: 12 passed, 0 failed
+
+- [x] G30: the automatic behaviour cannot be quietly turned back into a manual one -
+  EVIDENCE: automatic-evidence=v1; definition-sha256=1f5c48aef649ce9903aaa9de72c47ce84c6cc5bf5830b1ca9a8b8c15d30612a3; exit=0; EXPECT=matched; output-sha256=14bbf28c4b186c72479d523d1f6a84b8fabe3d384520a03a9e64448917e7c491; output-bytes=72; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+      learning starts enabled, bypass starts off, the settle time is a phrase and not
+      half a minute (30 s was the first default and it read as "it does nothing"), the
+      solving happens on the processor's timer so the plugin works with its window
+      closed, and the editor's button is a readout rather than the thing that starts
+      the analysis
+  CHECK: python3 analysis/scripts/check_auto_defaults.py
+  EXPECT: automatic: learning on load

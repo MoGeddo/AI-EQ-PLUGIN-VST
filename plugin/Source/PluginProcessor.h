@@ -40,6 +40,18 @@ public:
     juce::AudioProcessorValueTreeState& apvts() { return apvts_; }
     void requestReset();
     bool isLearning() const { return learning_; }
+
+    // The whole product in one struct: is it still listening, how much has it heard,
+    // what does it need, and what is it doing right now.
+    struct AutoState {
+        enum Stage { Listening = 0, Applied = 1 };
+        int    stage = Listening;
+        double heardSeconds = 0.0;      // sung audio analysed so far
+        double needSeconds  = 8.0;      // what it is waiting for
+        int    bands        = 0;        // bands in the signal path once applied
+        double hpfHz        = 0.0;      // the low cut it decided on
+    };
+    AutoState autoState() const;
     void setLearning(bool on) { learning_ = on; }
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
@@ -52,5 +64,6 @@ private:
     aeq::RestoreSettings settings_, lastPushed_;
     juce::AudioProcessorValueTreeState apvts_;
     std::atomic<bool> learning_{true}, resetRequested_{false};
+    int slowTick_ = 0;             // see timerCallback(): slow adaptation once settled
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AeqAudioProcessor)
 };

@@ -182,6 +182,19 @@ if ($LASTEXITCODE -ne 0) {
     Fail "the audio path is not smooth - do not ship this.`nLast lines:`n$last"
 }
 
+# ----------------------------------------------------------- automatic by default
+# The product is an automatic vocal EQ: load it, press play, it does the job.  This
+# gate runs the core the way the processor's timer does, with no editor at all.
+Write-Host "== automatic by default ==" -ForegroundColor Cyan
+$auto = Get-ChildItem -Path $buildDir -Recurse -Filter "aeq_auto.exe" | Select-Object -First 1
+if (-not $auto) { Fail "aeq_auto.exe was not built" }
+& $auto.FullName 2>&1 | Tee-Object -Variable autoOut | Write-Host
+Write-Host "   aeq_auto exit: $LASTEXITCODE"
+if ($LASTEXITCODE -ne 0) {
+    $last = ($autoOut | Select-Object -Last 16) -join "`n"
+    Fail "the plugin does not do the job on its own - do not ship this.`nLast lines:`n$last"
+}
+
 # ----------------------------------------------------------------------- output
 $vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.vst3" | Select-Object -First 1
 $exe  = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.exe" | Select-Object -First 1

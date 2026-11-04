@@ -31,6 +31,8 @@ public:
 private:
     long lastVersion_ = -1;   // see timerCallback(): poll, do not poll-copy
     int  lastWidth_ = -1;
+    int  lastHeardTick_ = -1; // the listen countdown, so the readout moves once a second
+    int  lastStage_ = -1;
 
     void timerCallback() override;
     void buildControls();

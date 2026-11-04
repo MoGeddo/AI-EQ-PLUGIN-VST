@@ -144,6 +144,10 @@ int main() {
 
     while (i < total) {
         for (int k = 0; k < block; ++k) { l[size_t(k)] = sample(i + k); r[size_t(k)] = l[size_t(k)]; }
+        // the plugin's own 4 Hz timer: processBlock only queues audio now, so an
+        // offline loop has to pump the analysis the way the timer would
+        if ((i / block) % 40 == 0) core.refresh();
+
         t_allocCount = 0;
         t_trackAllocs = true;
         const auto t0 = std::chrono::steady_clock::now();
