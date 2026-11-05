@@ -43,10 +43,40 @@ sys.path.insert(0, str(HERE))
 
 from fontTools.ttLib import TTFont  # noqa: E402
 
-import ui_v8 as ui  # noqa: E402
+import ui_v9 as ui  # noqa: E402
 
 problems: list[str] = []
 notes: list[str] = []
+
+def hue_of(rgb) -> float | None:
+    r, g, b = [c / 255.0 for c in rgb[:3]]
+    mx, mn = max(r, g, b), min(r, g, b)
+    d = mx - mn
+    if d == 0:
+        return None
+    if mx == r:
+        return (60 * ((g - b) / d)) % 360
+    if mx == g:
+        return 60 * ((b - r) / d) + 120
+    return 60 * ((r - g) / d) + 240
+
+
+def is_accent(px, hue: float, tol: float = 26.0) -> bool:
+    """A pixel that reads as the decision accent: the hue the panel declares, carried
+    by a saturated, not-dark pixel.  v8 hard-coded "warm gold"; a world may be magenta,
+    so the test follows the declaration (ACCENTS) instead of a hue I happened to ship."""
+    h = hue_of(px)
+    if h is None:
+        return False
+    mx = max(px[:3])
+    mn = min(px[:3])
+    if mx < 110 or (mx - mn) / mx < 0.30:
+        return False
+    return abs((h - hue + 180) % 360 - 180) <= tol
+
+
+ACCENT_HUE = hue_of(ui.BRASS)
+
 
 
 # ------------------------------------------------------------------ helpers
@@ -79,7 +109,7 @@ def plate_base(im: Image.Image) -> tuple[int, int, int]:
 
 PANEL = ui.OUT
 if not PANEL.exists():
-    print(f"FAIL {PANEL.name} missing - run design/preview/ui_v8.py")
+    print(f"FAIL {PANEL.name} missing - run design/preview/ui_v9.py")
     sys.exit(1)
 img = Image.open(PANEL).convert("RGB")
 if img.size != ui.EXPECTED_SIZES_V8:
@@ -149,7 +179,7 @@ if hasattr(ui, "GRAPH_SHARE"):
                         "60% floor, so the panel reads as a form again")
     else:
         notes.append(f"graph {100 * ui.GRAPH_SHARE:.0f}% of the height")
-if "panel_plate" in (HERE / "ui_v8.py").read_text():
+if "panel_plate" in (HERE / "ui_v9.py").read_text():
     problems.append("a texture plate is composited behind the curve again - depth has to "
                     "come from light and blur, not from a fabric ground")
 
@@ -160,9 +190,9 @@ if not 0.05 < ui.SEAL_T < 0.95:
 bx0, by0, bx1, by1 = ui.TAKE_RIBBON
 seal_x = ui.SEAL_X
 band = img.crop((seal_x - 26, by0 - 8, seal_x + 26, by1 + 8))
-brass_px = sum(1 for p in band.get_flattened_data() if p[0] > 110 and p[0] - p[2] > 34 and p[1] > 70)
+brass_px = sum(1 for p in band.get_flattened_data() if is_accent(p, ACCENT_HUE))
 if brass_px < 300:
-    problems.append(f"only {brass_px} brass px at the seal ({seal_x}) - the clamp is not on the bar")
+    problems.append(f"only {brass_px} accent px at the seal ({seal_x}) - the clamp is not on the bar")
 # the take mass is the measurement, so it must read patina, not brass
 mass = img.crop(ui.TAKE_MASS)
 mpx = list(mass.get_flattened_data())
@@ -176,12 +206,11 @@ else:
 # the correction curve is the decision, so it must read brass
 wx0, wy0, wx1, wy1 = ui.GRAPH
 well = img.crop((wx0, wy0, wx1, wy1))
-brass_curve = sum(1 for p in well.get_flattened_data()
-                  if p[0] > 190 and p[0] - p[2] > 55 and p[1] > 140)
+brass_curve = sum(1 for p in well.get_flattened_data() if is_accent(p, ACCENT_HUE))
 if brass_curve < 400:
-    problems.append(f"{brass_curve} brass px in the well - the curve is not the brass layer")
+    problems.append(f"{brass_curve} accent px in the well - the curve is not the accent layer")
 else:
-    notes.append(f"curve {brass_curve} brass px over the spectrum")
+    notes.append(f"curve {brass_curve} accent px over the spectrum")
 
 # the ledger has to hold all three after-commit behaviours
 modes = {b[3] for b in ui.BANDS}
@@ -224,7 +253,9 @@ for p in sat:
     else:
         h = 60 * ((r - g) / d) + 240
     hues[int(h) // 15] = hues.get(int(h) // 15, 0) + 1
-big = {k * 15: n for k, n in hues.items() if n >= 0.05 * max(1, len(sat))}
+# a 2 % floor: the smaller accent (the curve, the seal, the tracked chip) is allowed to
+# be a smaller area than the measurement fill, as long as it is unmistakably there
+big = {k * 15: n for k, n in hues.items() if n >= 0.02 * max(1, len(sat))}
 # merge neighbouring buckets into one accent
 merged: list[list[int]] = []
 for h in sorted(big):
@@ -237,11 +268,30 @@ if len(accents) != 2:
     problems.append(f"{len(accents)} accent hues at {accents} deg - the world allows exactly two "
                     "(brass = a decision, patina = a measurement)")
 else:
-    want = sorted([40, 160])
+    def hue_of(col):
+        r, g, b = [c / 255.0 for c in col[:3]]
+        mx, mn = max(r, g, b), min(r, g, b)
+        d = mx - mn
+        if d == 0:
+            return 0.0
+        if mx == r:
+            return (60 * ((g - b) / d)) % 360
+        if mx == g:
+            return 60 * ((b - r) / d) + 120
+        return 60 * ((r - g) / d) + 240
+
+    # the world is whatever the panel declares (ACCENTS); the gate's job is that the
+    # pixels agree with the declaration, not that the declaration is a hue I chose
+    want = sorted(hue_of(c) for c in ui.ACCENTS)
     got = sorted(accents)
-    if abs(got[0] - want[0]) > 22 or abs(got[1] - want[1]) > 26:
-        problems.append(f"accents at {got} deg, expected brass ~40 and patina ~160")
-    notes.append(f"two accents at {got[0]} and {got[1]} deg")
+
+    def near(a, b):
+        return abs((a - b + 180) % 360 - 180)
+
+    if any(near(g, w) > 26 for g, w in zip(got, want)):
+        problems.append(f"accents at {got} deg, but the panel declares {[round(w) for w in want]}")
+    notes.append(f"two accents at {got[0]} and {got[1]} deg, declared "
+                 f"{[round(w) for w in want]}")
 
 # (c) the watermark is a declaration, not a measurement: a 104 px watermark at alpha 10
 # leaves no reliable signature, so this asserts the module never asks for one, and says so.

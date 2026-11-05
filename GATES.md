@@ -429,7 +429,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: layers ok: 21 files, 29 include edges, 0 cycles
 
 - [x] G54: the two attack surfaces are attacked.  Strix's method is the first paragraph of
-  EVIDENCE: automatic-evidence=v1; definition-sha256=1fbc28859e6e562223e734c74b2e10e0d320d0dc72ecd54782b1add4745cc0aa; exit=0; EXPECT=matched; output-sha256=acf01cd63ff6757445b17f85f93ffd16ab7a1a5697f7f734f7defda6f1b1b320; output-bytes=249; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=9e47622065e90a4018f9a953428a5bbce551a3efa471ae0b3f3bf1827524a1d7; exit=0; EXPECT=matched; output-sha256=cb5d0cff34e6bddeac4ba9688841190a08f19329706cc3112e94a1f90e16ce8b; output-bytes=249; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
   the security skill it ships with: name the trust boundaries, then prove the controls.
   This project has two.  (A) The preview server serves the *repository root* - it must,
   because the pages reference the embedded font by root-absolute URL - so the boundary is
@@ -444,7 +444,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   timestamp that attests to nothing.  Two real defects were fixed for this gate and one
   is still open and named in docs/21.
   CHECK: /tmp/venv/bin/python design/preview/check_hardening.py
-  EXPECT: hardening ok: 49 Python files
+  EXPECT: hardening ok: 50 Python files
 
 - [x] G55: the UI compiles against the JUCE we pin, not the JUCE in my memory.  This is
   EVIDENCE: automatic-evidence=v1; definition-sha256=799b1f162222d5b617140ca7d278c096ba26ecd572bfe070e2d2ede02afc44dc; exit=0; EXPECT=matched; output-sha256=7b54df4b521ce3304cf6db06f9bc5bfa35b95447228e9eb85d75baa5dd0ecf29; output-bytes=127; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
@@ -471,8 +471,14 @@ at any vocal stem first; the other gates need nothing but the source tree.
   high-frequency energy; v8's carry 42-109 colours at 0.21-0.36, so the gate puts the
   ceiling at 220 colours and 0.8 hf and both sides clear it by 2x.  (3) The ledger is a
   row, not a table: four blocks, no two sharing a height, and a header that cannot grow
-  into a toolbar.  (4) A plate is refused by name in the code that draws, so a revert is
-  caught in the source as well as in the pixels.  `--against-v7` runs the pixel measures
+  into a toolbar.  (4) A plate is refused by name in the code that draws, so a revert is caught in the
+  source as well as in the pixels.  (5) THE METAL IS THE WORLD'S METAL: the knob sprites
+  were brass, and brass in a magenta panel is a third accent arriving through a material
+  rather than through a colour choice - so the knob face is measured and has to sit
+  within 30 deg of the declared accent (it reads 335 deg against 332).  The palette itself
+  is four worlds in one module (neon is the default, plus sunrise, dawn and citrus), and
+  the accent-hue assertions in check_identity now read ACCENTS from the module instead of
+  two hues that happened to ship, so changing the mood cannot silently disable the test.  `--against-v7` runs the pixel measures
   against the panel this one replaced and fails every margin, which is what makes the
   pass mean something.
   CHECK: /tmp/venv/bin/python design/preview/check_modern.py

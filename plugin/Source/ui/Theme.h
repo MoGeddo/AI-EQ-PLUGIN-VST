@@ -7,7 +7,9 @@
 // One palette, one geometry, one text path.  Everything visual in the plugin
 // comes from here, so a change of mood is a change of one file.
 //
-// The look: warm lacquer, brass and patina - design/IDENTITY_AR.md.  The palette
+// The look: violet ink, magenta decision, cyan measurement - design/IDENTITY_AR.md.
+// (v9 "neon" world; design/preview/ui_v9.py holds all four worlds and the render.)
+// The palette
 // used to be a cold console (near-black, blue take, mint correction, amber warning)
 // and that palette was the problem: it is the language every plugin in this
 // category already speaks, and three of the four "make it look better" rounds were
@@ -15,8 +17,8 @@
 //
 // The rule that replaced it is one line long, and it is a rule about *meaning*:
 //
-//   brass   = a decision this plugin made (the curve, the needle, the seal)
-//   patina  = a measurement of your audio (the take, the spectrum, the dynamics)
+//   accent  = a decision this plugin made (the curve, the needle, the seal)
+//   take    = a measurement of your audio (the take, the spectrum, the dynamics)
 //
 // Those two never swap, and there is no third accent in the product.  A warning is
 // the one exception and it is deliberately not an accent: it is a state you have to
@@ -32,29 +34,31 @@ struct Palette {
     // v8's ground is a gradient from INK_TOP to INK_BOT with two blooms on it; the
     // three surface tokens are the exact stops of that ground and of the graph plate,
     // so the C++ port cannot drift from design/preview/ui_v8.py.
-    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x12, 0x10, 0x0e); }
-    static juce::Colour bg()        { return juce::Colour::fromRGB (0x08, 0x08, 0x09); }
+    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x18, 0x12, 0x24); }
+    static juce::Colour bg()        { return juce::Colour::fromRGB (0x08, 0x07, 0x0e); }
     static juce::Colour surface()   { return juce::Colour::fromRGB (0x0a, 0x0a, 0x0c); }
-    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x16, 0x14, 0x0f); }
+    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x1a, 0x15, 0x24); }
     static juce::Colour hairline()  { return juce::Colour::fromRGB (0x2a, 0x25, 0x1e); }
-    static juce::Colour text()      { return juce::Colour::fromRGB (0xf4, 0xf0, 0xe8); }
-    static juce::Colour muted()     { return juce::Colour::fromRGB (0xaa, 0xa2, 0x94); }
-    static juce::Colour dim()       { return juce::Colour::fromRGB (0x92, 0x8a, 0x7e); }
+    static juce::Colour text()      { return juce::Colour::fromRGB (0xfa, 0xf4, 0xfc); }
+    static juce::Colour muted()     { return juce::Colour::fromRGB (0xce, 0xc4, 0xdc); }
+    static juce::Colour dim()       { return juce::Colour::fromRGB (0xb0, 0xa8, 0xc4); }
 
-    // ---- brass: everything this plugin decides
-    static juce::Colour accent()    { return juce::Colour::fromRGB (0xd6, 0xac, 0x60); }  // the curve, the needle
-    static juce::Colour accentHi()  { return juce::Colour::fromRGB (0xff, 0xe2, 0xb0); }  // a lit brass edge
+    // ---- accent: everything this plugin decides.  v9's "neon" world is magenta on a
+    // violet ink; the role is unchanged from the brass era (accent = a decision), the
+    // hue is a *mood* and lives in one block so a mood change is one edit.
+    static juce::Colour accent()    { return juce::Colour::fromRGB (0xff, 0x5e, 0xa8); }  // the curve, the needle
+    static juce::Colour accentHi()  { return juce::Colour::fromRGB (0xff, 0xba, 0xdc); }  // a lit edge
     static juce::Colour seal()      { return accentHi(); }                                // committed state
 
-    // ---- patina: everything that is a measurement of the take
-    static juce::Colour take()      { return juce::Colour::fromRGB (0x78, 0xba, 0xa2); }  // what you play
-    static juce::Colour takeDeep()  { return juce::Colour::fromRGB (0x22, 0x3e, 0x38); }  // its body
-    static juce::Colour standard()  { return juce::Colour::fromRGB (0xa7, 0xa2, 0x99); }  // the 15 mixes
+    // ---- second accent: everything that is a measurement of the take
+    static juce::Colour take()      { return juce::Colour::fromRGB (0x54, 0xd6, 0xff); }  // what you play
+    static juce::Colour takeDeep()  { return juce::Colour::fromRGB (0x1e, 0x3a, 0x4a); }  // its body
+    static juce::Colour standard()  { return juce::Colour::fromRGB (0xaa, 0xa4, 0xb8); }  // the 15 mixes
 
     // ---- states: not accents.  A warning must never read as a decision.
-    static juce::Colour ok()        { return juce::Colour::fromRGB (0x6f, 0xa8, 0x93); }
-    static juce::Colour warn()      { return juce::Colour::fromRGB (0xd8, 0x9a, 0x4e); }
-    static juce::Colour danger()    { return juce::Colour::fromRGB (0xb4, 0x59, 0x3f); }
+    static juce::Colour ok()        { return juce::Colour::fromRGB (0x54, 0xd6, 0xff); }
+    static juce::Colour warn()      { return juce::Colour::fromRGB (0xff, 0xb0, 0x4a); }
+    static juce::Colour danger()    { return juce::Colour::fromRGB (0xff, 0x4d, 0x6a); }
 
     // kept for the older call sites; same meaning as accent2/take
     static juce::Colour panel()     { return surface(); }

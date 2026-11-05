@@ -45,7 +45,7 @@ problems: list[str] = []
 
 from fontTools.ttLib import TTFont  # noqa: E402
 
-import ui_v8 as ui  # noqa: E402  (import must not render; build() is behind __main__)
+import ui_v9 as ui  # noqa: E402  (import must not render; build() is behind __main__)
 
 STRINGS = list(ui.ARABIC_STRINGS)
 # the parts v8 actually composites: two knob bodies and the machined clamp
@@ -86,6 +86,34 @@ def claim_blocks() -> str:
             f"contrast floor holds, {len(BOXES)} blocks do not overlap")
 
 
+def accent_pixel(px) -> bool:
+    """The needle, by the hue the panel declares instead of by "warm gold"."""
+    r, g, b = [c / 255.0 for c in px[:3]]
+    mx, mn = max(r, g, b), min(r, g, b)
+    d = mx - mn
+    if d == 0 or mx < 0.45:
+        return False
+    if mx == r:
+        h = (60 * ((g - b) / d)) % 360
+    elif mx == g:
+        h = 60 * ((b - r) / d) + 120
+    else:
+        h = 60 * ((r - g) / d) + 240
+    want = ui.BRASS
+    rw, gw, bw = [c / 255.0 for c in want[:3]]
+    mxw, mnw = max(rw, gw, bw), min(rw, gw, bw)
+    dw = mxw - mnw
+    if dw == 0:
+        return False
+    if mxw == rw:
+        hw = (60 * ((gw - bw) / dw)) % 360
+    elif mxw == gw:
+        hw = 60 * ((bw - rw) / dw) + 120
+    else:
+        hw = 60 * ((rw - gw) / dw) + 240
+    return abs((h - hw + 180) % 360 - 180) <= 30
+
+
 def needle_angle(size: int, value: float):
     lay = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     ui.needle(lay, size / 2, size / 2, size, value)
@@ -94,7 +122,7 @@ def needle_angle(size: int, value: float):
     for y in range(size):
         for x in range(size):
             rr, gg, bb, aa = px[x, y]
-            if aa > 120 and rr > 150 and rr - bb > 40:
+            if aa > 120 and accent_pixel((rr, gg, bb)):
                 xs += x
                 ys += y
                 n += 1
@@ -123,7 +151,7 @@ def claim_material() -> str:
     # ...and the composite carries it, so look at the PNG that ships
     knob_levels = 0
     if not ui.OUT.exists():
-        problems.append(f"{ui.OUT.name} missing - run design/preview/ui_v8.py")
+        problems.append(f"{ui.OUT.name} missing - run design/preview/ui_v9.py")
     else:
         panel = Image.open(ui.OUT).convert("RGB")
         kx0, ky0, kx1, ky1 = dict(ui.TARGETS)["knob-curve"]

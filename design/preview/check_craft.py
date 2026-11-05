@@ -39,12 +39,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
-import ui_v8 as v8  # noqa: E402
+import ui_v9 as v8  # noqa: E402
 
 problems: list[str] = []
 notes: list[str] = []
 
-SRC = (HERE / "ui_v8.py").read_text()
+SRC = (HERE / "ui_v9.py").read_text()
 # ask the render what it drew, instead of scraping the source with regexes (the
 # first version of this gate "passed" three checks that matched nothing at all)
 import contextlib

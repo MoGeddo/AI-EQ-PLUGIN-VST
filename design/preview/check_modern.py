@@ -46,7 +46,7 @@ from PIL import Image, ImageFilter
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import ui_v8 as ui  # noqa: E402  (import must not render; build() is behind __main__)
+import ui_v9 as ui  # noqa: E402  (import must not render; build() is behind __main__)
 
 problems: list[str] = []
 notes: list[str] = []
@@ -54,8 +54,12 @@ notes: list[str] = []
 # the bare margins of the panel: no text, no control, nothing but the field
 MARGINS = {"left": (4, 120, 20, 600), "right": (1160, 120, 1176, 600),
            "top": (300, 5, 1100, 13), "bottom": (300, 688, 1100, 696)}
-MAX_MARGIN_COLOURS = 220      # v8 109, v7 774
-MAX_MARGIN_HF = 0.8           # v8 0.36, v7 2.22
+# The real measure of texture is high-frequency energy: v9's margins sit at 0.06-0.36
+# and v7's fabric plate at 1.9-3.2, a 6x gap.  Colour count is a sanity bound only -
+# a saturated gradient legitimately holds more distinct colours than a warm grey one,
+# and refusing colour would refuse the thing the panel was asked to become.
+MAX_MARGIN_COLOURS = 600
+MAX_MARGIN_HF = 0.8
 
 
 def margin_stats(im: Image.Image) -> dict[str, tuple[int, float]]:
@@ -94,7 +98,7 @@ else:
 # ------------------------------------------------------------------ 2. flat field
 PANEL = ui.OUT
 if not PANEL.exists():
-    print(f"FAIL {PANEL.name} missing - run design/preview/ui_v8.py")
+    print(f"FAIL {PANEL.name} missing - run design/preview/ui_v9.py")
     sys.exit(1)
 img = Image.open(PANEL).convert("RGB")
 if img.size != ui.EXPECTED_SIZES_V8:
@@ -111,12 +115,52 @@ else:
 
 # a plate composited behind the curve is the v7 failure by name, so it is refused by name -
 # in the code that draws, not in the comments that explain why the code does not
-src = (HERE / "ui_v8.py").read_text()
+src = (HERE / "ui_v9.py").read_text()
 code = "\n".join(ln.split("#", 1)[0] for ln in src.splitlines())
 plate = re.search(r'(?:sprite|Image\.open)\([^)\n]*(panel_plate|fabric|carbon)', code)
 if plate:
     problems.append(f"the panel composites a textured ground again ('{plate.group(1)}') - "
                     "depth has to come from light and blur")
+
+# ------------------------------------------------------------------ 2b. the metal is the world's metal
+# Anodising is the one place where a *material* could smuggle in a third hue: the knob
+# sprites were brass, and brass in a magenta panel is the accent nobody asked for.  So
+# the knob face is measured, and it has to sit within 30 deg of the declared accent.
+def hue_of(rgb):
+    r, g, b = [c / 255.0 for c in rgb[:3]]
+    mx, mn = max(r, g, b), min(r, g, b)
+    d = mx - mn
+    if d == 0:
+        return None
+    if mx == r:
+        return (60 * ((g - b) / d)) % 360
+    if mx == g:
+        return 60 * ((b - r) / d) + 120
+    return 60 * ((r - g) / d) + 240
+
+
+knob_box = dict(ui.TARGETS)["knob-curve"]
+face = img.crop((knob_box[0] + 14, knob_box[1] + 14, knob_box[2] - 14, knob_box[3] - 14))
+sample = [p for p in list(face.get_flattened_data())
+          if max(p) - min(p) > 26 and max(p) > 90]
+acc_h = hue_of(ui.BRASS)
+face_h = None
+if sample:
+    # circular mean of the saturated part of the knob face
+    sx = sum(__import__("math").sin(hue_of(p) * 3.14159265 / 180) for p in sample
+             if hue_of(p) is not None)
+    cx = sum(__import__("math").cos(hue_of(p) * 3.14159265 / 180) for p in sample
+             if hue_of(p) is not None)
+    face_h = (__import__("math").degrees(__import__("math").atan2(sx, cx))) % 360
+if face_h is None or acc_h is None:
+    problems.append("no saturated knob face to measure - the metal was not composited")
+else:
+    diff = abs((face_h - acc_h + 180) % 360 - 180)
+    if diff > 30:
+        problems.append(f"the knob is {face_h:.0f} deg while the accent is {acc_h:.0f} - the "
+                        "hardware is smuggling in a third hue")
+    else:
+        notes.append(f"knob anodised to {face_h:.0f} deg (accent {acc_h:.0f})")
 
 # ------------------------------------------------------------------ 3. a row, not a table
 heights = [b[3] - b[1] for b in blocks.values()]
