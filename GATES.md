@@ -240,3 +240,28 @@ at any vocal stem first; the other gates need nothing but the source tree.
       the analysis
   CHECK: python3 analysis/scripts/check_auto_defaults.py
   EXPECT: automatic: learning on load
+
+- [x] G31: the plugin may not damage the voice - "بوّظ الصوت وأكل حاجات كتير".  A
+  EVIDENCE: automatic-evidence=v1; definition-sha256=bf9b6deedd44fdbcf75b261e63e7d23bb2a0353c53327cca041b6d75dfcffb8b; exit=0; EXPECT=matched; output-sha256=49ef1499b79982e655509450bc0eddcc80dca222d635c93ddbdc70f1b4b187af; output-bytes=615; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  restore EQ that fixes the graph and thins the take has failed even when every
+  individual band was inside its own limit.  On a synthetic 196 Hz vocal take with a
+  known +6 dB sub rumble and a 240 Hz room bell, measured on the last four seconds
+  (the correction in the signal path, settled):
+  body 150-500 Hz still there (|change| <= 2.5 dB), level of the voice (90 Hz-12 kHz)
+  unchanged (|change| <= 2 dB), air above 6 kHz untouched (|change| <= 2 dB), the low
+  cut below the fundamental, no narrow cut on a harmonic of the sung pitch, and the
+  rumble that was reported actually removed (>= 2 dB under 100 Hz).  The take's own
+  RMS and peak are checked first: a test whose signal is broken measures the
+  generator, not the plugin
+  CHECK: ./build/aeq_damage
+  EXPECT: 7 passed, 0 failed
+
+- [x] G32: the analyser moves with the music - "كمية بطء في الأنالايزر رهيبة".  The
+  EVIDENCE: automatic-evidence=v1; definition-sha256=53f0082c575e924f6d749e1ebac00a3d1f2e564f5bbd2a8a6c9aa565b3a17d98; exit=0; EXPECT=matched; output-sha256=41e10561b4083d2ca417c451df949b47c45e151ba5f4d14c07a8b4628e320e32; output-bytes=404; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  curve the window draws was the mean of every frame since load, so after a few
+  seconds it was a constant; the display stream is now a separate 30 ms attack /
+  120 ms release spectrum published by the processor's 30 Hz timer (>= 20 updates per
+  second of audio), it falls at least 8 dB within 250 ms of a phrase ending, and it is
+  back within 6 dB 100 ms after the next one starts
+  CHECK: ./build/aeq_live
+  EXPECT: 4 passed, 0 failed

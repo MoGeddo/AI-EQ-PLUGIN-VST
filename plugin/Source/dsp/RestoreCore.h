@@ -50,6 +50,15 @@ struct RestoreSettings {
     double settleSeconds = 0.0;
 };
 
+// The display spectrum: a 120 ms moving average plus its peak hold, published as
+// often as the plugin's pump timer runs.  Separate from RestoreState because it
+// changes ~25 times a second and the state changes four times.
+struct LiveSpectrum {
+    std::vector<double> freqs, liveDb, peakDb;
+    unsigned long long version = 0;
+    bool valid = false;
+};
+
 struct RestoreState {
     std::vector<BandSpec> corrective;   // what the solver produced
     std::vector<BandSpec> resonance;    // narrow static-resonance cuts
@@ -134,21 +143,55 @@ public:
         }
         if (settings_.bypass) return;
 
-        // 2. chain
+        // 2. chain.
+        //
+        // The level match is measured, not estimated.  Removing a boom or a body
+        // resonance takes energy out, and the vocal then sits quieter in the mix -
+        // which is heard as "the plugin ruined the voice" even when every individual
+        // move was right.  So the block's input and output energy are accumulated and
+        // the gain is nudged toward "out = in" with a 1.5 s time constant: too slow to
+        // ride the performance, fast enough that a correction does not change the
+        // level of the track.  Limited to +-4 dB, so it can never become a level trick.
+        // The reference is the signal *after* the low cut: removing rumble is the
+        // job, and it must not be "compensated" back in as gain.  What is measured
+        // against is only what the EQ and the de-esser then do to the voice.
+        double inSq = 0.0, outSq = 0.0;
         for (int i = 0; i < n; ++i) {
             double l = left[i];
             l = hpf_.process(l);
+            inSq += l * l;
             l = eqLeft_.process(l);
             l = deEsser_.process(l);
             l *= outGain_;
             left[i] = static_cast<float>(l);
+            outSq += l * l;
             if (right) {
                 double r = right[i];
                 r = hpf_.process(r);
+                inSq += r * r;
                 r = eqRight_.process(r);
                 r = deEsser_.process(r);
                 r *= outGain_;
                 right[i] = static_cast<float>(r);
+                outSq += r * r;
+            }
+        }
+
+        // Level match, once per block: how much did the chain take out, and give it
+        // back.  The comparison has to be made between two *smoothed* energies, not
+        // between this block's in and out: a block that lands in a breath gap is
+        // almost digital silence, and silence divided by silence is a random number
+        // that used to be clamped to +-6 dB and thrown at the gain every 10 ms.
+        // Both averages leak with the same 1.5 s time constant, so normal playing
+        // (a louder line, a phrase) moves them together and cancels out; only the
+        // chain's own loss remains.
+        if (inSq / double(n) > 3.0e-6) {          // below ~-55 dBFS: a gap, not a take
+            const double a = 1.0 - std::exp(-double(n) / (fs_ * 1.5));
+            inAvg_ += a * (inSq / double(n) - inAvg_);
+            outAvg_ += a * (outSq / double(n) - outAvg_);
+            if (inAvg_ > 1e-9 && outAvg_ > 1e-9) {
+                const double lossDb = 10.0 * std::log10(inAvg_ / outAvg_);
+                outGain_ = std::pow(10.0, std::clamp(lossDb, -6.0, 6.0) / 20.0);
             }
         }
     }
@@ -161,6 +204,23 @@ public:
     void drainPending() {
         std::lock_guard<std::mutex> lk(analyzeMx_);
         drainFromAudioThread();
+    }
+
+    // Called ~25-30 times a second from the plugin's timer: read whatever the audio
+    // thread wrote, then publish the *display* spectrum.  No solver, no detector, no
+    // strings - this is what makes the analyser move with the music instead of
+    // updating only when a solve happens (four times a second, which the user heard
+    // as the analyser being slow).
+    void pump() {
+        std::lock_guard<std::mutex> lk(analyzeMx_);
+        drainFromAudioThread();
+        if (! analyzer_.hasSpectrum()) return;
+        publishLiveLocked();
+    }
+
+    LiveSpectrum live() const {
+        std::lock_guard<std::mutex> lk(liveMx_);
+        return live_;
     }
 
     void refresh() {
@@ -188,8 +248,18 @@ public:
 
     // Which blocks may call refresh(): the background thread (plugin) or the
     // main thread (CLI).  Never the audio thread - that is what pollAndApply is.
+    void publishLiveLocked() {
+        std::lock_guard<std::mutex> lk(liveMx_);
+        live_.freqs = analyzer_.grid().f;
+        live_.liveDb = analyzer_.liveLevelsDb();
+        live_.peakDb = analyzer_.peakHoldDb();
+        live_.valid = true;
+        ++live_.version;
+    }
+
     void refreshLocked() {
         if (!analyzer_.ready()) return;
+        publishLiveLocked();
         Measurements m;
         m.freqs = analyzer_.grid().f;
         m.bandDb = analyzer_.bandLevelsDb();
@@ -232,6 +302,79 @@ public:
         // taste moves, which the user sets on purpose)
         const double amt = std::clamp(settings_.correctionAmount, 0.0, 1.0);
         for (auto& b : corr) b.gainDb *= amt;
+        // Restore may not close the top.  A wide cut above 6 kHz is a different
+        // record, not a fix: the user's own words were that the take came back
+        // "eaten", and the air is the first thing missed.  1 dB is the most the
+        // automatic path is allowed to take off the top of a voice.
+        if (sc.mode == MatchMode::Restore)
+            for (auto& b : corr)
+                if (b.gainDb < 0.0 && b.f0 > 6000.0) b.gainDb = std::max(b.gainDb, -1.0);
+
+        // ---- narrow cuts for static resonances (surgical, and bounded) -----
+        //
+        // These were unbounded in practice: 7 dB each, up to 8 dB in total, Q 8, and
+        // nothing stopped two of them landing inside the singer's fundamental region
+        // or on top of a broad corrective cut.  On a real vocal that is heard as the
+        // voice being hollowed out - "بوّظ الصوت وأكل حاجات" - because the body of a
+        // note lives in exactly the 150-500 Hz those notches were hitting.
+        //
+        // A narrow cut now: is at most 2 dB and never sharper than Q 1.5, is never
+        // below 1.15x the fundamental, is never on a harmonic of the sung pitch, never
+        // inside 1/3 octave of a band that already cuts, and the set is capped at 4 dB
+        // in total - two bands, not five.
+        std::vector<BandSpec> reso;
+        double resoTotal = 0.0;
+        const double bodyFloor = (m.medianF0 > 0.0 ? 1.15 * m.medianF0 : 150.0);
+        for (const auto& p : probs) {
+            if (p.action != Action::CutNarrow) continue;
+            if (resoTotal >= 4.0 || reso.size() >= 2) break;
+            if (p.freq < bodyFloor) continue;                       // never the fundamental
+            // Never cut a harmonic of the note being sung.  570 Hz and 761 Hz on a
+            // 190 Hz voice are not room resonances, they are the third and fourth
+            // partials - the singer.  A Q8 notch there is heard as the voice going
+            // thin, however surgical the graph looks.
+            if (m.medianF0 > 0.0) {
+                const double k = std::round(p.freq / m.medianF0);
+                if (k >= 2.0 && std::abs(p.freq / m.medianF0 - k) / k < 0.03) continue;
+            }
+            bool clashes = false;
+            for (const auto& c : corr)
+                if (std::abs(std::log2(c.f0 / p.freq)) < 1.0 / 3.0 && c.gainDb < 0) clashes = true;
+            for (const auto& r : reso)
+                if (std::abs(std::log2(r.f0 / p.freq)) < 1.0 / 3.0) clashes = true;
+            if (clashes) continue;
+
+            // Tame, do not remove.  A Q8 / -7 dB notch is a *manual* tool: on a
+            // voice it deletes one partial of the note, which is heard as a hole
+            // that moves with the melody.  Automatic resonance control here stays
+            // broad (Q <= 1.5) and shallow (-2 dB), so it lowers a ring without
+            // deleting a harmonic.
+            BandSpec b{BandType::Peak, p.freq, std::clamp(p.q, 0.7, 1.5), std::max(p.gainDb, -2.0)};
+            b.gainDb *= amt;
+            if (std::abs(b.gainDb) < 0.5) continue;
+            reso.push_back(b);
+            resoTotal += std::abs(b.gainDb);
+        }
+
+        // ---- body budget -------------------------------------------------
+        // 150-500 Hz holds the fundamental and the first two formants: the body of
+        // the note.  Every band down there was individually gentle and inside its
+        // own limit, and they still added up to ~9 dB of cut on the test take - the
+        // exact thing the user described as the plugin eating the vocal.  So the low
+        // end gets a single budget, shared proportionally by the bands that ask.
+        {
+            constexpr double kBodyBudgetDb = 2.5;
+            constexpr double kBodyTopHz = 600.0;
+            double asked = 0.0;
+            for (const auto& b : corr) if (b.f0 < kBodyTopHz && b.gainDb < 0.0) asked += -b.gainDb;
+            for (const auto& b : reso) if (b.f0 < kBodyTopHz && b.gainDb < 0.0) asked += -b.gainDb;
+            if (asked > kBodyBudgetDb) {
+                const double k = kBodyBudgetDb / asked;
+                for (auto& b : corr) if (b.f0 < kBodyTopHz && b.gainDb < 0.0) b.gainDb *= k;
+                for (auto& b : reso) if (b.f0 < kBodyTopHz && b.gainDb < 0.0) b.gainDb *= k;
+            }
+        }
+
         const double before = EqSolver::distanceToTarget(in, {}, fs_);
         const double after  = EqSolver::distanceToTarget(in, corr, fs_);
         // honest secondary metric: did we actually fix the regions we chose to
@@ -239,19 +382,6 @@ public:
         // refuses to chase the family's natural variation - that is by design)
         const double fixBefore = EqSolver::distanceOnActive(in, {}, fs_, 2.5);
         const double fixAfter  = EqSolver::distanceOnActive(in, corr, fs_, 2.5);
-
-        // narrow cuts for static resonances (kept separate: they are surgical)
-        std::vector<BandSpec> reso;
-        double resoTotal = 0.0;
-        for (const auto& p : probs) {
-            if (p.action == Action::CutNarrow && resoTotal < 8.0) {
-                BandSpec b{BandType::Peak, p.freq, p.q, std::max(p.gainDb, -7.0)};
-                b.gainDb *= amt;
-                if (std::abs(b.gainDb) < 0.1) continue;
-                reso.push_back(b);
-                resoTotal += std::abs(b.gainDb);
-            }
-        }
 
         // ---- HPF decision ------------------------------------------------
         // Policy: find where this take's own low end starts to fall away, then
@@ -266,16 +396,28 @@ public:
             for (const auto& p : probs) if (p.action == Action::RaiseHpf) hasRumble = true;
             const double standard = 172.0;
             corner = 60.0;
-            if (hasRumble || measured < 100.0) corner = std::min(standard, std::max(measured, 80.0));
+            // A take that has been reported as boomy gets a corner that actually
+            // addresses the boom: at least 95 Hz, and never more than the pitch cap
+            // below.  Previously the corner followed the *measured* low end, and a
+            // take with a +6 dB boom under 110 Hz measures as "no roll-off", so the
+            // corner stayed at 80 Hz and nothing was removed.
+            if (hasRumble || measured < 100.0) corner = std::min(standard, std::max(measured, 95.0));
             else corner = std::min(measured, standard);
-            if (m.medianF0 > 0) corner = std::min(corner, std::max(85.0, 0.62 * m.medianF0));
+            // The fundamental is the one thing this must never eat, so the cap is
+            // applied *always*.  It used to depend on the pitch having been detected,
+            // and when it had not - a breathy verse, a whisper, a take the gate did not
+            // believe - the corner fell back to the corpus frame of 172 Hz.  On a 196 Hz
+            // voice that removes the body of every note; the user heard it as the plugin
+            // eating the vocal, and was right.
+            const double f0Cap = m.medianF0 > 0.0 ? std::max(85.0, 0.62 * m.medianF0) : 120.0;
+            corner = std::min(corner, f0Cap);
         }
         corner = std::clamp(corner, 30.0, 220.0);
 
         // de-esser decision
         double deThr = -30.0, deGr = 0.0;
         for (const auto& p : probs) {
-            if (p.action == Action::DeEss) { deGr = std::min(6.0, std::abs(p.gainDb) * 0.8); deThr = -34.0; }
+            if (p.action == Action::DeEss) { deGr = std::min(1.5, std::abs(p.gainDb) * 0.6); deThr = -34.0; }
         }
         if (settings_.deEssAmount > 0.0) deGr = 8.0 * settings_.deEssAmount;
 
@@ -309,6 +451,7 @@ public:
             pendingDeThr_ = deThr;
             pendingDeGr_ = deGr;
             pendingSettled_ = state_.settled;
+
             ++pendingVersion_;
         }
         pendingSeen_.store(false);
@@ -405,6 +548,21 @@ public:
         return activeBandsLocked();
     }
 
+    // Bands that are actually in the cascade.  activeBands() includes the six taste
+    // bands the corpus study puts in the chain; at rest they are all 0 dB and the
+    // cascade skips them, so counting the list said "10 bands" when seven were doing
+    // nothing.  The number the window shows is this one.
+    // How much gain the level match is holding, in dB.  Shown in the editor so the
+    // "auto gain" is a number the user can see, not a hidden fudge.
+    double levelMatchDb() const { return 20.0 * std::log10(std::max(outGain_, 1e-6)); }
+
+    int appliedBandCount() const {
+        auto active = activeBands();
+        int n = 0;
+        for (const auto& b : active) if (std::abs(b.gainDb) > 0.05) ++n;
+        return n;
+    }
+
     // The bands the *user* asked for, independent of any analysis.  Written into a
     // caller-provided array: this runs on the audio thread, and returning a vector
     // from it meant a heap allocation inside every block that had no solution yet.
@@ -453,6 +611,14 @@ public:
     }
 
     double hpfFreq() const { std::lock_guard<std::mutex> lk(stateMx_); return state_.hpfHz; }
+
+    // magnitude of the 24 dB/oct Butterworth pair, for anything that needs to know
+    // what the low cut is doing without touching the running object
+    static double hpfDbAt(double f, double corner) {
+        if (corner <= 0.0 || f <= 0.0) return 0.0;
+        const double r = f / corner;
+        return -10.0 * std::log10(1.0 + std::pow(r, -4.0)) * 2.0;
+    }
     double deEssGainReduction() const { return deEsser_.currentGainReductionDb(); }
     double sampleRate() const { return fs_; }
 
@@ -492,6 +658,8 @@ private:
     double fs_ = 48000.0;
     int maxBlock_ = 512;
     RestoreSettings settings_;
+    mutable std::mutex liveMx_;
+    LiveSpectrum live_;
     Analyzer analyzer_;
     HighPass24 hpf_;
     BiquadCascade eqLeft_, eqRight_;
@@ -522,7 +690,8 @@ private:
     std::atomic<bool> trimsDirty_{false};           // the editor moved a handle
     std::atomic<double> learnProgress_{0.0};
     std::atomic<long> version_{0};
-    double outGain_ = 1.0;
+    double outGain_ = 1.0;             // level match, see the loop in processBlock
+    double inAvg_ = 0.0, outAvg_ = 0.0;  // smoothed mean square, in and out of the chain
 
     mutable std::mutex stateMx_;
     std::mutex analyzeMx_;                    // guards Analyzer (audio <-> solver)

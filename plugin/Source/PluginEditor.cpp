@@ -188,7 +188,11 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor (AeqAudioProcessor& p)
     setSize (defaultWidth(), defaultHeight());
     resized();
 
-    startTimerHz (8);   // the solver publishes at 4 Hz; polling faster only burns the UI thread
+    // 30 Hz, because the analyser publishes a moving spectrum at that rate.  The poll
+    // is cheap on purpose: when nothing but the spectrum changed (which is almost
+    // every tick) the light path below copies two small arrays and repaints one
+    // component.  The old 8 Hz poll redrew the entire editor on every tick.
+    startTimerHz (30);
 }
 
 // The window used to open at 1240 x 800 whatever the screen was.  On a display
@@ -369,7 +373,7 @@ void AeqAudioProcessorEditor::drawTitleBar (Graphics& g, Rectangle<int> r) {
 
     const String f0 = haveData_ ? String (int (state_.measuredF0)) + " Hz" : aeq::ui::u8 ("—");
     const String secs = String (state_.analyzedSeconds, 0) + " s";
-    const String bandCount = String (int (bands_.size()));
+    const String bandCount = String (proc_.core().appliedBandCount());
     struct C { String text; Colour c; int w; };
     const std::vector<C> chips = {
         { aeq::ui::u8 ("F0  ") + f0,              Palette::take(),   100 },
@@ -425,7 +429,7 @@ void AeqAudioProcessorEditor::drawVerdict (Graphics& g, Rectangle<int> bounds) {
     const auto dash = aeq::ui::u8 ("—");
     const std::vector<M> metrics = {
         { has ? String (jmax (0.0, state_.distBeforeDb), 2) + " dB" : dash, aeq::ui::u8 ("الانحراف") },
-        { has ? String (int (bands_.size())) : dash,                        aeq::ui::u8 ("باند") },
+        { has ? String (proc_.core().appliedBandCount()) : dash,            aeq::ui::u8 ("باند") },
         { has ? String (peakZ_, 2) + aeq::ui::u8 ("σ") : dash,              aeq::ui::u8 ("أقصى انحراف") },
     };
     for (int i = 0; i < 3; ++i) {
@@ -546,6 +550,13 @@ void AeqAudioProcessorEditor::timerCallback() {
     // z-scan over 86 bands, rebuilding the report list and repainting the entire
     // window three times for every update that existed.  That is what a slightly
     // sticky window is made of, and it is pure waste.
+    // 1. the display spectrum, every tick, cheap
+    const auto live = proc_.core().live();
+    if (live.valid && live.version != lastLiveVersion_) {
+        lastLiveVersion_ = live.version;
+        curve_.setLive (live.liveDb, live.peakDb);
+    }
+
     const auto autoNow = proc_.autoState();
     const int heardTick = int (autoNow.heardSeconds);     // the countdown, in seconds
     if (proc_.core().version() == lastVersion_ && getWidth() == lastWidth_

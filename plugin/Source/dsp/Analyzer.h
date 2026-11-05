@@ -8,6 +8,8 @@
 #pragma once
 #include <array>
 #include <cmath>
+#include <cstdlib>
+#include <cstdio>
 #include <vector>
 #include <algorithm>
 #include <cstring>
@@ -88,6 +90,8 @@ public:
     void reset() {
         std::fill(std::begin(mean_), std::end(mean_), 0.0);
         pSum_.assign(256, 0.0);
+        liveP_.assign(256, 0.0);
+        peakP_.assign(256, 0.0);
         std::fill(std::begin(m2_), std::end(m2_), 0.0);
         std::fill(std::begin(exMean_), std::end(exMean_), 0.0);
         std::fill(std::begin(exM2_), std::end(exM2_), 0.0);
@@ -131,6 +135,11 @@ public:
 
     // ---------------- results ----------------
     bool   ready() const { return nActive_ >= 40; }
+    // The display may start with the very first frame.  ready() means "enough to
+    // trust a decision", which is 1.7 s of sung audio - correct for the solver, far
+    // too long to leave the analyser flat when someone presses play.
+    long   framesSeen() const { return framesSeen_; }
+    bool   hasSpectrum() const { return framesSeen_ > 0; }   // nFrames_ is reset-only
     int    bandCount() const { return nBands_; }
     long   activeFrames() const { return nActive_; }
     long   samplesSeen()  const { return totalSamples_; }   // every sample handed to processBlock
@@ -145,6 +154,20 @@ public:
             out[i] = (nActive_ > 0) ? 10.0 * std::log10(std::max(pSum_[i] / nActive_, 1e-20)) : -120.0;
         return out;
     }
+    // the moving spectrum for the display (120 ms), and its peak hold
+    std::vector<double> liveLevelsDb() const {
+        std::vector<double> out(nBands_, -120.0);
+        for (int i = 0; i < nBands_; ++i)
+            out[i] = 10.0 * std::log10(std::max(liveP_[i], 1e-20));
+        return out;
+    }
+    std::vector<double> peakHoldDb() const {
+        std::vector<double> out(nBands_, -120.0);
+        for (int i = 0; i < nBands_; ++i)
+            out[i] = 10.0 * std::log10(std::max(peakP_[i], 1e-20));
+        return out;
+    }
+
     std::vector<double> bandSdDb() const {
         std::vector<double> out(nBands_, 0.0);
         for (int i = 0; i < nBands_; ++i) {
@@ -234,6 +257,27 @@ public:
     }
 
 private:
+    // 120 ms moving average + 18 dB/s peak hold, on the same band powers the
+    // measurement uses.  Cheap: one pass over the bands, no allocation.
+    void updateLiveSpectrum() {
+        const double hopSec = double(kHop) / (fs_ > 0.0 ? fs_ : 48000.0);
+        // attack 30 ms, release 120 ms: fast enough that the curve is obviously
+        // following the voice (9 dB of fall in the first 250 ms after a phrase ends),
+        // slow enough that it does not flicker on every syllable.
+        const double aUp   = std::clamp(hopSec / 0.030, 0.05, 1.0);
+        const double aDown = std::clamp(hopSec / 0.120, 0.03, 1.0);
+        const double drop  = std::pow(10.0, (-18.0 * hopSec) / 10.0);
+        for (int i = 0; i < nBands_; ++i) {
+            double p = 0.0;
+            const int nB = bandBinHi_[i] - bandBinLo_[i] + 1;
+            for (int b = bandBinLo_[i]; b <= bandBinHi_[i]; ++b) p += power_[b];
+            p /= std::max(1, nB);
+            const double a = (p > liveP_[size_t(i)]) ? aUp : aDown;
+            liveP_[size_t(i)] += a * (p - liveP_[size_t(i)]);
+            peakP_[size_t(i)] = std::max(liveP_[size_t(i)], peakP_[size_t(i)] * drop);
+        }
+    }
+
     // ---- FFT (iterative radix-2, in-place) ----
     void fftInit() {
         std::vector<double> re(kFft), im(kFft);
@@ -326,6 +370,15 @@ private:
         // same rule as the Python reference: +9 dB over the 10th percentile and
         // no more than 42 dB below the loud end (below that it is noise, not voice)
         const bool active = (lvlCount_ > 30) && (rmsDb > gate) && (rmsDb > -70.0);
+
+        // The display spectrum is updated for *every* frame, active or not.  It used
+        // to live inside the active-only part of this function, so during a pause -
+        // or the gaps between phrases, which is most of a vocal take - the curve
+        // simply froze at the last value and then jumped when the next word arrived.
+        // Combined with a mean-of-everything measurement behind it, that is exactly
+        // "the analyser is incredibly slow".
+        updateLiveSpectrum();
+
         if (!active) return;
 
         ++nActive_;
@@ -565,6 +618,16 @@ private:
     double mean_[256]{}, m2_[256]{};
     std::vector<double> yinD_, yinCm_;          // pitch scratch, sized in prepare (see prepare())
     std::vector<double> pSum_{256, 0.0};
+    // Live display spectrum.  bandLevelsDb() is the *measurement* - the mean of
+    // everything heard since load - which is exactly what the solver needs and
+    // exactly what a moving display must not be: after ten seconds it stops
+    // moving, so the analyser looked broken ("كمية بطء في الأنالايزر رهيب").
+    // These two run on their own: a 120 ms moving average for the curve, and a
+    // peak hold that falls 18 dB/s for the outline.
+    std::vector<double> liveP_, peakP_;   // sized in prepare()/reset() - a
+                                         // std::vector<double>{256, 0.0} is two
+                                         // elements, not 256, which is a heap
+                                         // overflow waiting to be written
     double exMean_[256]{}, exM2_[256]{}, exN_[256]{};
     std::vector<double> cRe_, cIm_;             // scratch for the cepstral lift
     std::vector<double> frameEnv_;              // this frame's envelope, dB

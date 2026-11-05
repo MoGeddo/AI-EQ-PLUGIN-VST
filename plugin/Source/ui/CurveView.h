@@ -32,12 +32,23 @@ public:
         bool valid = false;
         bool settled = false;
         double analysedSeconds = 0.0;
+        std::vector<double> liveDb, peakDb;   // the moving analyser, see setLive()
     };
 
     CurveView() { setWantsKeyboardFocus (false); }
 
     void setData (Data d) {
         data_ = std::move (d);
+        repaint();
+    }
+
+    // Called ~25 times a second while audio is playing.  Touches two arrays and
+    // repaints this component only - never the report, never the header, never the
+    // whole editor.  This is the difference between an analyser that moves with the
+    // voice and one that redraws the window four times a second.
+    void setLive (std::vector<double> live, std::vector<double> peak) {
+        data_.liveDb = std::move (live);
+        data_.peakDb = std::move (peak);
         repaint();
     }
 
@@ -243,25 +254,42 @@ private:
         g.strokePath (p, juce::PathStrokeType (1.8f));
     }
 
+    // The spectrum the user is watching: the 120 ms moving average (thick, accent)
+    // with the mean of the whole take behind it (thin) and the peak hold on top.
     void drawMeasured (juce::Graphics& g) {
         const auto& m = data_.meas;
-        if (m.bandDb.empty()) return;
-        double ref = 0.0;
-        int n = 0;
-        for (size_t i = 0; i < m.freqs.size(); ++i)
-            if (m.freqs[i] >= 900 && m.freqs[i] < 1150) { ref += m.bandDb[i]; ++n; }
-        if (n) ref /= n;
+        const std::vector<double>& live = data_.liveDb.size() == m.freqs.size() ? data_.liveDb : m.bandDb;
+        if (live.empty() || m.freqs.empty()) return;
 
-        juce::Path p;
-        bool started = false;
-        for (size_t i = 0; i < m.freqs.size(); ++i) {
-            const double f = m.freqs[i];
-            if (f < kFmin || f > kFmax) continue;
-            const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, m.bandDb[i] - ref));
-            if (! started) { p.startNewSubPath (x, y); started = true; } else p.lineTo (x, y);
+        auto reference = [&] (const std::vector<double>& v) {
+            double ref = 0.0; int n = 0;
+            for (size_t i = 0; i < m.freqs.size() && i < v.size(); ++i)
+                if (m.freqs[i] >= 900 && m.freqs[i] < 1150) { ref += v[i]; ++n; }
+            return n ? ref / n : 0.0;
+        };
+        auto pathOf = [&] (const std::vector<double>& v, double ref, bool skipSilent) {
+            juce::Path p;
+            bool started = false;
+            for (size_t i = 0; i < m.freqs.size() && i < v.size(); ++i) {
+                const double f = m.freqs[i];
+                if (f < kFmin || f > kFmax) continue;
+                if (skipSilent && v[i] <= -119.0) { started = false; continue; }
+                const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, v[i] - ref));
+                if (! started) { p.startNewSubPath (x, y); started = true; } else p.lineTo (x, y);
+            }
+            return p;
+        };
+
+        if (! m.bandDb.empty()) {                       // the settled mean of the take
+            g.setColour (Palette::text().withAlpha (0.22f));
+            g.strokePath (pathOf (m.bandDb, reference (m.bandDb), true), juce::PathStrokeType (1.0f));
         }
-        g.setColour (Palette::accent2().withAlpha (0.95f));
-        g.strokePath (p, juce::PathStrokeType (1.7f));
+        if (data_.peakDb.size() == m.freqs.size()) {    // peak hold, falling 18 dB/s
+            g.setColour (Palette::accent2().withAlpha (0.28f));
+            g.strokePath (pathOf (data_.peakDb, reference (live), true), juce::PathStrokeType (1.0f));
+        }
+        g.setColour (Palette::accent2());               // the live analyser
+        g.strokePath (pathOf (live, reference (live), true), juce::PathStrokeType (1.8f));
     }
 
     void drawEnvelope (juce::Graphics& g) {

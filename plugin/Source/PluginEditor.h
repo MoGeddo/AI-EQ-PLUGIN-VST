@@ -33,6 +33,7 @@ private:
     int  lastWidth_ = -1;
     int  lastHeardTick_ = -1; // the listen countdown, so the readout moves once a second
     int  lastStage_ = -1;
+    unsigned long long lastLiveVersion_ = 0;   // the analyser's display spectrum
 
     void timerCallback() override;
     void buildControls();

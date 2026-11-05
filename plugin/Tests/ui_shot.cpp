@@ -127,7 +127,7 @@ void analyse(AeqAudioProcessor& proc, bool faults) {
     stage(juce::String("analysis: ") + juce::String(int(st.problems.size())) + " findings, "
           + juce::String(st.analyzedSeconds, 1) + " s, valid=" + juce::String(int(st.valid))
           + ", settled=" + juce::String(int(st.settled)) + ", "
-          + juce::String(int(proc.core().activeBands().size())) + " bands");
+          + juce::String(proc.core().appliedBandCount()) + " bands");
 }
 
 int runWindow(const juce::File& dir) {

@@ -70,7 +70,11 @@ AeqAudioProcessor::AeqAudioProcessor()
                         .withInput("Input", juce::AudioChannelSet::stereo(), true)
                         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts_(*this, nullptr, "AEQ_RESTORE", createLayout()) {
-    startTimerHz(4);   // solve + refresh 4x per second on the message thread
+    // 30 Hz is for the *display*: the analyser's moving spectrum is published here
+    // and nowhere else, so the curve moves with the music.  Solving is the expensive
+    // part and stays at ~4 Hz (see timerCallback) - the two used to be the same
+    // tick, which is why the analyser only moved four times a second.
+    startTimerHz(30);
 }
 
 void AeqAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
@@ -126,17 +130,16 @@ void AeqAudioProcessor::timerCallback() {
     // Analysis and solving happen here, never in processBlock, and never only
     // because the editor is open: the timer lives in the processor, so the plugin
     // works with its window closed - which is what "automatic" has to mean.
-    if (! learning_.load()) {
-        core_.drainPending();
-        return;
-    }
+    // Every tick: drain the audio thread's ring and publish the display spectrum.
+    core_.pump();
+    if (! learning_.load()) return;
+
+    // Solving is the costly half (FFT statistics, solver, detector, report text) and
+    // runs at 30/8 = ~3.75 Hz while learning, then once every 2.5 s.  It must never
+    // be in the same tick as the display, or the display inherits its cost.
     const auto st = core_.state();
     const bool settled = st.valid && st.settled;
-    // While it is still learning the take, solve as often as the timer fires (4 Hz).
-    // Once it has, keep adapting slowly: re-solving four times a second forever is
-    // the message thread doing work nobody asked for.
     if (! settled || (++slowTick_ % 8 == 0)) core_.refresh();
-    else                                  core_.drainPending();
 }
 
 AeqAudioProcessor::AutoState AeqAudioProcessor::autoState() const {
@@ -146,7 +149,7 @@ AeqAudioProcessor::AutoState AeqAudioProcessor::autoState() const {
     a.heardSeconds = st.analyzedSeconds;
     a.needSeconds  = settings_.settleSeconds > 0.0 ? settings_.settleSeconds : 0.0;
     a.hpfHz        = st.hpfHz;
-    a.bands        = int(core_.activeBands().size());
+    a.bands        = core_.appliedBandCount();
     return a;
 }
 

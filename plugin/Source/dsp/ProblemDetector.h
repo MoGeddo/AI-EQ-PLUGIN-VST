@@ -2,6 +2,7 @@
 // concrete action.  This is the "understanding" layer: every line the user sees
 // in the report is backed by a number that can be re-measured.
 #pragma once
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -349,11 +350,27 @@ public:
         // notches over 15 target songs, with 6089 and 6451 Hz each recurring in
         // 4 different songs (different singers, so not a room; it is a fixed
         // artefact of the source separation).
+        //
+        // And the bar was applied to a *comb*: a sung note is not a smooth spectrum,
+        // it is a picket fence of harmonics, and on the 1/12-octave grid each tooth
+        // of that fence is an isolated 4.5 dB peak with stable statistics.  The
+        // detector produced 20 such "resonances" in one verse of the test take -
+        // 202, 214, 359, 381, 403, 427, 570, 604, 761, 806 Hz ... - and every one of
+        // them was the singer.  Below 1.1 kHz (six harmonics of a 190 Hz voice) the
+        // teeth are wider than the analysis band, so nothing there can be told apart
+        // from a partial; above it, a candidate that sits on the harmonic grid is
+        // skipped as well.  What survives is a peak that is *not* where the notes put
+        // their energy - which is what a room resonance is.
+        std::vector<Problem> resoFound;
         for (int i = 3; i + 3 < static_cast<int>(m.freqs.size()); ++i) {
             const double f = m.freqs[i];
-            if (f < 200.0 || f > 12000.0) continue;
+            if (f < std::max(1100.0, 6.0 * m.medianF0) || f > 12000.0) continue;
             const double ex = m.excessMean[i];
             if (ex < 4.5) continue;
+            if (m.medianF0 > 2.0) {                       // on a partial, not a resonance
+                const double h = std::round(f / m.medianF0);
+                if (h >= 1.0 && std::abs(f / m.medianF0 - h) / h < 0.03) continue;
+            }
             // A room / mic resonance is *narrow* and *fixed*: it must stand above
             // its own 1/4-octave shoulders (sharpness) and stay put over time
             // (the shoulders follow the formants of the take, the spike does not).
@@ -361,11 +378,17 @@ public:
             const bool sharp = (ex - shoulder) > 2.0;
             const bool stable = m.excessSd[i] < std::max(3.0, 0.9 * ex);
             if (sharp && stable) {
-                out.push_back({"reso", "رنين ثابت (غرفة/مايك)",
-                               fmt("%.0f Hz ثابت على مدى الأداء (متوسط +%.1f dB، تغيّر %.1f dB)", {f, ex, m.excessSd[i]}),
-                               sev(ex, 4.5, 9.0), f, 8.0, -std::min(ex * 0.8, 7.0), Action::CutNarrow});
+                resoFound.push_back({"reso", "رنين ثابت (غرفة/مايك)",
+                                     fmt("%.0f Hz ثابت على مدى الأداء (متوسط +%.1f dB، تغيّر %.1f dB)", {f, ex, m.excessSd[i]}),
+                                     sev(ex, 4.5, 9.0), f, 8.0, -std::min(ex * 0.8, 7.0), Action::CutNarrow});
             }
         }
+        // Only the three strongest are worth saying out loud.  A list of twenty
+        // "problems" on a clean take is not information, it is noise - and the user
+        // reads it as the plugin not knowing what it is doing, which was not wrong.
+        std::sort(resoFound.begin(), resoFound.end(),
+                  [](const Problem& a, const Problem& b) { return a.severity > b.severity; });
+        for (size_t i = 0; i < resoFound.size() && i < 3; ++i) out.push_back(resoFound[i]);
 
         // ---- 4. sibilance (dynamic, not static) -------------------------
         if (m.sibP90 > -6.0) {
