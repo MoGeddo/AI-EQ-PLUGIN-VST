@@ -382,3 +382,79 @@ at any vocal stem first; the other gates need nothing but the source tree.
   read out of the module, so this cannot drift.
   CHECK: /tmp/venv/bin/python design/preview/check_identity.py --against-v6
   EXPECT: identity ok: 23 Arabic strings covered
+
+- [x] G51: the craft floor is measured, not admired.  Two skill sets were read for the UI
+  EVIDENCE: automatic-evidence=v1; definition-sha256=3420749ff424423175ab8281cea0a23abd14d7f4571cdd7723837d29f1350763; exit=0; EXPECT=matched; output-sha256=30a5f2c329806309302878b84377a1add7834061016ecba1f3f9d3f690147c82; output-bytes=269; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  and both are checklists, so neither is worth anything unless something runs it.  The
+  gate reads the real panel and fails on: a target under 40x40 logical px (or a row under
+  30 px tall), two targets overlapping, a corner radius outside the declared set (18 for
+  the frame, 12 for the well recessed into it), a knob seat that is not concentric
+  (1.08x), a live number drawn proportionally instead of through the tracked readout, a
+  text size outside the declared scale, a product motion off its token or on a bounce
+  curve, animation of something the hand touches, and a control with no declared
+  hover/press/disabled state.  The first version of this gate passed three of those
+  checks by matching nothing at all - a regex that found no type sizes "agrees" with the
+  scale - so the panel now records every call it makes and the gate asks the render
+  (`ui_v7.report()`): 14 tracked readouts, sizes 8/10/12/14, 7 targets, 7 parts x 4
+  states.  It also caught a real one: the panel had six type sizes (8,9,10,11,12,13),
+  which is what "assembled" looks like.
+  CHECK: /tmp/venv/bin/python design/preview/check_craft.py
+  EXPECT: craft ok: 7 targets >= 40 px and none overlapping
+
+- [x] G52: every motion is on a token, and the spec compiles.  transitions.dev supplies a
+  EVIDENCE: automatic-evidence=v1; definition-sha256=1b426ecb769f46a55a0bc187361e5a1a0502cdca43c78ba81ae24006df642d0b; exit=0; EXPECT=matched; output-sha256=a67757ceab71de8d8a47f699fc2cc673b199001d2afa803b1d5b8ca93b2f8a28; output-bytes=199; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  motion token scale and gsap-skills supplies the rule underneath it (animate transform
+  and opacity, never layout, never a thing being dragged).  Both are now a header the
+  plugin owns: plugin/Source/ui/MotionSpec.h declares 7 durations, 6 easings and 4
+  distances that must equal the recorded table to the last decimal, the product's three
+  motions (clamp-drop 250 ms smooth-out 8 px, seal-word 150 ms in-place, seal-led colour
+  only) may only name tokens and may never use a bounce curve, and the header compiles
+  standalone under -Wall -Wextra -Werror with a program that proves the curve eases:
+  at(0)=0, at(1)=1, monotonic, at(.5)=0.961.  Bounce is banned in product motion
+  (make-interfaces-feel-better rule 7) and the ban is a flag, not a comment.
+  CHECK: /tmp/venv/bin/python design/preview/check_motion.py
+  EXPECT: motion ok: 7 durations + 6 easings + 4 distances match the token table
+
+- [x] G53: the dependency arrows only point down.  Graphify's premise - see the graph
+  EVIDENCE: automatic-evidence=v1; definition-sha256=8bf652752cc8033a00d9487b2082637c2162bbf11e9240db033531bbda346402; exit=0; EXPECT=matched; output-sha256=ad1cac9037ec67b4a3e4ccbaf956235c57623e799ad4f7c0f2aa110327c8439b; output-bytes=110; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  before adding to it - applied to 21 files instead of a knowledge graph: the include
+  graph of plugin/Source is built from its own `#include "..."` lines and must have zero
+  cycles, zero upward edges (model <- dsp <- ui <- the JUCE wiring) and zero orphan
+  headers.  This found a real disagreement between the documentation and the code: dsp/
+  includes model/ in five places, and the docs claimed the audio layer was the bottom of
+  the stack.  The code was right - model/ is the measurement data, pure and JUCE-free -
+  so the declared stack was corrected rather than the code: model 0, dsp 1, ui 2.  The
+  result is 21 files, 29 edges, 0 cycles, 0 upward edges, by layer {0:3, 1:8, 2:6, 3:4}.
+  CHECK: /tmp/venv/bin/python analysis/scripts/check_layers.py
+  EXPECT: layers ok: 21 files, 29 include edges, 0 cycles
+
+- [x] G54: the two attack surfaces are attacked.  Strix's method is the first paragraph of
+  EVIDENCE: automatic-evidence=v1; definition-sha256=87dc5317d27914f0cf2c763701c6e15b17a6928e9971f0401476301afdac6f73; exit=0; EXPECT=matched; output-sha256=60d04dce4bf932087d840fc0c32bc1807b379c1d710cd2d0ad8bbfebb9230149; output-bytes=249; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  the security skill it ships with: name the trust boundaries, then prove the controls.
+  This project has two.  (A) The preview server serves the *repository root* - it must,
+  because the pages reference the embedded font by root-absolute URL - so the boundary is
+  the URL path, and the gate starts the real server on an ephemeral port and sends six
+  attacks (plain and encoded traversal, /.git/config, /.git/, CI config, the audio
+  corpus).  Every deny target that actually exists on disk must answer 403, not 404: a
+  404 would be luck, not a control.  The three preview URLs must still be 200 with
+  nosniff.  (B) The release scripts: 46 Python files with no shell=True and no string
+  commands, the installer's -Version validated against a semver regex before it is
+  interpolated into a path, the uninstaller checked for wildcards, and the code-signing
+  timestamp now fetched over TLS - an RFC3161 reply from an on-path attacker is a
+  timestamp that attests to nothing.  Two real defects were fixed for this gate and one
+  is still open and named in docs/21.
+  CHECK: /tmp/venv/bin/python design/preview/check_hardening.py
+  EXPECT: hardening ok: 47 Python files
+
+- [x] G55: the UI compiles against the JUCE we pin, not the JUCE in my memory.  This is
+  EVIDENCE: automatic-evidence=v1; definition-sha256=799b1f162222d5b617140ca7d278c096ba26ecd572bfe070e2d2ede02afc44dc; exit=0; EXPECT=matched; output-sha256=7b54df4b521ce3304cf6db06f9bc5bfa35b95447228e9eb85d75baa5dd0ecf29; output-bytes=127; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  context7's premise made mechanical: a model writes API calls from memory, the memory
+  lags a version, and the build fails six minutes later on a Windows runner.  The gate
+  reads the GIT_TAG out of plugin/CMakeLists.txt (so bumping JUCE cannot leave it
+  checking an older one), refuses to run unless the checkout on disk is at that exact
+  version, and then compiles every UI header with -fsyntax-only -Wall -Wextra against it
+  with the two stubs CMake would have generated.  Before this gate, "the UI compiles" was
+  a claim from a previous session with no checkout on disk to support it; now it is
+  JUCE 8.0.4, five headers, clean.
+  CHECK: /tmp/venv/bin/python design/preview/check_juce_api.py
+  EXPECT: juce ok: JUCE 8.0.4 pinned in CMake and present on disk

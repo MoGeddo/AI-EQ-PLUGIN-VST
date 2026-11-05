@@ -7,35 +7,50 @@
 // One palette, one geometry, one text path.  Everything visual in the plugin
 // comes from here, so a change of mood is a change of one file.
 //
-// The look: a near-black console, three surfaces at increasing height, hairlines
-// instead of borders, and colour used only where it means something:
+// The look: warm lacquer, brass and patina - design/IDENTITY_AR.md.  The palette
+// used to be a cold console (near-black, blue take, mint correction, amber warning)
+// and that palette was the problem: it is the language every plugin in this
+// category already speaks, and three of the four "make it look better" rounds were
+// spent arguing about a hue that meant nothing.
 //
-//   neutral white   the standard (the 15 mixes) - it is the reference, not a mood
-//   blue            your take, what is actually coming in
-//   mint            the correction, the only thing this plugin is allowed to do
-//   amber / red     a finding that wants attention / one that is wrong
+// The rule that replaced it is one line long, and it is a rule about *meaning*:
 //
-// Type: Cairo (embedded), three sizes, two weights.  Numbers are drawn with the
-// same face in semi-bold and never inside a knob, because "0.0" sitting on top of
-// a label is what the last build looked like.
+//   brass   = a decision this plugin made (the curve, the needle, the seal)
+//   patina  = a measurement of your audio (the take, the spectrum, the dynamics)
+//
+// Those two never swap, and there is no third accent in the product.  A warning is
+// the one exception and it is deliberately not an accent: it is a state you have to
+// be able to see and it must never look like a decision.
+//
+// Type: Cairo (embedded), four sizes, two weights, tabular numbers for anything
+// that updates (MotionSpec.h owns the motion; this file owns the colour).
 // ---------------------------------------------------------------------------
 namespace aeq::ui {
 
 struct Palette {
-    static juce::Colour bg()        { return juce::Colour::fromRGB (0x08, 0x09, 0x0b); }
-    static juce::Colour surface()   { return juce::Colour::fromRGB (0x10, 0x12, 0x16); }
-    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x17, 0x1a, 0x20); }
-    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x24, 0x28, 0x2f); }
-    static juce::Colour text()      { return juce::Colour::fromRGB (0xec, 0xee, 0xf2); }
-    static juce::Colour muted()     { return juce::Colour::fromRGB (0x8b, 0x91, 0x9c); }
-    static juce::Colour dim()       { return juce::Colour::fromRGB (0x5a, 0x60, 0x6c); }
+    // ---- surfaces: warm black, never a cold grey
+    static juce::Colour bg()        { return juce::Colour::fromRGB (0x0a, 0x09, 0x08); }
+    static juce::Colour surface()   { return juce::Colour::fromRGB (0x14, 0x11, 0x0e); }
+    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x1c, 0x19, 0x15); }
+    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x2a, 0x25, 0x1e); }
+    static juce::Colour text()      { return juce::Colour::fromRGB (0xf2, 0xed, 0xe3); }
+    static juce::Colour muted()     { return juce::Colour::fromRGB (0xa7, 0x9e, 0x90); }
+    static juce::Colour dim()       { return juce::Colour::fromRGB (0x7e, 0x76, 0x6a); }
 
-    static juce::Colour accent()    { return juce::Colour::fromRGB (0x2b, 0xd9, 0xae); }  // what we do
-    static juce::Colour take()      { return juce::Colour::fromRGB (0x4c, 0x8d, 0xff); }  // what you play
-    static juce::Colour standard()  { return juce::Colour::fromRGB (0xc8, 0xcf, 0xda); }  // the reference
-    static juce::Colour ok()        { return juce::Colour::fromRGB (0x4e, 0xc9, 0x8a); }
-    static juce::Colour warn()      { return juce::Colour::fromRGB (0xf2, 0xb0, 0x5c); }
-    static juce::Colour danger()    { return juce::Colour::fromRGB (0xef, 0x6a, 0x6a); }
+    // ---- brass: everything this plugin decides
+    static juce::Colour accent()    { return juce::Colour::fromRGB (0xc9, 0xa1, 0x5a); }  // the curve, the needle
+    static juce::Colour accentHi()  { return juce::Colour::fromRGB (0xf2, 0xd6, 0xa2); }  // a lit brass edge
+    static juce::Colour seal()      { return accentHi(); }                                // committed state
+
+    // ---- patina: everything that is a measurement of the take
+    static juce::Colour take()      { return juce::Colour::fromRGB (0x6f, 0xa8, 0x93); }  // what you play
+    static juce::Colour takeDeep()  { return juce::Colour::fromRGB (0x31, 0x57, 0x4c); }  // its body
+    static juce::Colour standard()  { return juce::Colour::fromRGB (0xa7, 0xa2, 0x99); }  // the 15 mixes
+
+    // ---- states: not accents.  A warning must never read as a decision.
+    static juce::Colour ok()        { return juce::Colour::fromRGB (0x6f, 0xa8, 0x93); }
+    static juce::Colour warn()      { return juce::Colour::fromRGB (0xd8, 0x9a, 0x4e); }
+    static juce::Colour danger()    { return juce::Colour::fromRGB (0xb4, 0x59, 0x3f); }
 
     // kept for the older call sites; same meaning as accent2/take
     static juce::Colour panel()     { return surface(); }

@@ -19,9 +19,20 @@ import argparse
 import functools
 import http.server
 import pathlib
+import posixpath
 import socketserver
+from urllib.parse import unquote
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+# Nothing under these is the preview.  The document root is the repository, which is
+# the only way the pages' root-absolute font URLs work - so the server has to know
+# what it must NOT hand out: .git (remote URL, credential-helper config), the audio
+# corpus, and every other dotfile.
+DENY_PREFIXES = (".git", ".github", ".arena", "google_drive", "analysis/out/audio",
+                 "_refs", "build", "dist", "plugin/build")
+DENY_SUFFIXES = (".wav", ".flac", ".mp3", ".mp4", ".whl", ".pdb")
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -37,7 +48,31 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store, must-revalidate")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        # deliberately no X-Frame-Options / CSP frame-ancestors: the whole point of
+        # this server is that the panel is embedded in a preview iframe
         super().end_headers()
+
+    def _denied(self) -> bool:
+        rel = posixpath.normpath(unquote(self.path)).lstrip("/")
+        rel = rel.split("?")[0]
+        if any(seg.startswith(".") and seg not in (".", "..") for seg in rel.split("/")):
+            return True
+        if any(rel == p or rel.startswith(p + "/") for p in DENY_PREFIXES):
+            return True
+        return rel.lower().endswith(DENY_SUFFIXES)
+
+    def do_GET(self):
+        if self._denied():
+            self.send_error(403, "not part of the preview")
+            return
+        super().do_GET()
+
+    def do_HEAD(self):
+        if self._denied():
+            self.send_error(403, "not part of the preview")
+            return
+        super().do_HEAD()
 
     def log_message(self, fmt, *args):  # one line per request, not a traceback
         print("%s %s" % (self.address_string(), fmt % args), flush=True)

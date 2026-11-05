@@ -130,7 +130,7 @@ if ($Sign) {
     Step "signing"
     $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
     if (-not $signtool) { Fail "-Sign was given but signtool.exe is not on PATH (install the Windows SDK)" }
-    & $signtool.Source sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $setup
+    & $signtool.Source sign /fd SHA256 /tr https://timestamp.digicert.com /td SHA256 $setup
     if ($LASTEXITCODE -ne 0) { Fail "signing failed" }
 }
 

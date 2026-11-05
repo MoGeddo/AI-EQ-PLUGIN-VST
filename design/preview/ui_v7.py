@@ -57,6 +57,10 @@ BRASS_HOT = (242, 214, 162)
 PATINA = (111, 168, 147)
 PATINA_DEEP = (44, 82, 71)
 
+# One type scale, four steps, named by rank.  A size that is not one of these does
+# not ship: three "1 px apart" sizes is how a panel starts looking assembled.
+T_MICRO, T_CAP, T_BODY, T_VALUE = 8, 10, 12, 14
+
 M = 40                                   # side margin
 X0, X1 = M, W - M                        # 40 .. 1140
 
@@ -65,8 +69,9 @@ HEADER = (X0, 18, X1, 60)
 TAKE = (X0, 68, X1, 168)
 TAKE_BAR = (X0, 104, X1, 132)
 WELL = (X0, 194, X1, 448)
-LEDGER = (X0, 462, X1, 596)
-FOOTER = (X0, 612, X1, 688)
+LEDGER = (X0, 462, X1, 610)
+FOOTER = (X0, 620, X1, 694)
+ROW_H = 30                             # ledger row pitch (>= 30: it is a target)
 SEAL_T = 0.795                           # where the person stopped it, of the whole take
 
 F_MIN, F_MAX = 30.0, 18000.0
@@ -87,6 +92,20 @@ BAND_MODES = ("ثابت", "ثابت", "ديناميك", "متابع النغمة
 FOOTER_SEAL = "مش بيتغيّر لوحده"
 FOOTER_REPORT = "اتظبط بعد ٢٤٫٩ ثانية · ٤ باندات · واحد ديناميك وواحد متابع"
 KNOB_LABELS = ("القوة", "الخروج")
+
+# Every part the panel draws and the four states it has to answer.  A still cannot
+# show hover/press, so the module declares them and the craft gate (G51) checks the
+# declaration covers every target the panel actually draws.  When the panel is
+# ported to JUCE these become the Component::paint branches, one per state.
+PART_STATES = {
+    "knob-curve": ("idle", "hover", "press", "disabled"),
+    "knob-output": ("idle", "hover", "press", "disabled"),
+    "seal-clamp": ("idle", "hover", "press", "disabled"),
+    "band-row-1": ("idle", "hover", "press", "disabled"),
+    "band-row-2": ("idle", "hover", "press", "disabled"),
+    "band-row-3": ("idle", "hover", "press", "disabled"),
+    "band-row-4": ("idle", "hover", "press", "disabled"),
+}
 LEDGER_LIVE = "الحركة دلوقتي"
 
 ARABIC_STRINGS = (TAGLINE, SEAL_STATE, TAKE_LABEL, TAKE_META, TAKE_DONE, STOP_MARK,
@@ -120,6 +139,8 @@ def ar_w(s: str, size: int, bold: bool = False) -> float:
 def num(canvas, x, y, s, size=13, col=None, anchor="ra", bold=True, tracking=1.3):
     """Tabular readout: Cairo has no monospace, so tracking is what keeps a column of
     numbers reading as a column instead of as ragged text."""
+    DRAWN["sizes"].add(size)
+    DRAWN["numbers"].append(s)
     d = ImageDraw.Draw(canvas)
     f = font(FONT_B if bold else FONT_R, size)
     w = sum(f.getlength(c) + tracking for c in s) - tracking
@@ -139,6 +160,32 @@ def text_w(s: str, size: int, bold: bool = True, tracking: float = 1.4) -> float
 
 
 # ------------------------------------------------------------------ small helpers
+# ---- what actually got drawn -------------------------------------------------------
+# The gates used to scrape this file with regexes, which quietly matched nothing and
+# left three checks vacuous.  Recording at the call site means a gate can ask the
+# render what it drew: sizes, Arabic strings, every live number.
+DRAWN: dict[str, object] = {"sizes": set(), "arabic": set(), "numbers": [], "caps": set()}
+
+_ar_text, _caps = ar_text, caps
+
+
+def ar_text(d, xy, s, size=12, *a, **k):        # noqa: F811 - deliberate shadow
+    DRAWN["arabic"].add(s)
+    DRAWN["sizes"].add(size)
+    return _ar_text(d, xy, s, size, *a, **k)
+
+
+def caps(d, xy, s, size=10, *a, **k):           # noqa: F811 - deliberate shadow
+    if s.strip():
+        DRAWN["caps"].add(s)
+        DRAWN["sizes"].add(size)
+    return _caps(d, xy, s, size, *a, **k)
+
+
+def report():
+    return {k: (sorted(v) if isinstance(v, set) else list(v)) for k, v in DRAWN.items()}
+
+
 def fx(f: float) -> float:
     """Frequency axis.  Deliberately left-to-right: every engineer, Arabic-speaking
     included, learned spectra that way, and the identity is in the language and the
@@ -228,8 +275,8 @@ def draw_take(canvas):
     d = ImageDraw.Draw(canvas)
 
     # row above the bar: what this is (right), how much has been heard (left)
-    ar_text(d, (x1, TAKE[1] - 1), TAKE_LABEL, 13, TEXT, anchor="ra")
-    ar_text(d, (x0, TAKE[1] + 1), TAKE_DONE, 12, PATINA)
+    ar_text(d, (x1, TAKE[1] - 1), TAKE_LABEL, T_VALUE, TEXT, anchor="ra")
+    ar_text(d, (x0, TAKE[1] + 1), TAKE_DONE, T_BODY, PATINA)
 
     # the groove
     over(canvas, lambda dd: dd.rounded_rectangle([x0, y0, x1, y1], radius=6,
@@ -260,7 +307,7 @@ def draw_take(canvas):
         tx = x1 - (x1 - x0) * t
         over(canvas, lambda dd, tx=tx: dd.line([(tx, y1 + 3), (tx, y1 + 9)],
                                                fill=(255, 245, 230, 55)))
-        ar_text(d, (tx, y1 + 12), lab, 10, FAINT, anchor="ma")
+        ar_text(d, (tx, y1 + 12), lab, T_CAP, FAINT, anchor="ma")
 
     # the clamp: a real machined part, vertical, on the seal point
     cl = Image.open(ASSETS / "clamp.png").convert("RGBA").rotate(90, expand=True)
@@ -276,7 +323,7 @@ def draw_take(canvas):
 
     # the stop is named on the tick row, at the seal, and it is a person - there is
     # no timer anywhere on this panel
-    ar_text(d, (seal_x - 8, y1 + 11), STOP_MARK, 10, BRASS_HOT, anchor="ra")
+    ar_text(d, (seal_x - 8, y1 + 11), STOP_MARK, T_CAP, BRASS_HOT, anchor="ra")
 
 
 # ------------------------------------------------------------------ the well
@@ -337,13 +384,13 @@ def draw_well(canvas):
             y = dy(db)
             d.line([(x0 + 8, y), (x1 - 8, y)], fill=(255, 245, 230, 20 if db == 0 else 8))
             if db:
-                caps(d, (x0 + 12, y - 10), f"{db:+d}", 8, (255, 245, 230, 88), 1.0)
+                caps(d, (x0 + 12, y - 10), f"{db:+d}", T_MICRO, (255, 245, 230, 88), 1.0)
         for f, lab in ((31.5, "31"), (63, "63"), (125, "125"), (250, "250"), (500, "500"),
                        (1000, "1k"), (2000, "2k"), (4000, "4k"), (8000, "8k"),
                        (16000, "16k")):
             x = fx(f)
             d.line([(x, y0 + 4), (x, y0 + 24)], fill=(255, 245, 230, 26))
-            caps(d, (x, y0 + 8), lab, 8, (255, 245, 230, 118), 1.2, anchor="ma", bold=True)
+            caps(d, (x, y0 + 8), lab, T_MICRO, (255, 245, 230, 118), 1.2, anchor="ma", bold=True)
     over(canvas, grid)
 
     # ---- the measurement: patina, a filled shape fading into the floor
@@ -414,7 +461,7 @@ def draw_well(canvas):
     # the tracked band's readout, at the lens rather than in a card
     tx = fx(600.0)
     d = ImageDraw.Draw(canvas)
-    caps(d, (tx, y0 + 30), "FOLLOWING 600 Hz", 8, BRASS_HOT, 1.4, anchor="ma", bold=True)
+    caps(d, (tx, y0 + 30), "FOLLOWING 600 Hz", T_MICRO, BRASS_HOT, 1.4, anchor="ma", bold=True)
 
     # legends: two hues, two jobs, in the strip under the axis (never over the curve)
     by = y1 - 17
@@ -423,8 +470,8 @@ def draw_well(canvas):
     for label, col in ((MEASURED_KEY, PATINA), (DECISION_KEY, BRASS)):
         over(canvas, lambda dd, lx=lx: dd.ellipse([lx, by, lx + 7, by + 7], fill=col + (240,)))
         d = ImageDraw.Draw(canvas)
-        ar_text(d, (lx + 12, by - 5), label, 10, DIM, anchor="la")
-        lx += 12 + ar_w(label, 9) + 22
+        ar_text(d, (lx + 12, by - 5), label, T_CAP, DIM, anchor="la")
+        lx += 12 + ar_w(label, T_CAP) + 22
 
     over(canvas, lambda dd: (dd.rounded_rectangle([x0, y0, x1, y1], radius=12,
                                                   outline=(0, 0, 0, 200)),
@@ -448,14 +495,14 @@ def draw_ledger(canvas):
 
     # header
     for key, (label, unit) in zip(("idx", "mode", "gain", "q", "hz"), LEDGER_COLS):
-        ar_text(d, (COL[key], y0), label, 10, FAINT, anchor="ra")
+        ar_text(d, (COL[key], y0), label, T_CAP, FAINT, anchor="ra")
         if unit:
-            caps(d, (COL[key] - ar_w(label, 9) - 7, y0 + 3), unit, 8, (150, 140, 126), 0.4,
+            caps(d, (COL[key] - ar_w(label, T_CAP) - 7, y0 + 3), unit, T_MICRO, (150, 140, 126), 0.4,
                  anchor="ra")
-    ar_text(d, (COL["live_r"], y0), LEDGER_LIVE, 10, FAINT, anchor="ra")
+    ar_text(d, (COL["live_r"], y0), LEDGER_LIVE, T_CAP, FAINT, anchor="ra")
     hairline(canvas, x0, y0 + 18, x1, 26)
 
-    row_h = 27
+    row_h = ROW_H
     for i, (bf, q, g, mode, live) in enumerate(BANDS):
         ry = y0 + 26 + i * row_h
         hot = mode == 3
@@ -465,13 +512,13 @@ def draw_ledger(canvas):
             over(canvas, lambda dd, ry=ry: dd.rectangle([x0, ry - 5, x0 + 3, ry + row_h - 9],
                                                         fill=BRASS + (210,)))
         d = ImageDraw.Draw(canvas)
-        caps(d, (COL["idx"], ry), f"0{i + 1}", 9, BRASS_HOT if hot else DIM, 1.4, anchor="ra")
-        ar_text(d, (COL["mode"], ry - 3), BAND_MODES[mode], 12,
+        caps(d, (COL["idx"], ry), f"0{i + 1}", T_MICRO, BRASS_HOT if hot else DIM, 1.4, anchor="ra")
+        ar_text(d, (COL["mode"], ry - 3), BAND_MODES[mode], T_BODY,
                 BRASS_HOT if hot else (PATINA if mode == 2 else DIM), anchor="ra")
 
-        num(canvas, COL["gain"], ry - 2, f"{g:+.1f}", 13, TEXT)
-        num(canvas, COL["q"], ry - 1, f"{q:.2f}", 12, DIM, bold=False)
-        num(canvas, COL["hz"], ry - 2, f"{bf:.0f}", 13, TEXT)
+        num(canvas, COL["gain"], ry - 2, f"{g:+.1f}", T_VALUE, TEXT)
+        num(canvas, COL["q"], ry - 1, f"{q:.2f}", T_BODY, DIM, bold=False)
+        num(canvas, COL["hz"], ry - 2, f"{bf:.0f}", T_VALUE, TEXT)
 
         # activity: fills from the right (RTL), patina because it is a measurement
         over(canvas, lambda dd, ry=ry: dd.rounded_rectangle([live_l, ry + 4, COL["live_r"], ry + 13],
@@ -482,9 +529,9 @@ def draw_ledger(canvas):
                 [COL["live_r"] - wpx, ry + 4, COL["live_r"], ry + 13], radius=4,
                 fill=PATINA + (215,)))
         elif hot:
-            caps(d, (COL["live_r"], ry + 4), "TRACKING", 8, BRASS_HOT, 1.4, anchor="ra")
+            caps(d, (COL["live_r"], ry + 4), "TRACKING", T_MICRO, BRASS_HOT, 1.4, anchor="ra")
         else:
-            caps(d, (COL["live_r"], ry + 4), "HOLD", 8, FAINT, 1.4, anchor="ra")
+            caps(d, (COL["live_r"], ry + 4), "HOLD", T_MICRO, FAINT, 1.4, anchor="ra")
         if i < len(BANDS) - 1:
             hairline(canvas, x0, ry + row_h - 5, x1, 16)
 
@@ -503,11 +550,11 @@ def draw_footer(canvas):
     canvas.alpha_composite(cl, (x0, y0 + 12))
     d = ImageDraw.Draw(canvas)
     sx = x0 + cl.size[0] + 12
-    ar_text(d, (sx, y0 + 8), SEAL_STATE, 13, BRASS_HOT)
-    ar_text(d, (sx, y0 + 30), FOOTER_SEAL, 10, FAINT)
+    ar_text(d, (sx, y0 + 8), SEAL_STATE, T_VALUE, BRASS_HOT)
+    ar_text(d, (sx, y0 + 30), FOOTER_SEAL, T_CAP, FAINT)
 
     # the report: one Arabic sentence carrying the whole state
-    ar_text(d, (x0 + 360, y0 + 22), FOOTER_REPORT, 12, (184, 174, 159))
+    ar_text(d, (x0 + 360, y0 + 22), FOOTER_REPORT, T_BODY, (184, 174, 159))
 
     # two brass knobs - the only values the operator turns by hand
     for i, (val, label) in enumerate(((0.62, KNOB_LABELS[0]), (0.5, KNOB_LABELS[1]))):
@@ -515,10 +562,10 @@ def draw_footer(canvas):
         cy = y0 + 26
         knob(canvas, cx, cy, 58, val, brass=True)
         d = ImageDraw.Draw(canvas)
-        ar_text(d, (cx - 42, cy - 14), label, 10, DIM, anchor="ra")
-        num(canvas, cx - 42, cy + 1, f"{val * 100:.0f}%", 12, TEXT)
+        ar_text(d, (cx - 42, cy - 14), label, T_CAP, DIM, anchor="ra")
+        num(canvas, cx - 42, cy + 1, f"{val * 100:.0f}%", T_BODY, TEXT)
 
-    caps(d, (x1, y1 - 4), "V1.3.0", 9, FAINT, 1.8, anchor="ra")
+    caps(d, (x1, y1 - 4), "V1.3.0", T_MICRO, FAINT, 1.8, anchor="ra")
 
 
 # ------------------------------------------------------------------ the panel
@@ -543,14 +590,14 @@ def build():
     # Arabic sentence - anchoring it to the RTL edge reversed it), the state is at the
     # left edge where an Arabic reader finishes looking.
     mark = "AEQ RESTORE"
-    total = text_w(mark, 13, True, 4.6)
-    caps(d, (X1 - total, HEADER[1] + 2), mark, 13, BRASS_HOT, 4.6, bold=True)
-    ar_text(d, (X1, HEADER[1] + 25), TAGLINE, 11, (184, 174, 159), anchor="ra")
+    total = text_w(mark, T_VALUE, True, 4.6)
+    caps(d, (X1 - total, HEADER[1] + 2), mark, T_VALUE, BRASS_HOT, 4.6, bold=True)
+    ar_text(d, (X1, HEADER[1] + 25), TAGLINE, T_BODY, (184, 174, 159), anchor="ra")
 
     led(canvas, X0 + 5, HEADER[1] + 9, 4)
     d = ImageDraw.Draw(canvas)
-    ar_text(d, (X0 + 18, HEADER[1] + 1), SEAL_STATE, 12, TEXT)
-    caps(d, (X0 + 18, HEADER[1] + 24), "SEALED · 23:41", 8, FAINT, 1.4)
+    ar_text(d, (X0 + 18, HEADER[1] + 1), SEAL_STATE, T_BODY, TEXT)
+    caps(d, (X0 + 18, HEADER[1] + 24), "SEALED · 23:41", T_MICRO, FAINT, 1.4)
     hairline(canvas, X0, HEADER[3] + 2, X1, 22)
 
     draw_take(canvas)
