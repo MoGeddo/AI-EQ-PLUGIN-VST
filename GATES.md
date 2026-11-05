@@ -502,3 +502,19 @@ at any vocal stem first; the other gates need nothing but the source tree.
   field measures 0.32-0.68 against v7's fabric at 1.9-3.2.
   CHECK: /tmp/venv/bin/python design/preview/check_identity.py
   EXPECT: identity ok: 21 Arabic strings covered
+
+- [x] G58: the picture that was approved is the picture that runs.  The panel was
+  approved as a render drawn in Python while the window is drawn in JUCE, and for four
+  versions the two had nothing to do with each other (the window was still v6 under a
+  v8 render).  `check_match.py` compares the CI screenshot of the real editor with the
+  render, and it compares the things that are *decisions* rather than pixels: the block
+  edges are found the same way in both images (strong horizontal gradient across the
+  middle of the width, so rounded corners cannot vote), the six full-width edges have to
+  land within 3 px of each other, the graph has to own at least 55 % of the panel, and
+  the colour has to be the declared palette in *both* (a v8 brass render shares v9's
+  geometry and would otherwise pass).  On the shipped pair: `match ok: 6 edges agree
+  within 2 px (graph 70-556, strip 496-522, chips 572-636); graph 69 % of the panel;
+  22108 px in the declared hues`.  `--against-v8` fails the palette, and comparing with
+  v7 fails six edges, which is what makes the pass mean something.
+  CHECK: /tmp/venv/bin/python design/preview/check_match.py
+  EXPECT: match ok: 6 edges agree within 2 px
