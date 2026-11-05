@@ -329,6 +329,30 @@ private:
             g.setColour (Palette::accent2().withAlpha (0.28f));
             g.strokePath (pathOf (peak, reference (live), true), juce::PathStrokeType (1.0f));
         }
+        // the body under the curve: the render shows the take as an area, and a bare
+        // line on a dark well reads as a wire rather than as the voice
+        {
+            juce::Path body;
+            bool started = false;
+            const double ref = reference (live);
+            for (size_t i = 0; i < m.freqs.size() && i < live.size(); ++i) {
+                const double f = m.freqs[i];
+                if (f < kFmin || f > kFmax || live[i] <= -119.0) { continue; }
+                const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, live[i] - ref));
+                if (! started) { body.startNewSubPath (x, plot_.getBottom()); started = true; }
+                body.lineTo (x, y);
+            }
+            if (started) {
+                body.lineTo (plot_.getRight(), plot_.getBottom());
+                body.closeSubPath();
+                juce::ColourGradient fill (Palette::accent2().withAlpha (0.26f), 0.0f, plot_.getY(),
+                                           Palette::accent2().withAlpha (0.02f), 0.0f,
+                                           plot_.getBottom(), false);
+                g.setGradientFill (fill);
+                g.fillPath (body);
+            }
+        }
+
         g.setColour (Palette::accent2());               // the live analyser
         g.strokePath (pathOf (live, reference (live), true), juce::PathStrokeType (1.8f));
     }
@@ -381,6 +405,14 @@ private:
         fillDown.closeSubPath();
         g.setColour (Palette::accent().withAlpha (0.13f));
         g.fillPath (fillDown);
+        // the glow is the same path stroked twice: JUCE has no cheap blur, and at this
+        // size two passes are indistinguishable from one at 40 % alpha
+        g.setColour (Palette::accent().withAlpha (0.16f));
+        g.strokePath (p, juce::PathStrokeType (7.0f, juce::PathStrokeType::curved,
+                                               juce::PathStrokeType::rounded));
+        g.setColour (Palette::accent().withAlpha (0.30f));
+        g.strokePath (p, juce::PathStrokeType (4.0f, juce::PathStrokeType::curved,
+                                               juce::PathStrokeType::rounded));
         g.setColour (Palette::accent());
         g.strokePath (p, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved,
                                                juce::PathStrokeType::rounded));
