@@ -15,9 +15,14 @@ constexpr float kMargin = 22.0f;
 constexpr float kPanelR = 16.0f, kWellR = 14.0f, kChipR = 12.0f, kPillR = 11.0f;
 constexpr float kMicro = 8.0f, kCap = 10.0f, kBody = 12.0f, kValue = 15.0f;
 
-// where the take sits inside the hero, as a fraction of the hero's height
-constexpr float kRibbonTop = 424.0f / 486.0f;
-constexpr float kRibbonBottom = 450.0f / 486.0f;
+// the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
+// the take strip is 494..520, and the caption row is 528..542.  These are y values,
+// not fractions: the earlier version of this file multiplied a design y by the height
+// scale and the strip collapsed to a line on every window taller than the design.
+constexpr float kHeroTop = 70.0f, kHeroBottom = 556.0f;
+constexpr float kPlotBottom = 486.0f;
+constexpr float kRibbonTop = 494.0f, kRibbonBottom = 520.0f;
+constexpr float kCaptionTop = 528.0f, kCaptionBottom = 542.0f;
 
 const char* kTagline   = "بيسمع التيك كله، وإنت اللي بتوقفه";
 const char* kSealed    = "مختوم";
@@ -95,10 +100,13 @@ void drawKnob (Graphics& g, Point<float> centre, float size, double value, bool 
     g.strokePath (arc, PathStrokeType (2.4f, PathStrokeType::curved, PathStrokeType::rounded));
 
     // needle, from the centre out: never a dot in the middle
-    const Point<float> tip (centre.x + std::sin (a) * r * 0.62f,
-                            centre.y - std::cos (a) * r * 0.62f);
+    const Point<float> tip (centre.x + std::sin (a) * r * 0.66f,
+                            centre.y - std::cos (a) * r * 0.66f);
+    g.setColour (Colours::black.withAlpha (0.45f));
+    g.drawLine (Line<float> (centre.translated (0.0f, 1.0f), tip.translated (0.0f, 1.0f)), 3.6f);
     g.setColour (Palette::accentHi());
-    g.drawLine (Line<float> (centre, tip), 2.0f);
+    g.drawLine (Line<float> (centre, tip), 2.8f);
+    g.fillEllipse (centre.x - 2.0f, centre.y - 2.0f, 4.0f, 4.0f);
 }
 
 } // namespace
@@ -196,18 +204,20 @@ AeqAudioProcessorEditor::Blocks AeqAudioProcessorEditor::blocks() const {
     return b;
 }
 
-Rectangle<int> AeqAudioProcessorEditor::ribbon() const {
+Rectangle<int> AeqAudioProcessorEditor::heroRow (float y0, float y1) const {
     const auto hero = blocks().hero;
     const float sy = float (getHeight()) / kDesignH;
-    const float top = kRibbonTop * sy, bot = kRibbonBottom * sy;
-    return { hero.getX(), hero.getY() + roundToInt (top), hero.getWidth(),
-             jmax (8, roundToInt (bot - top)) };
+    return { hero.getX(), hero.getY() + roundToInt ((y0 - kHeroTop) * sy), hero.getWidth(),
+             jmax (2, roundToInt ((y1 - y0) * sy)) };
+}
+
+Rectangle<int> AeqAudioProcessorEditor::ribbon() const {
+    return heroRow (kRibbonTop, kRibbonBottom);
 }
 
 Rectangle<int> AeqAudioProcessorEditor::well() const {
     // everything the curve owns: the hero without the take strip and its caption
-    const auto hero = blocks().hero;
-    return hero.withTrimmedBottom (roundToInt (float (hero.getHeight()) * (1.0f - kRibbonTop)));
+    return heroRow (kHeroTop, kPlotBottom);
 }
 
 std::vector<Rectangle<int>> AeqAudioProcessorEditor::chipRects() const {
@@ -435,8 +445,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
             Palette::accentHi(), kMicro * sy, Justification::centred);
 
     // the caption row, inside the well: what was learnt (left) and the keys (right)
-    const auto caption = Rectangle<float> (rib.getX(), rib.getBottom() + 8.0f * sy,
-                                           rib.getWidth(), 14.0f * sy);
+    const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
     const auto st = proc_.core().state();
     const String learned = "LEARNED " + String (st.analyzedSeconds, 1) + " s  ·  "
                          + String (int (bands_.size())) + " BANDS  ·  15 SONGS  ·  "

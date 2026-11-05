@@ -46,6 +46,7 @@ private:
         juce::Rectangle<int> header, hero, chips, footer;
     };
     Blocks blocks() const;
+    juce::Rectangle<int> heroRow (float y0, float y1) const;   // design y -> window rect
     juce::Rectangle<int> well() const;       // the plot area inside the ribbon
     juce::Rectangle<int> ribbon() const;
     juce::Rectangle<int> clampHit() const;

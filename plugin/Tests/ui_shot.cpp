@@ -134,12 +134,13 @@ void analyse(AeqAudioProcessor& proc, bool faults) {
 }
 
 int runWindow(const juce::File& dir) {
-    // The window is photographed before the first analysis lands.
+    // The window, twice: empty and sealed.
     //
-    // Drawing a report card takes the process down on a headless runner (an access
-    // violation inside the text stack); the cards render in a desktop session, so
-    // this is the environment and not the plugin.  The populated curve and the
-    // cards are rendered, with the faulty take, by the components stage.
+    // This used to photograph only the empty state, because drawing a report card took
+    // the process down on a headless runner (an access violation inside the text stack).
+    // v9 has no report cards - the report is one sentence in the footer - so the window
+    // can finally be photographed with the take it actually analysed, which is the shot
+    // that says whether the panel is finished or merely laid out.
     AeqAudioProcessor proc;
     proc.prepareToPlay(48000.0, 512);
 
@@ -147,11 +148,13 @@ int runWindow(const juce::File& dir) {
     if (editor == nullptr) { stage("no editor"); return 1; }
     stage("editor constructed, before analysis");
 
-    struct Size { int w, h; const char* name; };
-    const Size sizes[] = { { 1240, 800, "ui-1240x800.png" }, { 1024, 700, "ui-1024x700.png" } };
+    struct Size { int w, h; const char* empty; const char* sealed; };
+    const Size sizes[] = { { 1240, 800, "ui-empty-1240x800.png", "ui-1240x800.png" },
+                           { 1024, 700, "ui-empty-1024x700.png", "ui-1024x700.png" } };
 
-    for (const auto& s : sizes) {
-        stage(juce::String("window ") + juce::String(s.w) + "x" + juce::String(s.h));
+    auto shoot = [&] (const Size& s, const char* name) {
+        stage(juce::String("window ") + juce::String(s.w) + "x" + juce::String(s.h)
+              + " -> " + name);
         editor->setSize(s.w, s.h);
         juce::MessageManager::getInstance()->runDispatchLoopUntil(500);
         stage("timer pumped");
@@ -164,8 +167,19 @@ int runWindow(const juce::File& dir) {
         }
         const auto img = editor->createComponentSnapshot(editor->getLocalBounds(), false, 1.0f);
         stage("snapshot taken");
-        savePng(img, dir.getChildFile(s.name));
-    }
+        savePng(img, dir.getChildFile(name));
+    };
+
+    // 1. before anything has been heard: the panel in its listening state
+    for (const auto& s : sizes) shoot(s, s.empty);
+
+    // 2. the take played through, then stopped by the user - which is the product
+    stage("analysis for the sealed shot");
+    analyse(proc, true);
+    proc.stopLearning();
+    stage("stopped; the seal should be where the user left it");
+    for (const auto& s : sizes) shoot(s, s.sealed);
+
     return 0;
 }
 
