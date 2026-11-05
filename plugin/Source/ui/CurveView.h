@@ -37,6 +37,10 @@ public:
 
     CurveView() { setWantsKeyboardFocus (false); }
 
+    // Embedded in v9's hero: the editor draws the well (plate, blooms, hairline) and
+    // the legend, so the view stops drawing chrome of its own.  One surface, one owner.
+    void setEmbedded (bool shouldBeEmbedded) { embedded_ = shouldBeEmbedded; repaint(); }
+
     void setData (Data d) {
         data_ = std::move (d);
         repaint();
@@ -58,17 +62,20 @@ public:
 
     void paint (juce::Graphics& g) override {
         auto area = getLocalBounds().toFloat();
-        card (g, area, Palette::panel(), Palette::line(), 14.0f);
-        glow (g, area.reduced (1.0f), Palette::accent2(), 14.0f);
+        if (! embedded_) {
+            card (g, area, Palette::panel(), Palette::line(), 14.0f);
+            glow (g, area.reduced (1.0f), Palette::accent2(), 14.0f);
+        }
 
         auto r = area.reduced (1.0f);
-        auto legend = r.removeFromTop (30.0f);
-        plot_ = r.reduced (44.0f, 8.0f).withTrimmedBottom (14.0f);
+        auto legend = r.removeFromTop (embedded_ ? 0.0f : 30.0f);
+        plot_ = embedded_ ? r.reduced (34.0f, 14.0f).withTrimmedTop (12.0f).withTrimmedBottom (10.0f)
+                          : r.reduced (44.0f, 8.0f).withTrimmedBottom (14.0f);
 
         drawGrid (g);
         if (! data_.valid || data_.meas.freqs.empty()) {
             drawEmpty (g, area);
-            drawLegend (g, legend);
+            if (! embedded_) drawLegend (g, legend);
             return;
         }
         drawCorridor (g);
@@ -78,7 +85,7 @@ public:
         drawCorrection (g);
         drawMarkers (g);
         drawHandles (g);
-        drawLegend (g, legend);
+        if (! embedded_) drawLegend (g, legend);
         drawHover (g);
     }
 
@@ -427,6 +434,7 @@ private:
         label (g, text, box.toNearestInt(), Palette::text(), 10.5f, juce::Justification::centred);
     }
 
+    bool embedded_ = false;
     Data data_;
     juce::Rectangle<float> plot_;
     int hoverHandle_ = -1, drag_ = -1;

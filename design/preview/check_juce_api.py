@@ -73,6 +73,12 @@ if not cxx:
 
 HEADERS = ["ui/Theme.h", "ui/MotionSpec.h", "ui/ArabicText.h", "ui/CurveView.h",
            "ui/ProblemList.h"]
+
+# ...and the editor itself.  The UI headers compiled for four versions while the
+# window they were supposed to describe still drew the old layout; a gate that stops
+# at the headers cannot see that.  PluginEditor.cpp is the translation unit that
+# actually paints the panel, so it is compiled here too.
+EDITOR = "PluginEditor.cpp"
 missing = [h for h in HEADERS if not (SRC / h).exists()]
 if missing:
     problems.append("headers named in this gate no longer exist: " + ", ".join(missing))
@@ -108,6 +114,23 @@ with tempfile.TemporaryDirectory() as td:
         warnings = [ln for ln in (r.stderr or "").splitlines() if "warning:" in ln]
         notes.append(f"{len(HEADERS)} UI headers syntax-check clean against JUCE {on_disk}"
                      + (f" ({len(warnings)} warnings)" if warnings else " with -Wall -Wextra"))
+
+    editor = SRC / EDITOR
+    if not editor.exists():
+        problems.append(f"{EDITOR} is missing - there is nothing to draw the window")
+    else:
+        cmd2 = [cxx, "--std=c++17", "-fsyntax-only", "-Wall", "-Wextra",
+                "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1", "-DJUCE_WEB_BROWSER=0",
+                "-DJUCE_USE_CURL=0", f"-I{JUCE / 'modules'}", f"-I{tdp}", f"-I{SRC}",
+                str(editor)]
+        r2 = subprocess.run(cmd2, capture_output=True, text=True)
+        if r2.returncode != 0:
+            problems.append(f"{EDITOR} does not compile against JUCE {on_disk}:\n"
+                            f"{(r2.stderr or r2.stdout).strip()[:900]}")
+        else:
+            w2 = [ln for ln in (r2.stderr or "").splitlines() if "warning:" in ln]
+            notes.append(f"the editor ({EDITOR}) syntax-check clean"
+                         + (f" with {len(w2)} warnings" if w2 else " with -Wall -Wextra"))
 
 # ------------------------------------------------------------------ verdict
 if problems:
