@@ -265,3 +265,12 @@ at any vocal stem first; the other gates need nothing but the source tree.
   back within 6 dB 100 ms after the next one starts
   CHECK: ./build/aeq_live
   EXPECT: 4 passed, 0 failed
+
+- [x] G43: the panel is readable, not just dark - every text/background pair we
+  EVIDENCE: automatic-evidence=v1; definition-sha256=b454fc1feb6e6d3086f02194730f684738d65987301f20eaa80deca27a6bb6f8; exit=0; EXPECT=matched; output-sha256=50c76e94a73bdff0860168ffcce8c0aa6c3024a13a3516af14dd9ef99740b985; output-bytes=421; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  actually draw is measured against its own surface, and the numbers come from the
+  same file that renders the picture (design/preview/ui_v4.py), so the palette cannot
+  drift away from the gate.  Body text >= 4.5:1, decorative text >= 3:1.  The first
+  render failed it: the caption colour was 3.4:1 and the faint one 2.82:1.
+  CHECK: python3 design/preview/check_contrast.py
+  EXPECT: 0 failing

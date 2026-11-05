@@ -43,8 +43,8 @@ BASE = (20, 20, 24)
 TOP = (30, 30, 36)
 WELL = (12, 12, 15)
 TEXT = (240, 237, 231)
-DIM = (146, 142, 138)
-FAINT = (96, 93, 92)
+DIM = (152, 148, 143)     # >= 4.5:1 on the panel
+FAINT = (118, 113, 110)   # >= 3:1 on the panel; decorative text only (see check_contrast.py)
 AMBER = (255, 178, 66)
 AMBER_HOT = (255, 214, 140)
 COLD = (86, 108, 190)
@@ -438,12 +438,12 @@ def build():
     # ---- header -------------------------------------------------------------
     caps(d, (34, 24), "AEQ", 11, (255, 255, 255, 120), 4.0, bold=True)
     caps(d, (34 + 44, 24), "RESTORE", 11, (255, 255, 255, 60), 4.0)
-    canvas = led(canvas, W - 168, 32, 4, (130, 240, 160))
+    canvas = led(canvas, W - 176, 32, 4, (130, 240, 160))
     d = ImageDraw.Draw(canvas)
-    ar_text(d, (W - 154, 22), "بيسمع", 12, DIM)
-    pill(canvas, (W - 96, 20, W - 34, 42), "تلقائي", True)
+    ar_text(d, (W - 162, 22), "بيسمع", 12, DIM)
+    pill(canvas, (W - 108, 17, W - 34, 47), "تلقائي", True)
     d = ImageDraw.Draw(canvas)
-    caps(d, (W - 34, 50), "AUTO", 8, (255, 255, 255, 50), 1.6, anchor="ra")
+    caps(d, (W - 34, 52), "AUTO", 8, (255, 255, 255, 90), 1.6, anchor="ra")
 
     # ---- giant embossed watermark behind the graph -------------------------
     wm = Image.new("RGBA", (W, H), (0, 0, 0, 0))
