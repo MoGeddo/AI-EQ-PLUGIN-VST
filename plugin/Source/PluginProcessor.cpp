@@ -56,7 +56,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AeqAudioProcessor::createLay
     // verse in front of it, half a minute of "nothing happened" reads as "it does not
     // work".  Eight seconds is a phrase; the correction keeps refining afterwards.
     l.add(std::make_unique<AudioParameterFloat>(kSettle, "Analyze first",
-              NormalisableRange<float>(0.f, 90.f, 1.f), 8.f,
+              NormalisableRange<float>(0.f, 300.f, 1.f), 45.f,
               AudioParameterFloatAttributes().withLabel("s")
                 .withStringFromValueFunction([](float v, int) {
                     return v < 1.f ? juce::String("OFF") : juce::String((int)v) + " s";
@@ -145,7 +145,7 @@ void AeqAudioProcessor::timerCallback() {
 AeqAudioProcessor::AutoState AeqAudioProcessor::autoState() const {
     AutoState a;
     const auto st = core_.state();
-    a.stage        = (st.valid && st.settled) ? AutoState::Applied : AutoState::Listening;
+    a.stage        = core_.committed() ? AutoState::Applied : AutoState::Listening;
     a.heardSeconds = st.analyzedSeconds;
     a.needSeconds  = settings_.settleSeconds > 0.0 ? settings_.settleSeconds : 0.0;
     a.hpfHz        = st.hpfHz;
@@ -155,16 +155,74 @@ AeqAudioProcessor::AutoState AeqAudioProcessor::autoState() const {
 
 void AeqAudioProcessor::requestReset() { resetRequested_ = true; }
 
+// Stop the learn pass: the decision is solved from everything heard so far, applied
+// with a 200 ms fade, and then frozen (Tests/test_commit.cpp proves all three).
+void AeqAudioProcessor::stopLearning() {
+    core_.commit();
+    learning_ = false;
+}
+
+void AeqAudioProcessor::relearn() {
+    core_.relearn();
+    learning_ = true;
+}
+
 void AeqAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     auto state = apvts_.copyState();
-    state.setProperty("version", 1, nullptr);
+    state.setProperty("version", 2, nullptr);
+    // The decision is part of the project.  A track that has learned must not have to
+    // learn again because the session was reopened - the user's stop is an answer, and
+    // answers are saved.
+    const auto st = core_.state();
+    state.setProperty("committed", core_.committed(), nullptr);
+    state.setProperty("hpfHz", st.hpfHz, nullptr);
+    state.setProperty("deEssThr", st.deEssThresholdDb, nullptr);
+    state.setProperty("deEssGr", st.deEssMaxGrDb, nullptr);
+    state.setProperty("heardSeconds", st.analyzedSeconds, nullptr);
+    state.setProperty("f0", st.measuredF0, nullptr);
+    juce::ValueTree bands("bands");
+    for (const auto& b : st.corrective) {
+        juce::ValueTree v("band");
+        v.setProperty("f0", b.f0, nullptr);
+        v.setProperty("q", b.q, nullptr);
+        v.setProperty("gain", b.gainDb, nullptr);
+        v.setProperty("type", int(b.type), nullptr);
+        bands.appendChild(v, nullptr);
+    }
+    state.appendChild(bands, nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destData);
 }
 
 void AeqAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
     if (auto xml = getXmlFromBinary(data, sizeInBytes)) {
         auto tree = juce::ValueTree::fromXml(*xml);
-        if (tree.isValid()) apvts_.replaceState(tree);
+        if (! tree.isValid()) return;
+        apvts_.replaceState(tree);
+
+        if (tree.getProperty("committed")) {
+            aeq::RestoreState st;
+            st.hpfHz = double(tree.getProperty("hpfHz", 0.0));
+            st.deEssThresholdDb = double(tree.getProperty("deEssThr", -30.0));
+            st.deEssMaxGrDb = double(tree.getProperty("deEssGr", 0.0));
+            st.analyzedSeconds = double(tree.getProperty("heardSeconds", 0.0));
+            st.measuredF0 = double(tree.getProperty("f0", 0.0));
+            if (auto bands = tree.getChildWithName("bands"); bands.isValid()) {
+                for (int i = 0; i < bands.getNumChildren(); ++i) {
+                    const auto v = bands.getChild(i);
+                    aeq::BandSpec b;
+                    b.f0 = double(v.getProperty("f0", 1000.0));
+                    b.q = double(v.getProperty("q", 1.0));
+                    b.gainDb = double(v.getProperty("gain", 0.0));
+                    b.type = aeq::BandType(int(v.getProperty("type", 0)));
+                    st.corrective.push_back(b);
+                }
+            }
+            core_.restoreDecision(st);
+            learning_ = false;      // restored already answered
+        } else {
+            core_.relearn();
+            learning_ = true;
+        }
     }
 }
 

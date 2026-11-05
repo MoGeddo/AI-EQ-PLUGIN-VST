@@ -76,6 +76,61 @@ struct RestoreState {
 
 class RestoreCore {
 public:
+    // The workflow the product is built around: listen to the whole take, the user
+    // stops it, then it is frozen.
+    //
+    //   Learning   the audio passes through *bit-exactly* (verified by
+    //              Tests/test_commit.cpp): a tool that is still listening must not
+    //              be mixing.  Everything the analyser sees is accumulated here.
+    //   Committed  one decision, solved from the whole take, applied with a 200 ms
+    //              fade and then frozen.  Only the dynamic layers move afterwards.
+    enum class Phase { Learning, Committed };
+
+    Phase phase() const { return Phase(phase_.load(std::memory_order_acquire)); }
+    bool  committed() const { return phase() == Phase::Committed; }
+    // Frozen = the user stopped the pass, so the decision may not be re-solved.
+    // Distinct from `committed()`, because "settle 0" (the CLI and the offline gates)
+    // means "apply as soon as a decision exists and keep refining" - that one is
+    // committed but not frozen.
+    bool  frozen() const { return frozen_.load(std::memory_order_acquire); }
+
+    // Stop the learn pass and freeze the decision.  Called from the message thread
+    // (the editor's Stop button) or the analysis thread; never from audio.
+    void commit() {
+        {
+            std::lock_guard<std::mutex> lk(analyzeMx_);
+            drainFromAudioThread();
+            refreshLocked();
+        }
+        phase_.store(int(Phase::Committed), std::memory_order_release);
+        frozen_.store(true, std::memory_order_release);
+        version_.fetch_add(1, std::memory_order_release);
+    }
+
+    // Put a saved decision back, already committed and frozen - what a DAW does when
+    // it reopens a project: the user's answer is restored, not recomputed.
+    void restoreDecision(const RestoreState& st) {
+        {
+            std::lock_guard<std::mutex> lk(stateMx_);
+            state_ = st;
+            state_.valid = true;
+            state_.settled = true;
+        }
+        phase_.store(int(Phase::Committed), std::memory_order_release);
+        frozen_.store(true, std::memory_order_release);
+        applyGain_ = 1.0;                 // no fade: this is the state the user saved
+        updateBands();
+        version_.fetch_add(1, std::memory_order_release);
+    }
+
+    // Forget everything and listen again (the editor's "learn again").
+    void relearn() {
+        frozen_.store(false, std::memory_order_release);
+        phase_.store(int(Phase::Learning), std::memory_order_release);
+        reset();
+        version_.fetch_add(1, std::memory_order_release);
+    }
+
     void prepare(double sampleRate, int maxBlockSize) {
         fs_ = sampleRate;
         maxBlock_ = std::max(1, maxBlockSize);
@@ -90,6 +145,7 @@ public:
     }
 
     void reset() {
+        applyGain_ = 0.0;
         fifoRead_.store(fifoWrite_.load(std::memory_order_acquire), std::memory_order_release);
         fifoDropped_.store(0);
         version_.fetch_add(1, std::memory_order_release);
@@ -143,6 +199,15 @@ public:
         }
         if (settings_.bypass) return;
 
+        // 1b. still learning: pass the audio through untouched, sample for sample.
+        //     The chain is not run at all - not "at unity gain", not "bypassed by a
+        //     flag inside the filters": not executed.  That is the only version of
+        //     "learning changes nothing" that can be proved.
+        if (!committed()) {
+            applyGain_ = 0.0;
+            return;
+        }
+
         // 2. chain.
         //
         // The level match is measured, not estimated.  Removing a boom or a body
@@ -157,24 +222,37 @@ public:
         // against is only what the EQ and the de-esser then do to the voice.
         double inSq = 0.0, outSq = 0.0;
         for (int i = 0; i < n; ++i) {
-            double l = left[i];
-            l = hpf_.process(l);
+            const double dryL = left[i];
+            double l = hpf_.process(dryL);
             inSq += l * l;
             l = eqLeft_.process(l);
             l = deEsser_.process(l);
             l *= outGain_;
+            // crossfade, not a gain ramp: `dry + a*(wet - dry)` is dry at a = 0, which
+            // is what makes the commit silent.  Scaling the wet path from zero turns
+            // the first block of a committed decision into a step to silence.
+            l = dryL + applyGain_ * (l - dryL);
             left[i] = static_cast<float>(l);
             outSq += l * l;
             if (right) {
-                double r = right[i];
-                r = hpf_.process(r);
+                const double dryR = right[i];
+                double r = hpf_.process(dryR);
                 inSq += r * r;
                 r = eqRight_.process(r);
                 r = deEsser_.process(r);
                 r *= outGain_;
+                r = dryR + applyGain_ * (r - dryR);
                 right[i] = static_cast<float>(r);
                 outSq += r * r;
             }
+        }
+
+        // The 200 ms fade that puts a committed decision into the path.  Long enough
+        // to be inaudible, short enough that "I pressed stop and it happened" is
+        // still true (the gate measures the first change at <= 250 ms).
+        if (applyGain_ < 1.0) {
+            const double step = double(n) / (fs_ * 0.2);
+            applyGain_ = std::min(1.0, applyGain_ + step);
         }
 
         // Level match, once per block: how much did the chain take out, and give it
@@ -185,7 +263,7 @@ public:
         // Both averages leak with the same 1.5 s time constant, so normal playing
         // (a louder line, a phrase) moves them together and cancels out; only the
         // chain's own loss remains.
-        if (inSq / double(n) > 3.0e-6) {          // below ~-55 dBFS: a gap, not a take
+        if (applyGain_ >= 1.0 && inSq / double(n) > 3.0e-6) {   // fade done, and not a gap
             const double a = 1.0 - std::exp(-double(n) / (fs_ * 1.5));
             inAvg_ += a * (inSq / double(n) - inAvg_);
             outAvg_ += a * (outSq / double(n) - outAvg_);
@@ -260,6 +338,18 @@ public:
     void refreshLocked() {
         if (!analyzer_.ready()) return;
         publishLiveLocked();
+        // Frozen means frozen: once committed, the measurement keeps running (the
+        // editor's meter and the dynamic layers read it) but the decision is not
+        // re-solved.  Re-solving after the user stopped the pass is exactly the
+        // behaviour they asked to remove.
+        if (frozen()) {
+            const double heard = analyzer_.activeSeconds();
+            if (heard > 0.0) {
+                std::lock_guard<std::mutex> lk(stateMx_);
+                state_.analyzedSeconds = heard;      // the counter is a meter, not a decision
+            }
+            return;
+        }
         Measurements m;
         m.freqs = analyzer_.grid().f;
         m.bandDb = analyzer_.bandLevelsDb();
@@ -455,6 +545,14 @@ public:
             ++pendingVersion_;
         }
         pendingSeen_.store(false);
+
+        // Automatic commit: the CLI and the older automatic gates ask for a decision
+        // after N seconds of sung audio; the plugin sets this as a *safety cap* so a
+        // forgotten Stop button cannot leave the tool listening forever.
+        if (settings_.settleSeconds > 0.0 && state_.settled) {
+            phase_.store(int(Phase::Committed), std::memory_order_release);
+            frozen_.store(true, std::memory_order_release);
+        }
     }
 
     // apply a pending correction (audio thread, called from processBlock)
@@ -470,7 +568,10 @@ public:
         // only the manual taste moves reach the signal path.  The corrective
         // curve would otherwise be a different filter every few seconds during
         // the first pass, which is both audible and dishonest.
-        const bool settled = pendingSettled_ || settings_.settleSeconds <= 0.0;
+        // The signal path follows the *phase*, not a flag in the pending struct: a
+        // committed decision applies even if the solve that produced it ran a moment
+        // before the user pressed stop.
+        const bool settled = committed() || settings_.settleSeconds <= 0.0;
         std::array<BandSpec, kBands> bands{};
         int count = 0;
         if (settled) {
@@ -494,6 +595,13 @@ public:
     // ------------------------------------------------------------- settings
     void setSettings(const RestoreSettings& s) {
         settings_ = s;
+        // "settle 0" has always meant "apply as soon as a decision exists" - the CLI
+        // and the offline gates depend on it.  Keep that meaning: the phase starts
+        // committed, with no fade, so a measurement harness sees the steady state.
+        if (s.settleSeconds <= 0.0) {
+            phase_.store(int(Phase::Committed), std::memory_order_release);
+            applyGain_ = 1.0;
+        }
         updateBands();
         version_.fetch_add(1, std::memory_order_release);
     }
@@ -552,11 +660,20 @@ public:
     // bands the corpus study puts in the chain; at rest they are all 0 dB and the
     // cascade skips them, so counting the list said "10 bands" when seven were doing
     // nothing.  The number the window shows is this one.
+public:
     // How much gain the level match is holding, in dB.  Shown in the editor so the
     // "auto gain" is a number the user can see, not a hidden fudge.
     double levelMatchDb() const { return 20.0 * std::log10(std::max(outGain_, 1e-6)); }
 
+    // Bands in the signal path.  During the learn pass the solver already has a
+    // curve, but nothing of it is in the audio - so the honest answer is zero.
     int appliedBandCount() const {
+        if (!committed()) return 0;
+        return appliedBandCountInternal();
+    }
+
+private:
+    int appliedBandCountInternal() const {
         auto active = activeBands();
         int n = 0;
         for (const auto& b : active) if (std::abs(b.gainDb) > 0.05) ++n;
@@ -690,6 +807,9 @@ private:
     std::atomic<bool> trimsDirty_{false};           // the editor moved a handle
     std::atomic<double> learnProgress_{0.0};
     std::atomic<long> version_{0};
+    std::atomic<int> phase_{int(Phase::Learning)};
+    std::atomic<bool> frozen_{false};
+    double applyGain_ = 0.0;           // 0 -> 1 over 200 ms when a decision commits
     double outGain_ = 1.0;             // level match, see the loop in processBlock
     double inAvg_ = 0.0, outAvg_ = 0.0;  // smoothed mean square, in and out of the chain
 

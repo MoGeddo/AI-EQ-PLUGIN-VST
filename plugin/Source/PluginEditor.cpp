@@ -158,15 +158,18 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor (AeqAudioProcessor& p)
 
     buildControls();
 
-    // There is no "Analyse" button: the plugin analyses as soon as audio arrives,
-    // and this control is the readout of that.  Clicking it starts over - which is
-    // the only action a user of an automatic tool ever needs.
+    // One control, the whole workflow: it listens by itself, the user stops it when
+    // they have played the take, and then it is frozen.  Clicking while it is frozen
+    // means "learn again", which is the only other thing a user of this tool needs.
+    // (The user's words: "الأول يعمل ليرن للصوت كله وبعدين أوقفه أنا".)
     learnBtn_.setClickingTogglesState (false);
     learnBtn_.setToggleState (true, dontSendNotification);
     learnBtn_.getProperties().set ("icon", int (Icon::Wave));
+    learnBtn_.setTooltip (aeq::ui::u8 ("اضغط لما تخلص تشغيل المقطع: يثبت اللي سمعه ويثبت عليه"));
     learnBtn_.onClick = [this] {
-        proc_.requestReset();
-        learnBtn_.setButtonText (aeq::ui::u8 ("بسمع…"));
+        if (proc_.isCommitted() || proc_.isFrozen()) proc_.relearn();
+        else                                    proc_.stopLearning();
+        lastVersion_ = -1;      // force the readout to refresh on the next tick
         repaint();
     };
 
@@ -567,15 +570,19 @@ void AeqAudioProcessorEditor::timerCallback() {
     lastHeardTick_ = heardTick;
     lastStage_    = autoNow.stage;
 
-    // one line, always true, never asking the user to do anything
-    if (autoNow.stage == AeqAudioProcessor::AutoState::Applied) {
-        learnBtn_.setButtonText (aeq::ui::u8 ("اتظبط ✓"));
+    // One line, always true, and it always says what the *next* click does:
+    //   listening -> "أوقف" with the count and the safety cap
+    //   committed -> "اتظبط ✓ / تعلّم تاني"
+    if (proc_.isFrozen()) {
+        learnBtn_.setButtonText (aeq::ui::u8 ("اتظبط ✓ · تعلّم تاني"));
         learnBtn_.setToggleState (true, dontSendNotification);
     } else if (autoNow.needSeconds >= 1.0) {
-        learnBtn_.setButtonText (aeq::ui::u8 ("بسمع ") + juce::String (heardTick) + aeq::ui::u8 (" / ")
+        learnBtn_.setButtonText (aeq::ui::u8 ("أوقف · ") + juce::String (heardTick) + aeq::ui::u8 (" / ")
                                  + juce::String (int (autoNow.needSeconds)) + aeq::ui::u8 (" ث"));
+        learnBtn_.setToggleState (false, dontSendNotification);
     } else {
-        learnBtn_.setButtonText (aeq::ui::u8 ("بسمع…"));
+        learnBtn_.setButtonText (aeq::ui::u8 ("أوقف"));
+        learnBtn_.setToggleState (false, dontSendNotification);
     }
 
     state_ = proc_.core().state();

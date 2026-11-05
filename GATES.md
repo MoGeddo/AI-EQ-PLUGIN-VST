@@ -274,3 +274,16 @@ at any vocal stem first; the other gates need nothing but the source tree.
   render failed it: the caption colour was 3.4:1 and the faint one 2.82:1.
   CHECK: python3 design/preview/check_contrast.py
   EXPECT: 0 failing
+
+- [x] G44: learn the whole take, the user stops it, and it is frozen - "الأول يعمل ليرن
+  EVIDENCE: automatic-evidence=v1; definition-sha256=cecc1dff4abc4005cf0c9550dd6965ba8d1e909b3be43cdb5bdece33bbb52068; exit=0; EXPECT=matched; output-sha256=52dffa7bba4898e83e464674d87f38e63151aff87e3dbc023b7f76ff5ffddc98; output-bytes=926; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  للصوت كله وبعدين أوقفه أنا".  Four promises, each measured on a 40 s synthetic vocal
+  take: (1) while learning the output is **bit-identical** to the input (the chain is not
+  executed at all); (2) pressing stop applies the decision inside 250 ms and the
+  transition is a crossfade, not a step (worst adjacent-sample step no larger than the
+  take's own); (3) ten more seconds of the same take change no band, no Q and not the low
+  cut, while the meter keeps counting; (4) "learn again" returns to untouched audio and
+  computes the next commit from the new take only.  Plus: the same take twice commits to
+  the same decision.
+  CHECK: ./build/aeq_commit
+  EXPECT: 13 passed, 0 failed

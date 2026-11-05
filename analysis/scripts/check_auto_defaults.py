@@ -7,8 +7,10 @@ broken lives in defaults or in the timer, so this gate reads them:
 
   * learning starts on (otherwise nothing is analysed until somebody clicks);
   * bypass starts off;
-  * the settle time is short enough that a verse is enough - the first guess was
-    30 s and it read as "it does nothing";
+  * the safety cap exists and is finite: the user stops the pass themselves, but a
+    forgotten Stop button may not leave the tool listening forever (the cap used to
+    be "the settle time" at 8 s; the workflow is now learn -> stop, so the 8 s became
+    a 45 s ceiling);
   * the settling, solving and applying happen on the *processor's* timer, so the
     plugin works with its editor closed - a timer in the editor would make the
     whole thing stop the moment the window is hidden;
@@ -25,7 +27,8 @@ PROC = ROOT / "plugin" / "Source" / "PluginProcessor.cpp"
 PROC_H = ROOT / "plugin" / "Source" / "PluginProcessor.h"
 EDITOR = ROOT / "plugin" / "Source" / "PluginEditor.cpp"
 
-MAX_SETTLE_S = 10.0
+MAX_SETTLE_S = 300.0      # a ceiling, not a schedule: it only fires if nobody stops it
+MIN_SETTLE_S = 1.0        # 0 would mean "commit with nothing heard"
 problems = []
 
 proc = PROC.read_text(encoding="utf-8")
@@ -43,8 +46,21 @@ settle = default_of("kSettle")
 if settle is None:
     problems.append("PluginProcessor.cpp: cannot find the default of the settle time")
 elif settle > MAX_SETTLE_S:
-    problems.append(f"the plugin waits {settle:g} s before applying anything; a phrase is "
-                    f"enough, and anything over {MAX_SETTLE_S:g} s reads as 'it does nothing'")
+    problems.append(f"the safety cap is {settle:g} s - too long for a forgotten Stop button")
+elif settle < MIN_SETTLE_S:
+    problems.append(f"the safety cap is {settle:g} s, i.e. the plugin would commit after "
+                    f"hearing nothing - the user's own stop is the normal path")
+
+# the cap has to actually commit from the analysis thread, not just be a number
+core = (ROOT / "plugin" / "Source" / "dsp" / "RestoreCore.h").read_text(encoding="utf-8")
+if "settings_.settleSeconds > 0.0 && state_.settled" not in core or \
+        "Phase::Committed" not in core:
+    problems.append("RestoreCore.h: the safety cap does not commit anything - a forgotten "
+                    "Stop button would leave the plugin listening forever")
+
+# and the editor must not be what starts the analysis
+if not re.search(r"learnBtn_\.onClick", editor):
+    problems.append("PluginEditor.cpp: the learn control has no click handler at all")
 
 if not re.search(r"std::atomic<bool>\s+learning_\{true\}", proc_h):
     problems.append("PluginProcessor.h: learning does not start enabled - nothing is analysed "
@@ -73,4 +89,5 @@ if problems:
         print("  - " + p)
     sys.exit(1)
 
-print(f"automatic: learning on load, settle {settle:g} s, solving on the processor timer")
+print(f"automatic: learning on load, stop when the user says, safety cap {settle:g} s, "
+      f"solving on the processor timer")

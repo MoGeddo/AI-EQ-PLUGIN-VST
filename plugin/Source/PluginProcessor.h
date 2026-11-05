@@ -39,6 +39,12 @@ public:
     aeq::RestoreCore& core() { return core_; }
     juce::AudioProcessorValueTreeState& apvts() { return apvts_; }
     void requestReset();
+    // The workflow: listen to the take, the user stops it, it is frozen - and the
+    // decision survives a project reload (a track that learned stays learned).
+    void stopLearning();
+    void relearn();
+    bool isFrozen() const { return core_.frozen(); }
+    bool isCommitted() const { return core_.committed(); }
     bool isLearning() const { return learning_; }
 
     // The whole product in one struct: is it still listening, how much has it heard,
@@ -47,7 +53,7 @@ public:
         enum Stage { Listening = 0, Applied = 1 };
         int    stage = Listening;
         double heardSeconds = 0.0;      // sung audio analysed so far
-        double needSeconds  = 8.0;      // what it is waiting for
+        double needSeconds  = 45.0;     // the safety cap, not the plan
         int    bands        = 0;        // bands in the signal path once applied
         double hpfHz        = 0.0;      // the low cut it decided on
     };
