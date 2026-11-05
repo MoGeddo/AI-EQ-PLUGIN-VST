@@ -39,35 +39,25 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
-import ui_v7 as v7  # noqa: E402
+import ui_v8 as v8  # noqa: E402
 
 problems: list[str] = []
 notes: list[str] = []
 
-SRC = (HERE / "ui_v7.py").read_text()
+SRC = (HERE / "ui_v8.py").read_text()
 # ask the render what it drew, instead of scraping the source with regexes (the
 # first version of this gate "passed" three checks that matched nothing at all)
 import contextlib
 import io
 with contextlib.redirect_stdout(io.StringIO()):
-    v7.build()
-RENDERED = v7.report()
-SEAL_X = int(v7.X1 - (v7.X1 - v7.X0) * v7.SEAL_T)
+    v8.build()
+RENDERED = v8.report()
+SEAL_X = v8.SEAL_X
 
 
 # ------------------------------------------------------------------ 1. hit areas
-def row_target(i: int):
-    """A ledger row is a full-width strip 27 px tall - not a disc."""
-    y = v7.LEDGER[1] + 26 + i * v7.ROW_H - 4
-    return (v7.X0, y, v7.X1, y + v7.ROW_H)
-
-
-TARGETS = [
-    ("knob-curve", (v7.X1 - 72, v7.FOOTER[1] - 6, v7.X1 - 8, v7.FOOTER[1] + 58)),
-    ("knob-output", (v7.X1 - 200, v7.FOOTER[1] - 6, v7.X1 - 136, v7.FOOTER[1] + 58)),
-    ("seal-clamp", (SEAL_X - 26, v7.TAKE_BAR[1] - 10, SEAL_X + 26, v7.TAKE_BAR[3] + 10)),
-]
-TARGETS += [(f"band-row-{i + 1}", row_target(i)) for i in range(len(v7.BANDS))]
+# the panel declares the boxes it draws; the gate measures those, not a rebuild of them
+TARGETS = list(v8.TARGETS)
 
 MIN_HIT = 40.0
 ROW_MIN_HIT = 30.0    # a full-width strip: 1100 px away from a miss in one axis
@@ -92,23 +82,24 @@ notes.append(f"{len(TARGETS)} targets, smallest "
              f"{min(min(b[2] - b[0], b[3] - b[1]) for _, b in TARGETS):.0f} px")
 
 # ------------------------------------------------------------------ 2. concentric radii
-RADII_OK = {18, 12}   # panel frame, and the well recessed into it
-RADII_OK = {18, 12}   # the panel frame, and the well recessed into it
-radii = [int(r) for r in
-         re.findall(r"rounded_mask\((?:\([^)]*\)|[^()]*),\s*(\d+)\)", SRC)]
-radii += [int(r) for r in re.findall(r"radius=(\d+)\)", SRC)]
-stray = sorted({r for r in radii if r not in RADII_OK and r < 40})
+RADII_OK = set(v8.RADII)         # declared by the panel, not guessed here
+radii = re.findall(r"rounded_mask\((?:\([^)]*\)|[^()]*),\s*([A-Z_]+|[0-9]+)\)", SRC)
+numeric = [int(r) for r in re.findall(r"radius=([0-9]+)\)", SRC)] + \
+          [int(r) for r in re.findall(r"radius=([0-9]+),", SRC)]
+named = {n: getattr(v8, n) for n in radii if not n.isdigit()}
+stray = sorted({r for r in named.values() if r not in RADII_OK})
+stray += sorted({r for r in numeric if r not in RADII_OK and r < 40})
 if stray:
     problems.append(f"corner radii outside the declared set {sorted(RADII_OK)}: {stray}")
 # the one genuinely nested pair is the knob in its seat: must stay concentric
-seat = re.search(r"rec = int\(size \* ([0-9.]+)\)", SRC)
+seat = re.search(r"(?:rec|seat) = int\(size \* ([0-9.]+)\)", SRC)
 if not seat:
     problems.append("the knob has no seat, so it cannot be concentric with one")
 else:
     factor = float(seat.group(1))
     if not 1.04 <= factor <= 1.14:
         problems.append(f"the knob seat is {factor}x the knob - not a concentric recess")
-    notes.append(f"radii {sorted(set(radii))}, knob seat concentric at {factor}x")
+    notes.append(f"radii {sorted(RADII_OK)}, knob seat concentric at {factor}x")
 
 # ------------------------------------------------------------------ 3. tabular numbers
 numbers = RENDERED["numbers"]
@@ -123,7 +114,7 @@ else:
 
 # ------------------------------------------------------------------ 4. type scale
 sizes = set(RENDERED["sizes"])
-ALLOWED = {v7.T_MICRO, v7.T_CAP, v7.T_BODY, v7.T_VALUE}
+ALLOWED = {v8.T_MICRO, v8.T_CAP, v8.T_BODY, v8.T_VALUE}
 stray_sizes = sorted(s for s in sizes if s not in ALLOWED)
 if stray_sizes:
     problems.append(f"text sizes {stray_sizes} are outside the declared scale {sorted(ALLOWED)}")

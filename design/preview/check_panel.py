@@ -45,15 +45,12 @@ problems: list[str] = []
 
 from fontTools.ttLib import TTFont  # noqa: E402
 
-import ui_v6  # noqa: E402  (import must not render; build() is behind __main__)
+import ui_v8 as ui  # noqa: E402  (import must not render; build() is behind __main__)
 
-STRINGS = list(ui_v6.ARABIC_STRINGS)
-SPRITES = ("knob_body.png", "knob_body_warm.png", "button_on.png", "button_off.png",
-           "panel_plate.png")
-BOXES = {"well": ui_v6.GRAPH, "strip": ui_v6.STRIP}
-for _i, _x in enumerate(ui_v6.CARD_XS):
-    BOXES[f"card-{ui_v6.CARDS[_i][0].lower()}"] = (
-        _x, ui_v6.CARD_Y0, _x + ui_v6.CARD_W, ui_v6.CARD_Y1)
+STRINGS = list(ui.ARABIC_STRINGS)
+# the parts v8 actually composites: two knob bodies and the machined clamp
+SPRITES = ("knob_brass.png", "knob_body.png", "clamp.png")
+BOXES = dict(ui.BLOCKS)
 
 
 def claim_blocks() -> str:
@@ -82,7 +79,7 @@ def claim_blocks() -> str:
             if hit(BOXES[names[i]], BOXES[names[j]]):
                 problems.append(f"{names[i]} overlaps {names[j]}")
     for name, box in BOXES.items():
-        if box[0] < 0 or box[1] < 0 or box[2] > ui_v6.W or box[3] > ui_v6.H:
+        if box[0] < 0 or box[1] < 0 or box[2] > ui.W or box[3] > ui.H:
             problems.append(f"{name} leaves the panel: {box}")
 
     return (f"{len(STRINGS)} Arabic strings fully covered by the bundled font, "
@@ -91,7 +88,7 @@ def claim_blocks() -> str:
 
 def needle_angle(size: int, value: float):
     lay = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    ui_v6.needle(lay, size / 2, size / 2, size, value)
+    ui.needle(lay, size / 2, size / 2, size, value)
     xs = ys = n = 0
     px = lay.load()
     for y in range(size):
@@ -110,7 +107,7 @@ def claim_material() -> str:
     # 4a. every part is a cut-out render with real shading in it
     levels = {}
     for name in SPRITES:
-        path = ui_v6.ASSETS / name
+        path = ui.ASSETS / name
         if not path.exists():
             problems.append(f"missing material sprite {name} (run design/assets_prep.py)")
             continue
@@ -125,12 +122,12 @@ def claim_material() -> str:
 
     # ...and the composite carries it, so look at the PNG that ships
     knob_levels = 0
-    if not ui_v6.OUT.exists():
-        problems.append(f"{ui_v6.OUT.name} missing - run design/preview/ui_v6.py")
+    if not ui.OUT.exists():
+        problems.append(f"{ui.OUT.name} missing - run design/preview/ui_v8.py")
     else:
-        panel = Image.open(ui_v6.OUT).convert("RGB")
-        kx, ky = ui_v6.CARD_XS[0] + 58, ui_v6.CARD_Y0 + 90
-        knob_levels = len(panel.crop((kx - 30, ky - 30, kx + 30, ky + 30))
+        panel = Image.open(ui.OUT).convert("RGB")
+        kx0, ky0, kx1, ky1 = dict(ui.TARGETS)["knob-curve"]
+        knob_levels = len(panel.crop((kx0 + 2, ky0 + 2, kx1 - 2, ky1 - 2))
                           .getcolors(maxcolors=1 << 20))
         if knob_levels < 300:
             problems.append(f"the knob face holds {knob_levels} colours - "

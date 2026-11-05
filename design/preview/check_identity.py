@@ -43,7 +43,7 @@ sys.path.insert(0, str(HERE))
 
 from fontTools.ttLib import TTFont  # noqa: E402
 
-import ui_v7 as v7  # noqa: E402
+import ui_v8 as ui  # noqa: E402
 
 problems: list[str] = []
 notes: list[str] = []
@@ -64,29 +64,33 @@ def contrast(a, b) -> float:
     return (hi + 0.05) / (lo + 0.05)
 
 
-def plate_base() -> tuple[int, int, int]:
-    """The panel's own background, taken from the shipped plate (not from a guess)."""
-    im = Image.open(v7.ASSETS / "panel_plate.png").convert("RGB")
-    band = im.crop((40, 186, 1140, 206))  # above the well: bare plate
+def plate_base(im: Image.Image) -> tuple[int, int, int]:
+    """The panel's own ground, read from the render itself.
+
+    v7 sampled its fabric plate; v8's ground is a gradient with two blooms, so the
+    honest sample is a bare strip of this render - and if the strip ever has text on
+    it, the median still lands on the ground because the text is the minority.
+    """
+    band = im.crop(ui.GROUND_PROBE)
     px = list(band.get_flattened_data())
     px.sort(key=lambda p: p[0] * 0.2126 + p[1] * 0.7152 + p[2] * 0.0722)
     return px[len(px) // 2]
 
 
-PANEL = v7.OUT
+PANEL = ui.OUT
 if not PANEL.exists():
-    print(f"FAIL {PANEL.name} missing - run design/preview/ui_v7.py")
+    print(f"FAIL {PANEL.name} missing - run design/preview/ui_v8.py")
     sys.exit(1)
 img = Image.open(PANEL).convert("RGB")
-if img.size != (v7.W, v7.H):
-    problems.append(f"render is {img.size}, expected {(v7.W, v7.H)}")
+if img.size != ui.EXPECTED_SIZES_V8:
+    problems.append(f"render is {img.size}, expected {ui.EXPECTED_SIZES_V8}")
 
-BASE = plate_base()
+BASE = plate_base(img)
 
 # ------------------------------------------------------------------ 1. the language
 cmap = TTFont(str(ROOT / "plugin" / "Source" / "assets" / "Cairo-Regular.ttf")).getBestCmap()
 cmap_b = TTFont(str(ROOT / "plugin" / "Source" / "assets" / "Cairo-SemiBold.ttf")).getBestCmap()
-strings = list(v7.ARABIC_STRINGS)
+strings = list(ui.ARABIC_STRINGS)
 missing = sorted({ch for s in strings for ch in s
                   if ord(ch) not in cmap and ord(ch) not in cmap_b})
 if missing:
@@ -95,9 +99,9 @@ if missing:
 
 # ------------------------------------------------------------------ 2. the contrast
 # body text >= 4.5:1; micro-caps and units are decorative and must clear 3:1.
-BODY = {"TEXT": v7.TEXT, "DIM": (184, 174, 159), "MODESTATIC": v7.DIM,
-        "PATINA": v7.PATINA, "BRASS_HOT": v7.BRASS_HOT}
-DECOR = {"FAINT": v7.FAINT, "UNIT": (150, 140, 126), "BRASS": v7.BRASS}
+BODY = {"TEXT": ui.TEXT, "DIM": (184, 174, 159), "MODESTATIC": ui.DIM,
+        "PATINA": ui.PATINA, "BRASS_HOT": ui.BRASS_HOT}
+DECOR = {"FAINT": ui.FAINT, "UNIT": (150, 140, 126), "BRASS": ui.BRASS}
 for name, col in BODY.items():
     r = contrast(col, BASE)
     if r < 4.5:
@@ -108,8 +112,9 @@ for name, col in DECOR.items():
         problems.append(f"{name} on the plate is {r:.2f}:1, under the 3:1 decorative floor")
 
 # ------------------------------------------------------------------ 3. the grid
-blocks = {"header": v7.HEADER, "take": v7.TAKE, "well": v7.WELL,
-          "ledger": v7.LEDGER, "footer": v7.FOOTER}
+# v8 has four blocks and no equal-weight band stack at all: the hero graph owns
+# 69 % of the height and the ledger is a chip row, not a table
+blocks = dict(ui.BLOCKS)
 
 
 def hit(a, b):
@@ -122,7 +127,7 @@ for i in range(len(names)):
         if hit(blocks[names[i]], blocks[names[j]]):
             problems.append(f"{names[i]} overlaps {names[j]}")
 for name, box in blocks.items():
-    if box[0] < 0 or box[1] < 0 or box[2] > v7.W or box[3] > v7.H:
+    if box[0] < 0 or box[1] < 0 or box[2] > ui.W or box[3] > ui.H:
         problems.append(f"{name} leaves the panel: {box}")
 
 # an equal card grid is exactly what "no two blocks share a height" rules out
@@ -132,18 +137,34 @@ for i, a in enumerate(names):
         if abs(heights[a] - heights[b]) <= 2:
             problems.append(f"{a} and {b} are both {heights[a]} px tall - that is a card grid")
 
+# ------------------------------------------------------------------ 3b. the modern reading
+# The user's last rejection was "التصميم حاسه بدائي اوي" - primitive.  The cure was not
+# taste, it was three structural moves, and each one is measurable:
+#   * the graph owns the window instead of sharing it with four equal-weight bands;
+#   * the ground is light on a flat field, not a fabric plate composited behind it;
+#   * there is no card grid to fall back into (already asserted above).
+if hasattr(ui, "GRAPH_SHARE"):
+    if ui.GRAPH_SHARE < 0.60:
+        problems.append(f"the graph is {100 * ui.GRAPH_SHARE:.0f}% of the height - under the "
+                        "60% floor, so the panel reads as a form again")
+    else:
+        notes.append(f"graph {100 * ui.GRAPH_SHARE:.0f}% of the height")
+if "panel_plate" in (HERE / "ui_v8.py").read_text():
+    problems.append("a texture plate is composited behind the curve again - depth has to "
+                    "come from light and blur, not from a fabric ground")
+
 # ------------------------------------------------------------------ 4. the story
 # a take bar with a real seal somewhere in the middle, and a clamp sitting on it
-if not 0.05 < v7.SEAL_T < 0.95:
-    problems.append(f"the take is sealed at {v7.SEAL_T} - nothing was stopped, or nothing was heard")
-bx0, by0, bx1, by1 = v7.TAKE_BAR
-seal_x = int(bx1 - (bx1 - bx0) * v7.SEAL_T)
+if not 0.05 < ui.SEAL_T < 0.95:
+    problems.append(f"the take is sealed at {ui.SEAL_T} - nothing was stopped, or nothing was heard")
+bx0, by0, bx1, by1 = ui.TAKE_RIBBON
+seal_x = ui.SEAL_X
 band = img.crop((seal_x - 26, by0 - 8, seal_x + 26, by1 + 8))
 brass_px = sum(1 for p in band.get_flattened_data() if p[0] > 110 and p[0] - p[2] > 34 and p[1] > 70)
 if brass_px < 300:
     problems.append(f"only {brass_px} brass px at the seal ({seal_x}) - the clamp is not on the bar")
 # the take mass is the measurement, so it must read patina, not brass
-mass = img.crop((seal_x + 70, by0 + 8, seal_x + 300, by1 - 8))
+mass = img.crop(ui.TAKE_MASS)
 mpx = list(mass.get_flattened_data())
 green = sum(1 for p in mpx if p[1] > p[0] + 8 and p[1] > 55)
 if green < 0.5 * len(mpx):
@@ -153,7 +174,7 @@ else:
     notes.append(f"take mass {100 * green / len(mpx):.0f}% patina")
 
 # the correction curve is the decision, so it must read brass
-wx0, wy0, wx1, wy1 = v7.WELL
+wx0, wy0, wx1, wy1 = ui.GRAPH
 well = img.crop((wx0, wy0, wx1, wy1))
 brass_curve = sum(1 for p in well.get_flattened_data()
                   if p[0] > 190 and p[0] - p[2] > 55 and p[1] > 140)
@@ -163,16 +184,16 @@ else:
     notes.append(f"curve {brass_curve} brass px over the spectrum")
 
 # the ledger has to hold all three after-commit behaviours
-modes = {b[3] for b in v7.BANDS}
+modes = {b[3] for b in ui.BANDS}
 if modes != {0, 1, 2, 3}:
     problems.append(f"band modes present: {sorted(modes)} - static/dynamic/tracked must all exist")
-n_static = sum(1 for b in v7.BANDS if b[3] in (0, 1))
-notes.append(f"ledger {len(v7.BANDS)} bands ({n_static} static, 1 dynamic, 1 tracked)")
+n_static = sum(1 for b in ui.BANDS if b[3] in (0, 1))
+notes.append(f"ledger {len(ui.BANDS)} bands ({n_static} static, 1 dynamic, 1 tracked)")
 
 # ------------------------------------------------------------------ 5. not the store
 # (a) the centred pill: nothing may be drawn in the middle of the header band
-hx0, hy0, hx1, hy1 = v7.HEADER
-mid = (v7.W // 2)
+hx0, hy0, hx1, hy1 = ui.HEADER
+mid = (ui.W // 2)
 head = img.crop((mid - 60, hy0 + 4, mid + 60, hy1 - 4))
 plate_ref = img.crop((mid - 60, hy0 + 4, mid + 60, hy1 - 4))
 base_l = lum(BASE)
@@ -185,7 +206,7 @@ else:
 
 # (b) exactly two accents: cluster the saturated pixels by hue
 sat = []
-for p in img.resize((v7.W // 2, v7.H // 2)).get_flattened_data():
+for p in img.resize((ui.W // 2, ui.H // 2)).get_flattened_data():
     mx, mn = max(p), min(p)
     if mx > 60 and (mx - mn) / mx > 0.22:
         sat.append(p)
@@ -224,9 +245,9 @@ else:
 
 # (c) the watermark is a declaration, not a measurement: a 104 px watermark at alpha 10
 # leaves no reliable signature, so this asserts the module never asks for one, and says so.
-if v7.WATERMARK is not None:
+if ui.WATERMARK is not None:
     problems.append("a latin watermark is still being drawn behind the curve")
-if v7.CENTRED_PILL or v7.EQUAL_CARD_GRID:
+if ui.CENTRED_PILL or ui.EQUAL_CARD_GRID:
     problems.append("the module still declares a market panel cue")
 
 # ------------------------------------------------------------------ proof, not a promise

@@ -347,7 +347,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: panel ok: 24 Arabic strings fully covered by the bundled font
 
 - [x] G49: the panel is made of real parts, and the pointer answers the value.  v3, v4 and
-  EVIDENCE: automatic-evidence=v1; definition-sha256=d43f38beb5b4396890868035b8d2d792a467ea936055ec9ea1324d835fafe037; exit=0; EXPECT=matched; output-sha256=535e2fde8f55701cf5f8b5739dc61fb21bd8d25f438cd3026fa101cddd65fa5b; output-bytes=120; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=4ec8669e3d11580d8a7be98de61b5b07f9d0cdb968a3e7e2db5fe54ede19043b; exit=0; EXPECT=matched; output-sha256=5505d0eb9b32798206c9e6d62ea5d1414206cf1cc8132be85ce7f84a116ae33b; output-bytes=120; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
   v5 were all drawn with PIL primitives, and the verdict on all three was the same: flat.
   A machined knob is a specular surface - a knurled ring catching light, an anodised bevel,
   radial brushing - and no amount of rounded rectangles produces it.  So the parts are now
@@ -361,9 +361,9 @@ at any vocal stem first; the other gates need nothing but the source tree.
   are located for five values and compared against -135 deg at 0 and +135 deg at 1: the
   worst error is 2.8 deg over 267 deg of travel.
   CHECK: /tmp/venv/bin/python design/preview/check_panel.py --claim=material
-  EXPECT: material ok: 5 material sprites in the composite
+  EXPECT: material ok: 3 material sprites in the composite
 - [x] G50: the panel is *this* product's, not the reference store's.  v5 and v6 were a
-  EVIDENCE: automatic-evidence=v1; definition-sha256=f17b1337ba7b8316d061825e6286ad8e220b87d9033efc18c9e30dc064474851; exit=0; EXPECT=matched; output-sha256=ad33c46d84b0f06873f4c20a7a2d383f00247687d83c8383e8fa2e48d845dfef; output-bytes=463; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=b7bb13a1cd9854f3eb52b7380760c1e9dea8ad0d78abee86aa6ce9c741109852; exit=0; EXPECT=matched; output-sha256=e88ab89ee3ecb1d177decdce9fc734c403d51f1d12912f966d69bf7611408477; output-bytes=488; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
   copy and the user said so in one line: "كنت اقصد الهوية البصرية و التحضر في التصميم مش
   اقصد نسخة" - the identity and the craft, not a reproduction.  A copy is measurable.
   Three of the reference's cues are pixel tests: a **centred pill** (nothing may be drawn
@@ -381,7 +381,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   design/IDENTITY_AR.md - brass = a decision, patina = a measurement - and the copy is
   read out of the module, so this cannot drift.
   CHECK: /tmp/venv/bin/python design/preview/check_identity.py --against-v6
-  EXPECT: identity ok: 23 Arabic strings covered
+  EXPECT: identity ok: 21 Arabic strings covered
 
 - [x] G51: the craft floor is measured, not admired.  Two skill sets were read for the UI
   EVIDENCE: automatic-evidence=v1; definition-sha256=3420749ff424423175ab8281cea0a23abd14d7f4571cdd7723837d29f1350763; exit=0; EXPECT=matched; output-sha256=30a5f2c329806309302878b84377a1add7834061016ecba1f3f9d3f690147c82; output-bytes=269; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
@@ -429,7 +429,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: layers ok: 21 files, 29 include edges, 0 cycles
 
 - [x] G54: the two attack surfaces are attacked.  Strix's method is the first paragraph of
-  EVIDENCE: automatic-evidence=v1; definition-sha256=87dc5317d27914f0cf2c763701c6e15b17a6928e9971f0401476301afdac6f73; exit=0; EXPECT=matched; output-sha256=60d04dce4bf932087d840fc0c32bc1807b379c1d710cd2d0ad8bbfebb9230149; output-bytes=249; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=1fbc28859e6e562223e734c74b2e10e0d320d0dc72ecd54782b1add4745cc0aa; exit=0; EXPECT=matched; output-sha256=acf01cd63ff6757445b17f85f93ffd16ab7a1a5697f7f734f7defda6f1b1b320; output-bytes=249; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
   the security skill it ships with: name the trust boundaries, then prove the controls.
   This project has two.  (A) The preview server serves the *repository root* - it must,
   because the pages reference the embedded font by root-absolute URL - so the boundary is
@@ -444,7 +444,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   timestamp that attests to nothing.  Two real defects were fixed for this gate and one
   is still open and named in docs/21.
   CHECK: /tmp/venv/bin/python design/preview/check_hardening.py
-  EXPECT: hardening ok: 47 Python files
+  EXPECT: hardening ok: 49 Python files
 
 - [x] G55: the UI compiles against the JUCE we pin, not the JUCE in my memory.  This is
   EVIDENCE: automatic-evidence=v1; definition-sha256=799b1f162222d5b617140ca7d278c096ba26ecd572bfe070e2d2ede02afc44dc; exit=0; EXPECT=matched; output-sha256=7b54df4b521ce3304cf6db06f9bc5bfa35b95447228e9eb85d75baa5dd0ecf29; output-bytes=127; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
@@ -458,3 +458,22 @@ at any vocal stem first; the other gates need nothing but the source tree.
   JUCE 8.0.4, five headers, clean.
   CHECK: /tmp/venv/bin/python design/preview/check_juce_api.py
   EXPECT: juce ok: JUCE 8.0.4 pinned in CMake and present on disk
+
+- [x] G56: the panel is contemporary, and "modern" is four measurements instead of an opinion
+  EVIDENCE: automatic-evidence=v1; definition-sha256=4b921c60db6c14045107036dbaabbc1e774eac8c64bf4d1c3e7fd248aa22acda; exit=0; EXPECT=matched; output-sha256=e5300dd83917aee8d39b74979e9bce1777ff3359a1a2ca8a35b202daf5d49507; output-bytes=216; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  the rejection was "التصميم حاسه بدائي اوي لسة مش عصري" - primitive, not modern.  Forty
+  shipping panels were collected and four read closely (Morph EQ, Smooth Operator Pro,
+  soothe 3, Ozone 12); they agree on four structural things, and each one is a number.
+  (1) The graph is the instrument: v7 gave it 36 % of the height and stacked four
+  equal-weight bands under it, v8 gives it 69 % and it is the largest block on the panel
+  at 67 % of the area.  (2) Depth is light, not texture: v7 composited a carbon-fabric
+  plate and its bare margins carry 420-807 distinct colours at 1.9-3.2 units of
+  high-frequency energy; v8's carry 42-109 colours at 0.21-0.36, so the gate puts the
+  ceiling at 220 colours and 0.8 hf and both sides clear it by 2x.  (3) The ledger is a
+  row, not a table: four blocks, no two sharing a height, and a header that cannot grow
+  into a toolbar.  (4) A plate is refused by name in the code that draws, so a revert is
+  caught in the source as well as in the pixels.  `--against-v7` runs the pixel measures
+  against the panel this one replaced and fails every margin, which is what makes the
+  pass mean something.
+  CHECK: /tmp/venv/bin/python design/preview/check_modern.py
+  EXPECT: modern ok: 4 blocks, no shared height
