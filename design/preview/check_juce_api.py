@@ -79,6 +79,11 @@ HEADERS = ["ui/Theme.h", "ui/MotionSpec.h", "ui/ArabicText.h", "ui/CurveView.h",
 # at the headers cannot see that.  PluginEditor.cpp is the translation unit that
 # actually paints the panel, so it is compiled here too.
 EDITOR = "PluginEditor.cpp"
+
+# and the screenshot test, which is the second translation unit that paints.  It broke
+# the Windows build on 1.2.9 by using ProblemList through someone else's include.
+SHOT = "Tests/ui_shot.cpp"
+TESTS = ROOT / "plugin" / "Tests"
 missing = [h for h in HEADERS if not (SRC / h).exists()]
 if missing:
     problems.append("headers named in this gate no longer exist: " + ", ".join(missing))
@@ -131,6 +136,23 @@ with tempfile.TemporaryDirectory() as td:
             w2 = [ln for ln in (r2.stderr or "").splitlines() if "warning:" in ln]
             notes.append(f"the editor ({EDITOR}) syntax-check clean"
                          + (f" with {len(w2)} warnings" if w2 else " with -Wall -Wextra"))
+
+    shot = SRC.parent / "Tests" / "ui_shot.cpp"
+    if shot.exists():
+        # JUCE_MODAL_LOOPS_PERMITTED: the shot runs the message loop while it analyses,
+        # which is how it renders a settled panel instead of an empty one.
+        cmd3 = [cxx, "--std=c++17", "-fsyntax-only", "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
+                "-DJUCE_MODAL_LOOPS_PERMITTED=1", "-DJUCE_WEB_BROWSER=0",
+                "-DJUCE_USE_CURL=0", f"-I{JUCE / 'modules'}",
+                f"-I{tdp}", f"-I{SRC}", str(shot)]
+        r3 = subprocess.run(cmd3, capture_output=True, text=True)
+        if r3.returncode != 0:
+            problems.append(f"{SHOT} does not compile against JUCE {on_disk}:\n"
+                            f"{(r3.stderr or r3.stdout).strip()[:900]}")
+        else:
+            notes.append(f"the screenshot test ({SHOT}) syntax-check clean")
+    else:
+        problems.append(f"{SHOT} is missing")
 
 # ------------------------------------------------------------------ verdict
 if problems:
