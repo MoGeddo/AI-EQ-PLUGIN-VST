@@ -387,7 +387,7 @@ if problems:
         print("FAIL " + p)
     print(f"{len(problems)} problem(s)")
     sys.exit(1)
-print(f"identity ok: {len(strings)} Arabic strings covered, contrast floor holds "
+print(f"identity ok: {len(strings)} panel strings covered, contrast floor holds "
       f"(body {min(contrast(c, BASE) for c in BODY.values()):.1f}:1, "
       f"decor {min(contrast(c, BASE) for c in DECOR.values()):.1f}:1), "
       f"{len(blocks)} blocks on the grid with no shared height, "

@@ -82,7 +82,7 @@ def claim_blocks() -> str:
         if box[0] < 0 or box[1] < 0 or box[2] > ui.W or box[3] > ui.H:
             problems.append(f"{name} leaves the panel: {box}")
 
-    return (f"{len(STRINGS)} Arabic strings fully covered by the bundled font, "
+    return (f"{len(STRINGS)} panel strings fully covered by the bundled font, "
             f"contrast floor holds, {len(BOXES)} blocks do not overlap")
 
 

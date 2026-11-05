@@ -13,7 +13,10 @@ namespace {
 constexpr float kDesignW = 1180.0f, kDesignH = 700.0f;
 constexpr float kMargin = 22.0f;
 constexpr float kPanelR = 16.0f, kWellR = 14.0f, kChipR = 12.0f, kPillR = 11.0f;
-constexpr float kMicro = 8.0f, kCap = 10.0f, kBody = 12.0f, kValue = 15.0f;
+// 1.2.10: the type was too small to read at arm's length and the copy was Arabic.
+// Both changed at the user's instruction: the window is English now and everything is
+// one size up, twice in the case of the numbers people actually read.
+constexpr float kMicro = 11.0f, kCap = 13.0f, kBody = 16.0f, kValue = 21.0f;
 
 // the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
 // the take strip is 494..520, and the caption row is 528..542.  These are y values,
@@ -25,21 +28,23 @@ constexpr float kStopTop = 476.0f, kStopBottom = 492.0f;   // "stopped here", ab
 constexpr float kRibbonTop = 496.0f, kRibbonBottom = 522.0f;
 constexpr float kCaptionTop = 530.0f, kCaptionBottom = 546.0f;
 
-const char* kTagline   = "بيسمع التيك كله، وإنت اللي بتوقفه";
-const char* kSealed    = "مختوم";
-const char* kListening = "بيتعلم";
-const char* kSubSeal   = "مش بيتغيّر لوحده";
-const char* kStopMark  = "الوقفة · إنت وقفته";
-const char* kRestart   = "دوس تعلّم تاني";
-const char* kMeasuredKey = "اللي اتقاس";
-const char* kDecisionKey = "القرار";
-const char* kStatic    = "ثابت";
-const char* kTracked   = "متابع النغمة";
-const char* kEmptyChip = "لسه";
-const char* kModeRestore = "تصحيح";
-const char* kModeMatch   = "مظروف";
-const char* kStrength  = "القوة";
-const char* kListenFor = "السماع";
+// The copy, in English.  Short enough to stay one line at the larger type, and it still
+// says what the instrument does rather than what it would like to be.
+const char* kTagline   = "listens to the whole take; you stop it";
+const char* kSealed    = "SEALED";
+const char* kListening = "LISTENING";
+const char* kSubSeal   = "nothing moves on its own";
+const char* kStopMark  = "STOPPED BY YOU";
+const char* kRestart   = "learn again";
+const char* kMeasuredKey = "measured";
+const char* kDecisionKey = "decision";
+const char* kStatic    = "STATIC";
+const char* kTracked   = "TRACKED";
+const char* kEmptyChip = "EMPTY";
+const char* kModeRestore = "RESTORE";
+const char* kModeMatch   = "MATCH";
+const char* kStrength  = "strength";
+const char* kListenFor = "listen";
 
 // A tracked-out Latin caption.  Arabic must never be tracked (it breaks the joins),
 // so this path exists only for the Latin micro-lines.
@@ -233,8 +238,8 @@ std::vector<Rectangle<int>> AeqAudioProcessorEditor::chipRects() const {
 
 Rectangle<int> AeqAudioProcessorEditor::modeSeg (int i) const {
     const auto f = blocks().footer;
-    const int h = roundToInt (24.0f * float (getHeight()) / kDesignH);
-    const int w = roundToInt (66.0f * float (getWidth()) / kDesignW);
+    const int h = roundToInt (26.0f * float (getHeight()) / kDesignH);
+    const int w = roundToInt (90.0f * float (getWidth()) / kDesignW);
     return { f.getX() + i * w, f.getCentreY() - h / 2, w, h };
 }
 
@@ -319,22 +324,22 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
 
     // wordmark: "AEQ" in the accent, "RESTORE" in the light ink, both tracked
     const float ws = kBody * sy;
+    const float markH = ws * 1.15f;
     const Font mark = aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (3.4f / ws);
     const float w1 = aeq::ui::measure ("AEQ", ws, Face::SemiBold);
     g.setFont (mark);
     g.setColour (Palette::accentHi());
-    g.drawText ("AEQ", h.withHeight (ws * 1.6f).translated (0.0f, 0.0f),
-                Justification::centredLeft, false);
+    g.drawText ("AEQ", h.withHeight (markH), Justification::centredLeft, false);
     const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (3.4f / ws);
     g.setFont (rest);
     g.setColour (Palette::text().withAlpha (0.72f));
-    g.drawText ("RESTORE", h.withHeight (ws * 1.6f).translated (w1 + 8.0f * sy, 0.0f),
+    g.drawText ("RESTORE", h.withHeight (markH).translated (w1 + 8.0f * sy, 0.0f),
                 Justification::centredLeft, false);
 
     // tagline, one line, under the mark
-    arabic (g, kTagline, { h.getX(), h.getY() + h.getHeight() * 0.42f, h.getWidth() * 0.55f,
-                           h.getHeight() * 0.58f },
-            Palette::muted(), kBody * sy);
+    arabic (g, kTagline, { h.getX(), h.getY() + markH + 2.0f * sy, h.getWidth() * 0.55f,
+                           h.getHeight() - markH - 2.0f * sy },
+            Palette::muted(), kCap * sy);
 
     // right cluster: master bypass, reset, the seal pill with its LED, and the promise
     const bool frozen = proc_.isFrozen() || proc_.isCommitted();
@@ -444,16 +449,20 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
 
     // the seal, labelled in the row the plot leaves for it
     const auto stopRow = heroRow (kStopTop, kStopBottom).toFloat();
-    arabic (g, kStopMark, { clamp.getCentreX() - 100.0f * sx, stopRow.getY(),
-                            200.0f * sx, stopRow.getHeight() },
-            Palette::accentHi(), kCap * sy, Justification::centred);
+    const float stopW = aeq::ui::measure (aeq::ui::u8 (kStopMark), kMicro * sy) + 16.0f * sx;
+    g.setColour (Colours::black.withAlpha (0.78f));
+    g.fillRoundedRectangle ({ clamp.getCentreX() - stopW / 2, stopRow.getY(),
+                              stopW, stopRow.getHeight() }, 4.0f * sy);
+    arabic (g, kStopMark, { clamp.getCentreX() - stopW / 2, stopRow.getY(),
+                            stopW, stopRow.getHeight() },
+            Palette::accentHi(), kMicro * sy, Justification::centred);
 
     // the caption row, inside the well: what was learnt (left) and the keys (right)
     const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
     const auto st = proc_.core().state();
-    const String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S  ·  "
-                         + String (int (bands_.size())) + " BANDS  ·  15 SONGS";
-    trackedText (g, learned, caption, Palette::muted(), 9.5f * sy, 1.0f);
+    const String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S   ·   "
+                         + String (int (bands_.size())) + " BANDS   ·   15 REFERENCE TAKES";
+    trackedText (g, learned, caption, Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();
     const auto keys = std::array<std::pair<const char*, Colour>, 2> {
@@ -466,7 +475,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
         aeq::ui::draw (g, s, { rx - w, caption.getY(), w, caption.getHeight() },
                        Justification::centredLeft, kCap * sy, Palette::muted());
         g.setColour (k.second);
-        g.fillEllipse (rx - w - 14.0f * sy, caption.getCentreY() - 4.0f * sy,
+        g.fillEllipse (rx - w - 16.0f * sy, caption.getCentreY() - 4.0f * sy,
                        8.0f * sy, 8.0f * sy);
         rx -= w + 30.0f * sy;
     }
@@ -491,12 +500,12 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         // index, and what kind of thing this is
         const int index = hot ? chip.tracked + 1 : chip.band + 1;
         trackedText (g, String (index).paddedLeft ('0', 2),
-                     { r.getX() + 12.0f * sy, r.getY() + 7.0f * sy, 40.0f * sy, 12.0f * sy },
+                     { r.getX() + 12.0f * sy, r.getY() + 7.0f * sy, 46.0f * sy, 15.0f * sy },
                      hot ? Palette::accentHi() : Palette::dim(), kMicro * sy, 1.3f);
         const String mode = hot ? aeq::ui::u8 (kTracked) : aeq::ui::u8 (kStatic);
         const float mw = aeq::ui::measure (mode, kCap * sy);
-        aeq::ui::draw (g, mode, { r.getRight() - 12.0f * sy - mw, r.getY() + 4.0f * sy, mw,
-                                  r.getHeight() * 0.4f },
+        aeq::ui::draw (g, mode, { r.getRight() - 12.0f * sy - mw, r.getY() + 5.0f * sy, mw,
+                                  18.0f * sy },
                        Justification::centredRight, kCap * sy,
                        hot ? Palette::accentHi() : Palette::muted());
 
@@ -521,31 +530,31 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         const String num = (gain >= 0.0 ? "+" : "") + String (gain, 1);
         g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
         g.setColour (hot ? Palette::accentHi() : Palette::text());
-        g.drawText (num, r.withTrimmedLeft (12.0f * sy).withTrimmedTop (r.getHeight() * 0.28f)
-                            .withHeight (kValue * sy * 1.4f),
+        g.drawText (num, r.withTrimmedLeft (12.0f * sy).withTrimmedTop (22.0f * sy)
+                            .withHeight (kValue * sy * 1.3f),
                     Justification::centredLeft, false);
         const float nw = aeq::ui::measure (num, kValue * sy, Face::SemiBold);
-        trackedText (g, "dB", { r.getX() + 15.0f * sy + nw, r.getY() + r.getHeight() * 0.40f,
-                                24.0f * sy, 12.0f * sy },
+        trackedText (g, "dB", { r.getX() + 15.0f * sy + nw, r.getY() + 30.0f * sy,
+                                28.0f * sy, 14.0f * sy },
                      Palette::dim(), kMicro * sy, 0.4f);
 
         if (! hot)
             micro = f0 >= 1000.0
                 ? String (f0 / 1000.0, 2) + " kHz  ·  Q " + String (q, 2)
                 : String (int (f0)) + " Hz  ·  Q " + String (q, 2);
-        trackedText (g, micro, { r.getX() + 12.0f * sy, r.getY() + r.getHeight() * 0.62f,
-                                 r.getWidth() - 24.0f * sy, 12.0f * sy },
-                     Palette::dim(), kMicro * sy, 0.9f);
+        trackedText (g, micro, { r.getRight() - 12.0f * sy - 150.0f * sy,
+                                 r.getY() + 31.0f * sy, 150.0f * sy, 14.0f * sy },
+                     Palette::dim(), kMicro * sy, 0.9f, Justification::centredRight);
 
         // a tracked layer is a level, so it gets a meter; a static band has no state
         if (hot) {
             const double lvl = jlimit (0.0, 1.0,
                                        (proc_.core().trackedLevelDb (chip.tracked) + 60.0) / 60.0);
             g.setColour (Palette::take().withAlpha (0.20f));
-            g.fillRoundedRectangle (r.getX() + 12.0f * sy, r.getBottom() - 8.0f * sy,
+            g.fillRoundedRectangle (r.getX() + 12.0f * sy, r.getBottom() - 5.0f * sy,
                                     r.getWidth() - 24.0f * sy, 3.0f * sy, 1.5f * sy);
             g.setColour (Palette::take().withAlpha (0.85f));
-            g.fillRoundedRectangle (r.getX() + 12.0f * sy, r.getBottom() - 8.0f * sy,
+            g.fillRoundedRectangle (r.getX() + 12.0f * sy, r.getBottom() - 5.0f * sy,
                                     float ((r.getWidth() - 24.0f * sy) * lvl), 3.0f * sy,
                                     1.5f * sy);
         }
@@ -561,14 +570,17 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     const auto t = proc_.apvts().getRawParameterValue ("mode")->load();
     const int active = t > 0.5f ? 1 : 0;
     const auto s0 = modeSeg (0).toFloat(), s1 = modeSeg (1).toFloat();
-    const Rectangle<float> pill (s0.getX(), s0.getY(), s1.getRight() - s0.getX(), s0.getHeight());
+    const Rectangle<float> pill (s0.getX() - 4.0f * sx, s0.getY(),
+                                 s1.getRight() - s0.getX() + 8.0f * sx, s0.getHeight());
     g.setColour (Colours::white.withAlpha (0.05f));
     g.fillRoundedRectangle (pill, kPillR * sy);
     const auto& seg = active == 0 ? s0 : s1;
+    const auto segIn = seg.withTrimmedLeft (5.0f * sx).withTrimmedRight (5.0f * sx)
+                          .withTrimmedTop (3.0f * sy).withTrimmedBottom (3.0f * sy);
     g.setColour (Palette::accent().withAlpha (0.14f));
-    g.fillRoundedRectangle (seg.reduced (3.0f * sy), (kPillR - 3.0f) * sy);
+    g.fillRoundedRectangle (segIn, (kPillR - 3.0f) * sy);
     g.setColour (Palette::accent().withAlpha (0.62f));
-    g.drawRoundedRectangle (seg.reduced (3.0f * sy), (kPillR - 3.0f) * sy, 1.0f);
+    g.drawRoundedRectangle (segIn, (kPillR - 3.0f) * sy, 1.0f);
     const char* labels[] = { kModeRestore, kModeMatch };
     for (int i = 0; i < 2; ++i) {
         const auto r = i == 0 ? s0 : s1;
@@ -578,34 +590,38 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     }
 
     // one sentence, then nothing else - the report card is gone
+    const float knobsX = float (area.getRight()) - 158.0f * sx - 96.0f * sx;
     arabic (g, verdictLine().toRawUTF8(),
-            { pill.getRight() + 24.0f * sx, cy - 9.0f * sy, area.getWidth() * 0.52f, 18.0f * sy },
+            { pill.getRight() + 24.0f * sx, cy - 12.0f * sy,
+              jmax (120.0f, knobsX - pill.getRight() - 40.0f * sx), 26.0f * sy },
             Palette::muted(), kBody * sy, Justification::centredLeft);
 
     // the two things a hand turns: the knobs themselves are child sliders drawn by
     // the look and feel, so this only writes their two labels and their two numbers
     const Point<float> k2 (float (area.getRight()) - 30.0f * sx, cy);
-    const Point<float> k1 (float (area.getRight()) - 134.0f * sx, cy);
+    const Point<float> k1 (float (area.getRight()) - 158.0f * sx, cy);
     const float knobSize = 42.0f * sy;
 
     auto labelFor = [&] (const char* s, Point<float> c, float dx) {
         const String t2 = aeq::ui::u8 (s);
-        const float w = aeq::ui::measure (t2, kCap * sy);
-        aeq::ui::draw (g, t2, { c.x - dx - w, cy - 7.0f * sy, w, 14.0f * sy },
-                       Justification::centredRight, kCap * sy, Palette::muted());
+        const float w = aeq::ui::measure (t2, kMicro * sy);
+        aeq::ui::draw (g, t2, { c.x - dx - w, cy - 19.0f * sy, w, 14.0f * sy },
+                       Justification::centredRight, kMicro * sy, Palette::muted());
     };
     labelFor (kStrength, k1, knobSize * 0.62f + 8.0f * sy);
     labelFor (kListenFor, k2, knobSize * 0.62f + 8.0f * sy);
 
-    g.setFont (aeq::ui::font (kCap * sy, Face::SemiBold));
+    g.setFont (aeq::ui::font (kBody * sy, Face::SemiBold));
     g.setColour (Palette::text());
     const String v1 = String (roundToInt (amountKnob_.getValue())) + "%";
     const String v2 = roundToInt (settleKnob_.getValue()) >= 1
                         ? String (roundToInt (settleKnob_.getValue())) + " s"
                         : String ("OFF");
-    g.drawText (v1, Rectangle<float> (k1.x - 46.0f * sy, cy + 10.0f * sy, 46.0f * sy, 14.0f * sy),
+    g.drawText (v1, Rectangle<float> (k1.x - 34.0f * sx - 46.0f * sy, cy + 1.0f * sy,
+                                      46.0f * sy, 18.0f * sy),
                 Justification::centredRight, false);
-    g.drawText (v2, Rectangle<float> (k2.x - 46.0f * sy, cy + 10.0f * sy, 46.0f * sy, 14.0f * sy),
+    g.drawText (v2, Rectangle<float> (k2.x - 34.0f * sx - 46.0f * sy, cy + 1.0f * sy,
+                                      46.0f * sy, 18.0f * sy),
                 Justification::centredRight, false);
 }
 
@@ -616,15 +632,17 @@ bool AeqAudioProcessorEditor::hasTrackedLayer() const {
 
 String AeqAudioProcessorEditor::verdictLine() const {
     if (! haveData_)
-        return aeq::ui::u8 ("لسه بيسمع. سيب التيك يشتغل، وأول ما تخلص دوس المشبك.");
+        return String ("Listening. Play the take, then press the clamp to stop it.");
     if (! state_.settled)
-        return aeq::ui::u8 ("بيقيس كل ثانية بتعدّي ويقارنها بالـ١٥ ميكس. الحكم بينزل لما يثبت.");
+        return String ("Measuring every second against the 15 reference takes. "
+                       "The verdict lands when it settles.");
     if (! proc_.isFrozen() && ! proc_.isCommitted())
-        return aeq::ui::u8 ("لسه بيتعلم. إنت اللي بتوقفه لما تحس إنه سمع التيك كله.");
+        return String ("Still learning. You stop it when you have heard the whole take.");
     if (bands_.empty())
-        return aeq::ui::u8 ("كل حاجة داخل مدى المهندس. مفيش حركة هنا غير إنك تسيبه.");
-    return aeq::ui::u8 ("مختوم. ") + String (int (bands_.size()))
-         + aeq::ui::u8 (" باندات، والقرار مش بيتغيّر لوحده.");
+        return String ("Everything is inside the engineer's range. Nothing to do but leave it.");
+    return String ("Sealed at ") + String (int (bands_.size()))
+         + (bands_.size() == 1 ? " band. " : " bands. ")
+         + "The decision does not move on its own.";
 }
 
 // --------------------------------------------------------------------------- layout
@@ -638,7 +656,7 @@ void AeqAudioProcessorEditor::resized() {
     const float knobSize = 42.0f * sy;
     const int cy = b.footer.getCentreY();
     const int box = roundToInt (knobSize);
-    const int c1 = b.footer.getRight() - roundToInt (134.0f * sx);
+    const int c1 = b.footer.getRight() - roundToInt (158.0f * sx);
     const int c2 = b.footer.getRight() - roundToInt (30.0f * sx);
     amountKnob_.setBounds (c1 - box / 2, cy - box / 2, box, box);
     settleKnob_.setBounds (c2 - box / 2, cy - box / 2, box, box);

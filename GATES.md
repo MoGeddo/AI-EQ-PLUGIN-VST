@@ -518,3 +518,29 @@ at any vocal stem first; the other gates need nothing but the source tree.
   v7 fails six edges, which is what makes the pass mean something.
   CHECK: /tmp/venv/bin/python design/preview/check_match.py
   EXPECT: match ok: 6 edges agree within 2 px
+
+- [x] G59: all English, and a type scale that is actually readable.  Two asks in one
+  round: "خليه كله english مش عربي" and "خليه اكبر ب كتير".  The panel's copy is now
+  Latin end to end - wordmark, tagline, seal state and its one-line claim, the five
+  verdict sentences, `STATIC`/`DYNAMIC`/`TRACKED`, `measured`/`decision`,
+  `RESTORE`/`MATCH`, `strength`/`listen`, the heard line (`HEARD 24.9 S · 96 BANDS ·
+  15 REFERENCE TAKES`) and the empty state (`NO MEASUREMENT YET - PLAY THE TAKE FROM
+  THE TOP`).  Arabic survives in the docs and nowhere on the panel; `PANEL_STRINGS` is
+  the inventory the font gates cover, and `ui_v9.py` asserts that `DRAWN["arabic"]` is
+  empty, so a stray Arabic string fails the render rather than shipping.
+  The scale went `8/10/12/15 -> 11/13/16/21` (micro/cap/body/value), which is x1.375 on
+  the caps rows and x1.4 on the readouts, in both the Python render and the JUCE editor.
+  Bigger type alone would have broken the panel, so the containers moved instead: the
+  band chip keeps its 64 px row but drops from three stacked rows to two - the number
+  owns the left of the second row, its spec (`118 Hz · Q 0.82`) owns the right, `dB`
+  rides the number's baseline, and the tracked chip's level meter sits on the floor of
+  the chip; the stage pill grows 66 -> 90 px per segment for a 13 px word; the footer
+  knob cluster goes 104 -> 128 px of pitch so an 11 px `strength` clears the knob beside
+  it; the graph keys put a dot in front of each word instead of behind it; and
+  `STOPPED BY YOU` gets a backing plate because it is now 11 px of tracked caps sitting
+  over whatever the plot draws.
+  The six matched edges are unchanged (graph 71-556, strip 496-522, chips 572-636), so
+  the render still matches the shipped window - the type grew, the frame did not.
+  CHECK: /tmp/venv/bin/python design/preview/check_identity.py && /tmp/venv/bin/python design/preview/check_match.py
+  EXPECT: identity ok: 20 panel strings covered ... / match ok: 6 edges agree within 2 px
+

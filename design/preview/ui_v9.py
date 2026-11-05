@@ -128,7 +128,9 @@ WELLS = tuple((cxr, cyr, r, (_W[c] if c in ("accent", "second") else c), a)
               for (cxr, cyr, r, c, a) in _W["wells"])
 
 # ---- one type scale, four steps ----------------------------------------------------
-T_MICRO, T_CAP, T_BODY, T_VALUE = 8, 10, 12, 15
+# 1.2.10: everything went up a step and the numbers went up two - the panel is read
+# at arm's length on a 1180 px window, and 8 px micro-caps are a hat, not a label.
+T_MICRO, T_CAP, T_BODY, T_VALUE = 11, 13, 16, 21
 
 # ---- geometry ----------------------------------------------------------------------
 M = 22                                   # margin: tighter than v7, so the graph can breathe
@@ -148,26 +150,28 @@ F_MIN, F_MAX = 30.0, 18000.0
 DB_MIN, DB_MAX = -18.0, 18.0
 
 # ---- copy, as data ------------------------------------------------------------------
-TAGLINE = "بيسمع التيك كله، وإنت اللي بتوقفه"
-SEAL_STATE = "مختوم"
-TAKE_LABEL = "التيك"
-TAKE_DONE = "اتسمع ٢٤٫٩ من ٣١٫٢ ث"
-REMAINING = "متبقي ٦٫٣ ث"
-STOP_MARK = "الوقفة · إنت وقفته"
-MEASURED_KEY = "اللي اتقاس"
-DECISION_KEY = "القرار"
-BAND_MODES = ("ثابت", "ثابت", "ديناميك", "متابع النغمة")
-MODE_SEGMENTS = ("ثابت", "ديناميك", "متابع")
-FOOTER_SEAL = "مش بيتغيّر لوحده"
-FOOTER_REPORT = "٤ باندات · واحد ديناميك · واحد متابع"
-KNOB_LABELS = ("القوة", "الخروج")
+TAGLINE = "listens to the whole take; you stop it"
+SEAL_STATE = "SEALED"
+TAKE_LABEL = "TAKE"
+TAKE_DONE = "HEARD 24.9 OF 31.2 S"
+REMAINING = "6.3 S LEFT"
+STOP_MARK = "STOPPED BY YOU"
+MEASURED_KEY = "measured"
+DECISION_KEY = "decision"
+BAND_MODES = ("STATIC", "STATIC", "DYNAMIC", "TRACKED")
+MODE_SEGMENTS = ("RESTORE", "MATCH")
+FOOTER_SEAL = "nothing moves on its own"
+FOOTER_REPORT = "4 bands - 1 dynamic - 1 tracked"
+KNOB_LABELS = ("strength", "listen")
 CHIP_UNIT = "dB"
-CHIP_HZ = "هرتز"
-FOLLOWING = "متابع 600 هرتز"
+CHIP_HZ = "Hz"
+FOLLOWING = "TRACKED 600 Hz"
 
-ARABIC_STRINGS = (TAGLINE, SEAL_STATE, TAKE_LABEL, STOP_MARK, REMAINING, MEASURED_KEY,
-                  DECISION_KEY, *BAND_MODES, *MODE_SEGMENTS, FOOTER_SEAL, FOOTER_REPORT,
-                  *KNOB_LABELS, CHIP_UNIT, CHIP_HZ, FOLLOWING)
+# Every string the panel draws, so a gate can check the inventory rather than trust it.
+PANEL_STRINGS = (TAGLINE, SEAL_STATE, TAKE_LABEL, STOP_MARK, REMAINING, MEASURED_KEY,
+                 DECISION_KEY, *BAND_MODES, *MODE_SEGMENTS, FOOTER_SEAL, FOOTER_REPORT,
+                 *KNOB_LABELS, CHIP_UNIT, CHIP_HZ, FOLLOWING)
+ARABIC_STRINGS = PANEL_STRINGS          # kept for the older gates: nothing is Arabic now
 
 CENTRED_PILL = False
 EQUAL_CARD_GRID = False
@@ -224,8 +228,14 @@ _ar_text, _caps = ar_text, caps
 
 
 def ar_text(d, xy, s, size=12, *a, **k):        # noqa: F811 - deliberate shadow
-    DRAWN["arabic"].add(s)
+    """Draw one line.  The panel's copy is Latin now (1.2.10), so a plain string goes
+    through the Latin path and the Arabic shaper is only kept for anything that still
+    carries Arabic - which today is nothing, and the gates assert that."""
     DRAWN["sizes"].add(size)
+    if s.isascii():
+        DRAWN["caps"].add(s)
+        return _caps(d, xy, s, size, *a, **k)
+    DRAWN["arabic"].add(s)
     return _ar_text(d, xy, s, size, *a, **k)
 
 
@@ -532,12 +542,12 @@ def draw_graph(canvas):
     d = ImageDraw.Draw(canvas)
     rx = x1 - 16
     for label, col in ((DECISION_KEY, BRASS), (MEASURED_KEY, PATINA)):
-        ky = TAKE_RIBBON[3] + 10
-        over(canvas, lambda dd, rx=rx: dd.ellipse([rx - 4, ky + 4, rx + 4, ky + 12],
-                                                  fill=col + (230,)))
-        d = ImageDraw.Draw(canvas)
-        ar_text(d, (rx - 12, ky), label, T_CAP, DIM, anchor="ra")
-        rx -= ar_w(label, T_CAP) + 36
+        ky = TAKE_RIBBON[3] + 12
+        lw = ar_w(label, T_CAP)
+        ar_text(ImageDraw.Draw(canvas), (rx, ky), label, T_CAP, DIM, anchor="ra")
+        over(canvas, lambda dd, rx=rx, lw=lw: dd.ellipse([rx - lw - 18, ky + 5, rx - lw - 10, ky + 13],
+                                                        fill=col + (230,)))
+        rx -= lw + 44
 
 
 def draw_graph_content(canvas, top, bot):
@@ -697,10 +707,15 @@ def draw_take(canvas):
     # one strip under the ribbon: learned (left), the stop (centre), the keys (right).
     # Nothing is stacked, and nothing sits over the clamp itself.
     # under the band: what was learnt (left, Arabic) and the keys (right).
-    caps(d, (x0, y1 + 10), "LEARNED 24.9 s · 96 BANDS · 15 SONGS · 48 kHz", T_MICRO,
+    caps(d, (x0, y1 + 12), "HEARD 24.9 S  ·  96 BANDS  ·  15 REFERENCE TAKES", T_MICRO,
          DIM, 1.1)
     # the seal itself is labelled: above the band, where nothing else lives
-    ar_text(d, (seal_x, y0 - 20), STOP_MARK, T_MICRO, BRASS_HOT, anchor="ma")
+    mark_w = ar_w(STOP_MARK, T_MICRO)
+    over(canvas, lambda dd: dd.rounded_rectangle(
+        [seal_x - mark_w / 2 - 8, y0 - 24, seal_x + mark_w / 2 + 8, y0 - 5],
+        radius=4, fill=(10, 8, 16, 200)))
+    d = ImageDraw.Draw(canvas)
+    ar_text(d, (seal_x, y0 - 21), STOP_MARK, T_MICRO, BRASS_HOT, anchor="ma")
 
 
 def draw_chips(canvas):
@@ -731,17 +746,20 @@ def draw_chips(canvas):
                 [cx0, y0 + 12, cx0 + 3, y1 - 12], radius=2,
                 fill=(BRASS if hot else PATINA) + (255,)))
         d = ImageDraw.Draw(canvas)
-        caps(d, (cx0 + 12, y0 + 9), f"0{i + 1}", T_MICRO, BRASS_HOT if hot else FAINT, 1.3)
-        ar_text(d, (cx1 - 12, y0 + 6), BAND_MODES[mode], T_CAP,
+        # two rows, not three: the number owns the left, the spec owns the right, and
+        # the chip keeps the height the band row has always had.
+        caps(d, (cx0 + 12, y0 + 7), f"0{i + 1}", T_MICRO, BRASS_HOT if hot else FAINT, 1.3)
+        ar_text(d, (cx1 - 12, y0 + 5), BAND_MODES[mode], T_CAP,
                 BRASS_HOT if hot else (PATINA if mode == 2 else DIM), anchor="ra")
         w = num(canvas, cx0 + 12, y0 + 22, f"{g:+.1f}", T_VALUE,
                 BRASS_HOT if hot else TEXT, anchor="la")
         d = ImageDraw.Draw(canvas)
-        caps(d, (cx0 + 15 + w, y0 + 28), CHIP_UNIT, T_MICRO, DIM, 0.3)
-        caps(d, (cx0 + 12, y0 + 42), f"{bf:.0f} Hz · Q {q:.2f}", T_MICRO, FAINT, 0.9)
+        caps(d, (cx0 + 17 + w, y0 + 30), CHIP_UNIT, T_MICRO, DIM, 0.3)
+        caps(d, (cx1 - 12, y0 + 31), f"{bf:.0f} Hz · Q {q:.2f}", T_MICRO, FAINT, 0.9,
+             anchor="ra")
         if live > 0.02:
             over(canvas, lambda dd, cx0=cx0, cx1=cx1: dd.rounded_rectangle(
-                [cx0 + 12, y1 - 9, cx0 + 12 + (cx1 - cx0 - 24) * live, y1 - 7], radius=2,
+                [cx0 + 12, y1 - 11, cx0 + 12 + (cx1 - cx0 - 24) * live, y1 - 8], radius=2,
                 fill=PATINA + (200,)))
 
 
@@ -753,32 +771,32 @@ def draw_footer(canvas):
 
     # segmented mode control: one pill, three segments - the modern replacement for
     # three checkboxes and, in this product, the honest state of the band layer
-    seg_w, seg_h = 66, 24
-    total = seg_w * 3 + 8
+    seg_w, seg_h = 90, 26
+    total = seg_w * len(MODE_SEGMENTS) + 8
     sx = x0
     over(canvas, lambda dd: dd.rounded_rectangle([sx, cy - seg_h / 2, sx + total, cy + seg_h / 2],
                                                  radius=PILL_R, fill=(255, 255, 255, 10)))
-    over(canvas, lambda dd: dd.rounded_rectangle([sx + 4 + seg_w * 2, cy - seg_h / 2 + 3,
-                                                  sx + 4 + seg_w * 3, cy + seg_h / 2 - 3],
+    over(canvas, lambda dd: dd.rounded_rectangle([sx + 5, cy - seg_h / 2 + 3,
+                                                  sx + 5 + seg_w, cy + seg_h / 2 - 3],
                                                  radius=PILL_R - 3, fill=BRASS + (34,)))
-    over(canvas, lambda dd: dd.rounded_rectangle([sx + 4 + seg_w * 2, cy - seg_h / 2 + 3,
-                                                  sx + 4 + seg_w * 3, cy + seg_h / 2 - 3],
+    over(canvas, lambda dd: dd.rounded_rectangle([sx + 5, cy - seg_h / 2 + 3,
+                                                  sx + 5 + seg_w, cy + seg_h / 2 - 3],
                                                  radius=PILL_R - 3, outline=(BRASS + (170,))))
     d = ImageDraw.Draw(canvas)
     for i, label in enumerate(MODE_SEGMENTS):
-        ar_text(d, (sx + 4 + seg_w * i + seg_w / 2, cy - 8), label, T_CAP,
-                BRASS_HOT if i == 2 else DIM, anchor="ma")
+        ar_text(d, (sx + 5 + seg_w * i + seg_w / 2, cy - 8), label, T_CAP,
+                BRASS_HOT if i == 0 else DIM, anchor="ma")
 
     # the report, one Arabic sentence, and the seal state
     ar_text(d, (sx + total + 28, cy - 7), FOOTER_REPORT, T_BODY, SOFT)
 
     # two knobs: the only values the operator turns by hand
     for i, (val, label) in enumerate(((0.62, KNOB_LABELS[0]), (0.5, KNOB_LABELS[1]))):
-        cx = x1 - 30 - i * 104
+        cx = x1 - 30 - i * 128
         knob_small(canvas, cx, cy, 42, val, brass=(_W.get("knob", "brass") == "brass"))
         d = ImageDraw.Draw(canvas)
-        ar_text(d, (cx - 34, cy - 12), label, T_CAP, DIM, anchor="ra")
-        num(canvas, cx - 34, cy + 2, f"{val * 100:.0f}%", T_BODY, TEXT)
+        ar_text(d, (cx - 34, cy - 19), label, T_MICRO, DIM, anchor="ra")
+        num(canvas, cx - 34, cy + 1, f"{val * 100:.0f}%", T_BODY, TEXT, anchor="ra")
 
 
 # ------------------------------------------------------------------ build

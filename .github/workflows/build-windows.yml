@@ -61,7 +61,7 @@ jobs:
         run: |
           # *>&1 merges Write-Host (the information stream) into the log: without
           # it the packaging step fails silently in CI
-          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.2.9 *>&1 |
+          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.2.10 *>&1 |
               Tee-Object -FilePath build.log -Append
           "`n=== installer exit: $LASTEXITCODE ===" | Tee-Object -FilePath build.log -Append
           if ($LASTEXITCODE -ne 0) {
