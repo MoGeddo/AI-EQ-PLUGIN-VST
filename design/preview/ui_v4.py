@@ -78,20 +78,43 @@ def shape(text):
 
 
 def ar_text(d, xy, s, size=12, fill=DIM, bold=False, anchor="la"):
+    """Draw one shaped Arabic string.
+
+    The whole shaped run goes out in a single ``text`` call.  Placing it glyph by
+    glyph accumulates advance-width error (a Cairo advance is not the sum of the
+    isolated advances once a glyph is in its medial form), so a sentence drifts
+    and its words end up on top of each other - and every anchor computed from
+    that sum lands in the wrong place.  One call, one measured width.
+
+    Only a glyph the bundled Cairo genuinely lacks goes through the fallback
+    loop, and then only its own run does.
+    """
     shaped = shape(s)
     main_path = FONT_B if bold else FONT_R
-    main, fb, cm = font(main_path, size), font(ARABIC_FALLBACK, size), cmap_of(main_path)
-    widths = [d.textlength(ch, font=(main if ord(ch) in cm else fb)) for ch in shaped]
-    total = sum(widths)
+    main, cm = font(main_path, size), cmap_of(main_path)
+    total = d.textlength(shaped, font=main)
     x, y = xy
     if anchor[0] == "m":
         x -= total / 2
     elif anchor[0] == "r":
         x -= total
-    for ch, w in zip(shaped, widths):
+
+    if all(ord(ch) in cm for ch in shaped):
+        d.text((x, y), shaped, font=main, fill=fill)
+        return
+
+    fb = font(ARABIC_FALLBACK, size)
+    run, run_font, cx = "", main, x
+    for ch in shaped:
         f = main if ord(ch) in cm else fb
-        d.text((x, y), ch, font=f, fill=fill)
-        x += w
+        if f is not run_font:
+            if run:
+                d.text((cx, y), run, font=run_font, fill=fill)
+                cx += d.textlength(run, font=run_font)
+            run, run_font = "", f
+        run += ch
+    if run:
+        d.text((cx, y), run, font=run_font, fill=fill)
 
 
 def caps(d, xy, s, size=10, fill=DIM, tracking=2.6, anchor="la", bold=False):

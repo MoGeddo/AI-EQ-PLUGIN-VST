@@ -330,15 +330,35 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: DynamicProfile.h matches the corpus (24 bands, slope correlation 0.92)
 
 - [x] G48: the panel is In The Mix's grammar, and it holds together.  The v4 render was
-  EVIDENCE: automatic-evidence=v1; definition-sha256=ed6aab193deffa172fd65737fd747f024edaee2e1482352b825cf8853296b453; exit=0; EXPECT=matched; output-sha256=5d6deb6ededc6a9f72cdf00734e27993452d0f063a26cd1e846b5137a814061e; output-bytes=102; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=9dc3b3eda2eeda8b96e34bdc88fd8dbc515037726d59fb2ce6042f57a239e142; exit=0; EXPECT=matched; output-sha256=481dfda22fd0d597c1fdfeb0ec36042587a01bfdacd3a77361244c34eee06515; output-bytes=109; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
   rejected ("مش عاجبني") because it was one engraved plate with six knobs in a row, not
-  what the store actually ships.  v5 copies the reference's *structure*: a header bar with
-  a centred state pill and round icon buttons, one glass well with the frequency ruler
-  along its top edge and a spiky FFT behind both an amber correction curve and a blue
-  analyser, four section cards (LEARN / CURVE / TRACK / OUTPUT) whose readouts are tinted
-  LCDs, and a bottom strip holding the low cut, the report line and the version.  Three
-  things about it are checked rather than eyeballed: every Arabic string is fully covered
-  by the bundled Cairo (the per-glyph fallback path is what made the words collide), the
-  contrast floor still holds, and no two blocks of the layout overlap.
-  CHECK: /tmp/venv/bin/python design/preview/check_panel.py
-  EXPECT: panel ok: 15 strings fully covered by the bundled font
+  what the store actually ships.  v5 copied the reference's *structure* - header bar with a
+  centred state pill and round icon buttons, one glass well with the frequency ruler along
+  its top edge and a spiky FFT behind both an amber correction curve and a blue analyser,
+  four section cards (LEARN / CURVE / TRACK / OUTPUT) whose readouts are tinted LCDs, a
+  bottom strip holding the low cut, the report line and the version - and v6 keeps that
+  structure and replaces the parts.  Three things about the layout are checked rather than
+  eyeballed: every Arabic string the module actually draws is fully covered by the bundled
+  Cairo (the per-glyph advance error is what made the words collide, and one glyph loop is
+  why every right-anchored line drifted off its card), the contrast floor still holds, and
+  no two blocks of the layout overlap.  The strings are read out of ui_v6.ARABIC_STRINGS so
+  the gate cannot pass on copy that has since changed.
+  CHECK: /tmp/venv/bin/python design/preview/check_panel.py --claim=blocks
+  EXPECT: panel ok: 24 Arabic strings fully covered by the bundled font
+
+- [x] G49: the panel is made of real parts, and the pointer answers the value.  v3, v4 and
+  EVIDENCE: automatic-evidence=v1; definition-sha256=d43f38beb5b4396890868035b8d2d792a467ea936055ec9ea1324d835fafe037; exit=0; EXPECT=matched; output-sha256=535e2fde8f55701cf5f8b5739dc61fb21bd8d25f438cd3026fa101cddd65fa5b; output-bytes=120; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  v5 were all drawn with PIL primitives, and the verdict on all three was the same: flat.
+  A machined knob is a specular surface - a knurled ring catching light, an anodised bevel,
+  radial brushing - and no amount of rounded rectangles produces it.  So the parts are now
+  rendered images (design/assets/src: six 800 px material renders) cut into sprites by
+  design/assets_prep.py (alpha from luminance, tight bbox, 1.6 px edge blur) and composited:
+  the knob body carries its own highlights, the button has two real states, and the plate is
+  the graded carbon.  Only the things that must change with the DSP are drawn in code - the
+  needle, the lit glow, the curve, the spectrum.  The claim is measured, not asserted: each
+  sprite must be a real cut-out holding >= 200 distinct colours, the knob face in the
+  shipped PNG must hold >= 300 (a drawn disc has a dozen), and the needle's bright pixels
+  are located for five values and compared against -135 deg at 0 and +135 deg at 1: the
+  worst error is 2.8 deg over 267 deg of travel.
+  CHECK: /tmp/venv/bin/python design/preview/check_panel.py --claim=material
+  EXPECT: material ok: 5 material sprites in the composite
