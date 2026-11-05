@@ -328,3 +328,17 @@ at any vocal stem first; the other gates need nothing but the source tree.
   gate fails if the file and the measurement ever disagree.
   CHECK: /tmp/venv/bin/python analysis/scripts/emit_dynamic_profile.py --check
   EXPECT: DynamicProfile.h matches the corpus (24 bands, slope correlation 0.92)
+
+- [x] G48: the panel is In The Mix's grammar, and it holds together.  The v4 render was
+  EVIDENCE: automatic-evidence=v1; definition-sha256=ed6aab193deffa172fd65737fd747f024edaee2e1482352b825cf8853296b453; exit=0; EXPECT=matched; output-sha256=5d6deb6ededc6a9f72cdf00734e27993452d0f063a26cd1e846b5137a814061e; output-bytes=102; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  rejected ("مش عاجبني") because it was one engraved plate with six knobs in a row, not
+  what the store actually ships.  v5 copies the reference's *structure*: a header bar with
+  a centred state pill and round icon buttons, one glass well with the frequency ruler
+  along its top edge and a spiky FFT behind both an amber correction curve and a blue
+  analyser, four section cards (LEARN / CURVE / TRACK / OUTPUT) whose readouts are tinted
+  LCDs, and a bottom strip holding the low cut, the report line and the version.  Three
+  things about it are checked rather than eyeballed: every Arabic string is fully covered
+  by the bundled Cairo (the per-glyph fallback path is what made the words collide), the
+  contrast floor still holds, and no two blocks of the layout overlap.
+  CHECK: /tmp/venv/bin/python design/preview/check_panel.py
+  EXPECT: panel ok: 15 strings fully covered by the bundled font
