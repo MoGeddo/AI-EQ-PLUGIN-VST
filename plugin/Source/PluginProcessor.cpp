@@ -190,6 +190,24 @@ void AeqAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
         bands.appendChild(v, nullptr);
     }
     state.appendChild(bands, nullptr);
+    // ... and so are the dynamic layers: the bands that follow the note are part of the
+    // decision, not a live guess.  Without them a reopened session would sound different
+    // from the one that was saved, which is the one thing a mixer must be able to trust.
+    juce::ValueTree layers("layers");
+    for (int i = 0; i < core_.trackedCount(); ++i) {
+        const auto sp = core_.trackedSpec(i);
+        juce::ValueTree v("layer");
+        v.setProperty("harmonic", sp.harmonic, nullptr);
+        v.setProperty("q", sp.q, nullptr);
+        v.setProperty("detectQ", sp.detectQ, nullptr);
+        v.setProperty("targetDb", sp.targetDb, nullptr);
+        v.setProperty("rangeDown", sp.rangeDown, nullptr);
+        v.setProperty("rangeUp", sp.rangeUp, nullptr);
+        v.setProperty("glideMs", sp.glideMs, nullptr);
+        v.setProperty("deadBandDb", sp.deadBandDb, nullptr);
+        layers.appendChild(v, nullptr);
+    }
+    state.appendChild(layers, nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destData);
 }
 
@@ -217,7 +235,24 @@ void AeqAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
                     st.corrective.push_back(b);
                 }
             }
+            std::vector<aeq::TrackedSpec> layers_;
+            if (auto layers = tree.getChildWithName("layers"); layers.isValid()) {
+                for (int i = 0; i < layers.getNumChildren(); ++i) {
+                    const auto v = layers.getChild(i);
+                    aeq::TrackedSpec sp;
+                    sp.harmonic = int(v.getProperty("harmonic", 1));
+                    sp.q = double(v.getProperty("q", 4.0));
+                    sp.detectQ = double(v.getProperty("detectQ", 12.0));
+                    sp.targetDb = double(v.getProperty("targetDb", -30.0));
+                    sp.rangeDown = double(v.getProperty("rangeDown", 4.0));
+                    sp.rangeUp = double(v.getProperty("rangeUp", 0.0));
+                    sp.glideMs = double(v.getProperty("glideMs", 25.0));
+                    sp.deadBandDb = double(v.getProperty("deadBandDb", 3.0));
+                    layers_.push_back(sp);
+                }
+            }
             core_.restoreDecision(st);
+            core_.setTrackedLayers(layers_);     // same order: the decision first, then what it moves
             learning_ = false;      // restored already answered
         } else {
             core_.relearn();

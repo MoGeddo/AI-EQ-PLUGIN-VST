@@ -287,3 +287,27 @@ at any vocal stem first; the other gates need nothing but the source tree.
   the same decision.
   CHECK: ./build/aeq_commit
   EXPECT: 13 passed, 0 failed
+
+- [x] G45: the band that locks onto the note and follows it - "باند يمشي مع النغمة
+  EVIDENCE: automatic-evidence=v1; definition-sha256=a83435c57d7bb5c8d8df8a9154664d4ddf6d4de36747b0da82ce34b267918c0c; exit=0; EXPECT=matched; output-sha256=1f4436f43bca5ffb6455a7d9c90078da463da1f614b67026a7faab2225d887f5; output-bytes=1252; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  ويثبتها على مستوى" (the one the user called the most important of the four plugins).
+  Measured on a synthetic sung note whose f0 glides 110 -> 220 Hz: the centre stays
+  within 36 cents of the truth, the worst sample-to-sample step in the output is no
+  larger than the signal's own (a tracked band that re-tunes on unchanged filter state
+  is the classic "watery" sound), a one-frame octave report from the pitch tracker moves
+  the centre by 0 cents (limit 60) while a real octave change is followed in 160 ms, a
+  +12 dB note is held within 0.1 dB of where it was and settles in 16 ms, a 3 dB range
+  corrects exactly 3.0 dB, and unvoiced audio returns the band to 0 dB.
+  CHECK: ./build/aeq_tracked
+  EXPECT: 19 passed, 0 failed
+- [x] G46: the core's dynamic layers, end to end.  After the user stops the pass, every
+  EVIDENCE: automatic-evidence=v1; definition-sha256=0617581bfd593081ac6077c06e2e94110730e7ed343eb66fa7c6d5119111acde; exit=0; EXPECT=matched; output-sha256=82fa1b6eb111d32a19365041f4b804f5459b1332473ad3a1ec777d09c8624fc0; output-bytes=1265; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  learned cut that sits on a harmonic of the measured f0 becomes a band that follows that
+  harmonic (never more than two, never boosting), and it does the job a static curve
+  cannot: the same performance sung 10 dB louder gets its 3rd harmonic pulled back to
+  within 2 dB of where the quiet take sat (0.36 dB measured with the range to do it),
+  while the static chain alone leaves it 10 dB out.  The take it was learned from is only
+  touched on its loudest frames, the output stays finite and click-free, and a project
+  saved without layers restores with none.
+  CHECK: ./build/aeq_layers
+  EXPECT: 12 passed, 0 failed

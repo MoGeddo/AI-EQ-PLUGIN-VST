@@ -17,6 +17,7 @@
 #include "Analyzer.h"
 #include "Biquad.h"
 #include "DeEsser.h"
+#include "TrackedBand.h"
 #include "EqSolver.h"
 #include "ProblemDetector.h"
 #include "../model/TargetCurve.h"
@@ -59,6 +60,24 @@ struct LiveSpectrum {
     bool valid = false;
 };
 
+// One dynamic layer: a band that sits on a harmonic of the singer's pitch, follows
+// it, and holds that harmonic at the level the take had.  The numbers are decided at
+// commit (they come from the take) and are saved with the project, because a restored
+// project must sound the same without listening to the vocal again.
+struct TrackedSpec {
+    int    harmonic  = 1;
+    double q         = 4.0;
+    double detectQ   = 12.0;    // matches the analyser's 1/12-octave bands
+    double targetDb  = -30.0;   // level to hold, dBFS
+    double rangeDown = 6.0;
+    double rangeUp   = 0.0;
+    double glideMs   = 25.0;
+    double deadBandDb = 3.0;
+    double attackMs   = 20.0;
+    double releaseMs  = 250.0;
+};
+constexpr int kTrackedMax = 4;      // storage; at most two layers are ever chosen
+
 struct RestoreState {
     std::vector<BandSpec> corrective;   // what the solver produced
     std::vector<BandSpec> resonance;    // narrow static-resonance cuts
@@ -69,6 +88,7 @@ struct RestoreState {
     double distBeforeDb = 0.0, distAfterDb = 0.0;
     double fixBeforeDb = 0.0, fixAfterDb = 0.0;   // over the regions we acted on
     double measuredF0 = 0.0;
+    int    trackedLayers = 0;       // bands in the path that follow the pitch
     double analyzedSeconds = 0.0;   // sung audio analysed so far
     bool   settled = false;         // enough audio to trust the numbers
     bool   valid = false;
@@ -131,6 +151,34 @@ public:
         version_.fetch_add(1, std::memory_order_release);
     }
 
+    // The dynamic layers currently in the signal path (0 when nothing was committed).
+    int trackedCount() const { return trackedActive_; }
+    TrackedSpec trackedSpec(int i) const {
+        return (i >= 0 && i < trackedActive_) ? trackSpec_[size_t(i)] : TrackedSpec{};
+    }
+    // What a layer is doing right now - for the editor's readout ("٦٠٠ هرتز · −٥.٤ dB")
+    // and for the tests.  Published as atomics: the band itself is written by the audio
+    // thread only, and a torn double would show a random frequency on screen.
+    double trackedLevelDb(int i) const {
+        return (i >= 0 && i < kTrackedMax) ? trackedPubLevel_[size_t(i)].load(std::memory_order_relaxed) : -120.0;
+    }
+    double trackedGainDb(int i) const {
+        return (i >= 0 && i < kTrackedMax) ? trackedPubGain_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
+    }
+    double trackedCentreHz(int i) const {
+        return (i >= 0 && i < kTrackedMax) ? trackedPubHz_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
+    }
+
+    // Put saved layers back with the project file.  Goes through the same pending slot
+    // as a solved decision, so the audio thread picks it up in pollAndApply().
+    void setTrackedLayers(const std::vector<TrackedSpec>& v) {
+        std::lock_guard<std::mutex> lk(pendingMx_);
+        const int n = std::min<int>(int(v.size()), kTrackedMax);
+        for (int i = 0; i < n; ++i) pendingTrack_[size_t(i)] = v[size_t(i)];
+        pendingTrackCount_ = n;
+        pendingSeen_.store(false, std::memory_order_release);   // make the audio thread look
+    }
+
     void prepare(double sampleRate, int maxBlockSize) {
         fs_ = sampleRate;
         maxBlock_ = std::max(1, maxBlockSize);
@@ -152,9 +200,17 @@ public:
         analyzer_.reset();
         eqLeft_.reset(); eqRight_.reset();
         hpf_.reset(); deEsser_.reset();
+        for (auto& t : tracked_) { t.prepare(fs_); t.reset(); }
+        trackedActive_ = 0;
+        pendingTrackCount_ = 0;
         {
             std::lock_guard<std::mutex> lk(stateMx_);
             state_ = RestoreState{};
+        }
+        trackedActive_ = 0;
+        {
+            std::lock_guard<std::mutex> lk(pendingMx_);
+            pendingTrackCount_ = 0;
         }
         // The lock above must be *released* before this: updateBands() calls
         // activeBands(), which takes stateMx_ again.  std::mutex is not recursive,
@@ -220,30 +276,82 @@ public:
         // The reference is the signal *after* the low cut: removing rumble is the
         // job, and it must not be "compensated" back in as gain.  What is measured
         // against is only what the EQ and the de-esser then do to the voice.
+        //
+        // The wet signal is built into a scratch block rather than straight into the
+        // buffer because of 3: the dynamic layers are block filters and they have to
+        // sit *after* the static curve, not before it.  A hold placed before the curve
+        // cuts twice - the restore it makes, then the curve's own dB on top of it - and
+        // the core's own convergence gate (G5) caught exactly that as a pass that made
+        // the take worse.
         double inSq = 0.0, outSq = 0.0;
-        for (int i = 0; i < n; ++i) {
-            const double dryL = left[i];
-            double l = hpf_.process(dryL);
-            inSq += l * l;
-            l = eqLeft_.process(l);
-            l = deEsser_.process(l);
-            l *= outGain_;
-            // crossfade, not a gain ramp: `dry + a*(wet - dry)` is dry at a = 0, which
-            // is what makes the commit silent.  Scaling the wet path from zero turns
-            // the first block of a committed decision into a step to silence.
-            l = dryL + applyGain_ * (l - dryL);
-            left[i] = static_cast<float>(l);
-            outSq += l * l;
-            if (right) {
-                const double dryR = right[i];
-                double r = hpf_.process(dryR);
-                inSq += r * r;
-                r = eqRight_.process(r);
-                r = deEsser_.process(r);
-                r *= outGain_;
-                r = dryR + applyGain_ * (r - dryR);
-                right[i] = static_cast<float>(r);
-                outSq += r * r;
+        // outSq is taken on the *static* chain's output, not on the final signal: the
+        // level match exists to give back what the curve took out of the voice, and a
+        // dynamic layer is supposed to change the level of one harmonic - that is its
+        // whole job.  Measuring after the layers let the match cancel up to 6 dB of a
+        // 7.7 dB hold, i.e. it silently undid the feature (test_layers caught it).
+
+        // 1d/3. the pitch feed for the dynamic layers: one report per block, from the
+        // analyser, whose estimate arrives ~4 Hz.  The bands never step to it - they
+        // glide in log-frequency, and need three agreeing reports before they believe an
+        // octave-sized jump, because a tracker's octave slip is a chirp if it is taken.
+        if (trackedActive_ > 0) {
+            const double f0 = analyzer_.currentF0();
+            const bool voiced = analyzer_.voicedNow();
+            for (int i = 0; i < trackedActive_; ++i) tracked_[size_t(i)].setPitch(f0, voiced);
+        }
+
+        for (int base = 0; base < n; base += kMaxChunk) {
+            const int m = std::min(kMaxChunk, n - base);
+
+            for (int i = 0; i < m; ++i) {
+                const int j = base + i;
+                const double dryL = left[j];
+                double l = hpf_.process(dryL);
+                inSq += l * l;
+                l = eqLeft_.process(l);
+                l = deEsser_.process(l);
+                l *= outGain_;
+                dryChL_[size_t(i)] = static_cast<float>(dryL);
+                outSq += l * l;
+                wetChL_[size_t(i)] = static_cast<float>(l);
+                if (right) {
+                    const double dryR = right[j];
+                    double r = hpf_.process(dryR);
+                    inSq += r * r;
+                    r = eqRight_.process(r);
+                    r = deEsser_.process(r);
+                    r *= outGain_;
+                    dryChR_[size_t(i)] = static_cast<float>(dryR);
+                    outSq += r * r;
+                    wetChR_[size_t(i)] = static_cast<float>(r);
+                }
+            }
+
+            // 3. dynamic layers: bands that sit on a harmonic of the pitch, follow it,
+            //    and hold that harmonic at the level the take had after the curve.  That
+            //    is the "move with the note and hold it at a set level" behaviour; it is
+            //    silent while learning because the branch above already returned.
+            for (int i = 0; i < trackedActive_; ++i) {
+                auto& b = tracked_[size_t(i)];
+                b.process(wetChL_.data(), right ? wetChR_.data() : nullptr, m);
+                trackedPubLevel_[size_t(i)].store(b.levelDb(), std::memory_order_relaxed);
+                trackedPubGain_[size_t(i)].store(b.gainDb(), std::memory_order_relaxed);
+                trackedPubHz_[size_t(i)].store(b.centreHz(), std::memory_order_relaxed);
+            }
+
+            // 4. crossfade, not a gain ramp: `dry + a*(wet - dry)` is dry at a = 0,
+            //    which is what makes the commit silent.  Scaling the wet path from zero
+            //    turns the first block of a committed decision into a step to silence.
+            for (int i = 0; i < m; ++i) {
+                const int j = base + i;
+                const double dryL = dryChL_[size_t(i)];
+                const double l = dryL + applyGain_ * (double(wetChL_[size_t(i)]) - dryL);
+                left[j] = static_cast<float>(l);
+                if (right) {
+                    const double dryR = dryChR_[size_t(i)];
+                    const double r = dryR + applyGain_ * (double(wetChR_[size_t(i)]) - dryR);
+                    right[j] = static_cast<float>(r);
+                }
             }
         }
 
@@ -531,6 +639,21 @@ public:
             version_.fetch_add(1, std::memory_order_release);
         }
 
+        // Dynamic layers from the *take*, not from a guess: any learned cut that sits
+        // on a harmonic of the measured f0 becomes a band that follows that harmonic
+        // and holds it at the level it had after the cut.  That is the moving band the
+        // user asked for, and it is why "hold it at a fixed level" needs no threshold -
+        // the target is the level this singer's take actually had.
+        std::vector<TrackedSpec> layers;
+        {
+            std::vector<BandSpec> all = corr;
+            all.insert(all.end(), reso.begin(), reso.end());
+            layers = chooseTrackedLayers(all, m.medianF0, m.freqs, m.bandDb);
+            std::lock_guard<std::mutex> lk(stateMx_);
+            state_.trackedLayers = int(layers.size());
+            version_.fetch_add(1, std::memory_order_release);
+        }
+
         // hand the solution to the audio thread; it applies it at the top of the
         // next block, so no processing object is ever written from here
         {
@@ -541,6 +664,9 @@ public:
             pendingDeThr_ = deThr;
             pendingDeGr_ = deGr;
             pendingSettled_ = state_.settled;
+            const int nLayers = std::min<int>(int(layers.size()), kTrackedMax);
+            for (int i = 0; i < nLayers; ++i) pendingTrack_[size_t(i)] = layers[size_t(i)];
+            pendingTrackCount_ = nLayers;
 
             ++pendingVersion_;
         }
@@ -586,6 +712,29 @@ public:
         }
         eqLeft_.setBands(bands.data(), count, fs_);
         eqRight_.setBands(bands.data(), count, fs_);
+        // the dynamic layers travel in the same pending slot as the curve: decided
+        // together at commit, adopted together here, never written from another thread
+        trackedActive_ = std::min(pendingTrackCount_, kTrackedMax);
+        for (int i = 0; i < trackedActive_; ++i) {
+            const TrackedSpec& sp = pendingTrack_[size_t(i)];
+            TrackedBand::Tuning t;
+            t.mode = TrackedBand::Mode::Pitch;
+            t.harmonic = sp.harmonic;
+            t.q = sp.q;
+            t.detectQ = sp.detectQ;
+            t.targetDb = sp.targetDb;
+            t.rangeDown = sp.rangeDown;
+            t.rangeUp = sp.rangeUp;
+            t.glideMs = sp.glideMs;
+            t.holdOffSec = 0.25;
+            t.deadBandDb = sp.deadBandDb;
+            t.attackMs = sp.attackMs;
+            t.releaseMs = sp.releaseMs;
+            auto& b = tracked_[size_t(i)];
+            b.setTuning(t);
+            b.reset();
+            trackSpec_[size_t(i)] = sp;
+        }
         hpf_.set(settled && pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
         deEsser_.setEnabled(settled && pendingDeEssOn_);
         if (settled) deEsser_.setParameters(pendingDeThr_, pendingDeGr_);
@@ -755,6 +904,75 @@ public:
     }
 
 private:
+    // Which learned bands deserve to become a moving band?  Only the ones that sit on
+    // a harmonic of the note (within 3 %, i.e. closer than half a semitone), that
+    // actually do something (>= 1 dB), and that are inside the range where a harmonic
+    // of a voice can live.  The strongest few win.
+    std::vector<TrackedSpec> chooseTrackedLayers(const std::vector<BandSpec>& bands,
+                                                 double medianF0,
+                                                 const std::vector<double>& freqs,
+                                                 const std::vector<double>& levelDb) const {
+        std::vector<TrackedSpec> out;
+        if (medianF0 <= 0.0 || freqs.empty() || levelDb.empty()) return out;
+        // The median f0 is reported at the lower edge of a 10 Hz histogram bin, so add
+        // half a bin before calling it a harmonic reference: on a 196 Hz voice that is
+        // 2.5 %, and at the third harmonic it is the difference between the band landing
+        // on the note and landing between two of them.
+        medianF0 += 5.0;
+        std::vector<int> usedHarmonic;
+        struct Cand { double strength; TrackedSpec spec; };
+        std::vector<Cand> cands;
+        for (const auto& b : bands) {
+            if (b.f0 < 80.0 || b.f0 > 8000.0) continue;
+            // only cuts: a boost is a static decision about the whole take, and a
+            // dynamic boost on a harmonic is a noise amplifier between notes
+            if (b.gainDb > -3.0) continue;
+            const int k = int(std::lround(b.f0 / medianF0));
+            if (k < 1 || k > 8) continue;
+            // 5 %: the median f0 comes from a 10 Hz histogram, so at the third harmonic
+            // it is already worth ~2.5 %.  The spacing between harmonics is 1/k (33 % at
+            // k = 3), so 5 % cannot capture a neighbour.
+            if (std::abs(b.f0 / (k * medianF0) - 1.0) > 0.05) continue;
+            if (std::find(usedHarmonic.begin(), usedHarmonic.end(), k) != usedHarmonic.end()) continue;
+            usedHarmonic.push_back(k);
+            TrackedSpec sp;
+            sp.harmonic = k;
+            // Narrower than the spacing between harmonics, or the band would pull its
+            // neighbours with it: at harmonic k the spacing is f0, so Q has to exceed
+            // ~1.25 k for the band's skirt to stay inside one harmonic.
+            sp.q = std::clamp(1.6 * double(k), 4.0, 16.0);
+            // The layer sits after the curve, so its target is the level the take had
+            // *after* the cut: a louder note is pulled back to where the corrected take
+            // sat, not to where the raw take sat.
+            sp.targetDb = levelAt(freqs, levelDb, b.f0) + b.gainDb;   // where the curve puts it
+            sp.rangeDown = std::clamp(2.0 - b.gainDb, 2.0, 6.0);
+            sp.rangeUp = 0.0;
+            cands.push_back({std::abs(b.gainDb), sp});
+        }
+        std::sort(cands.begin(), cands.end(),
+                  [](const Cand& a, const Cand& b) { return a.strength > b.strength; });
+        // Two, not four.  The user's verdict on an earlier, busier version was that it
+        // ate the voice ("بوّظ الصوت وأكل حاجات كتير"); a dynamic layer is the most
+        // intrusive thing in the chain, so it gets the two strongest moves and no more.
+        for (size_t i = 0; i < cands.size() && int(out.size()) < 2; ++i)
+            out.push_back(cands[i].spec);
+        return out;
+    }
+
+    // level of the measurement grid at an arbitrary frequency (log-x interpolation)
+    static double levelAt(const std::vector<double>& freqs, const std::vector<double>& db, double f) {
+        if (freqs.empty()) return -30.0;
+        if (f <= freqs.front()) return db.front();
+        if (f >= freqs.back()) return db.back();
+        for (size_t i = 1; i < freqs.size(); ++i) {
+            if (f <= freqs[i]) {
+                const double t = std::log(f / freqs[i - 1]) / std::log(freqs[i] / freqs[i - 1]);
+                return db[i - 1] + t * (db[i] - db[i - 1]);
+            }
+        }
+        return db.back();
+    }
+
     void updateBands() {
         std::array<BandSpec, kBands> bands{};
         int count = 0;
@@ -781,10 +999,22 @@ private:
     HighPass24 hpf_;
     BiquadCascade eqLeft_, eqRight_;
     DeEsser deEsser_;
+    std::array<TrackedBand, kTrackedMax> tracked_{};   // audio thread only
+    TrackedSpec trackSpec_[kTrackedMax]{};
+    int trackedActive_ = 0;
+    std::atomic<double> trackedPubLevel_[kTrackedMax];
+    std::atomic<double> trackedPubGain_[kTrackedMax];
+    std::atomic<double> trackedPubHz_[kTrackedMax];
+    // decided on the analysis thread, adopted by the audio thread in pollAndApply()
+    TrackedSpec pendingTrack_[kTrackedMax]{};
+    int pendingTrackCount_ = 0;
     EqSolver solver_;
     ProblemDetector detector_;
     static constexpr int kMaxChunk = 2048;         // 8 KB of stack-adjacent member
     std::array<float, kMaxChunk> scratchChunk_{};  // drain scratch (analysis thread)
+    // audio-thread scratch for the wet path: the dynamic layers need a whole block and
+    // sit after the static curve, so the curve's output is built here first
+    std::array<float, kMaxChunk> wetChL_{}, wetChR_{}, dryChL_{}, dryChR_{};
 
     // Audio thread -> analysis thread.  1.36 s at 48 kHz, drained four times a
     // second: a slow solve can never make the audio thread wait, and if the ring ever

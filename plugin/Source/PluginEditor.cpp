@@ -465,6 +465,18 @@ String AeqAudioProcessorEditor::verdictTitle() const {
 }
 
 String AeqAudioProcessorEditor::verdictSubtitle() const {
+    // After the user stops the pass, the thing worth saying is that part of the answer
+    // moves: the bands that sit on a harmonic of the singing follow the note.  Saying it
+    // in words is also the honest way to ship it - nobody should have to discover by ear
+    // that a band is moving under them.
+    if (haveData_ && proc_.core().committed() && proc_.core().trackedCount() > 0) {
+        String s = String (proc_.core().trackedCount()) + aeq::ui::u8 (" باند متحرك على توافق الصوت");
+        const double hz = proc_.core().trackedCentreHz (0);
+        if (hz >= 20.0)
+            s += aeq::ui::u8 (" — دلوقتي ") + String (int (hz)) + aeq::ui::u8 (" هرتز");
+        s += aeq::ui::u8 ("، بيمشي مع النغمة ويحافظ على مستواها بدل ما يقف على تردد ثابت.");
+        return s;
+    }
     if (! haveData_)
         return aeq::ui::u8 ("مفيش قياس لسه. أول ما الصوت يعدّي، الباندات بتتظبط على مقاس "
                             "المشكلة اللي بتتسمع فعلًا، ومش بنلمس حاجة غيرها.");

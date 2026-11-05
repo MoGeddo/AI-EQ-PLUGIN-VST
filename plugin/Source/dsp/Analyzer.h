@@ -7,6 +7,7 @@
 // memory is constant regardless of take length.
 #pragma once
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
@@ -108,6 +109,8 @@ public:
         std::fill(std::begin(envM2_), std::end(envM2_), 0.0);
         std::fill(std::begin(envN_), std::end(envN_), 0);
         lastF0_ = 0.0;
+        f0Pub_.store(0.0, std::memory_order_relaxed);
+        voicedPub_.store(0, std::memory_order_relaxed);
         sibFrameSum_ = 0.0; sibFrames_ = 0;
         framesInRing_ = 0; ringPos_ = 0;
         std::fill(std::begin(ring_), std::end(ring_), 0.0);
@@ -228,6 +231,18 @@ public:
     double dynamicRangeDb() const { return std::max(0.0, maxRmsDb() - minActiveRmsDb()); }
 
     // median F0 of the performance (Hz), 0 if unknown - used to adapt the HPF
+    // Pitch, for the audio thread.  lastF0_ is written here and read there, so it is
+    // published through atomics; a torn double would put the tracked band at a
+    // random frequency, which is a chirp, not a rounding error.
+    //
+    // The estimate arrives once per analysis pass (~4 Hz on the plugin timer).  That
+    // is enough for a band that follows a *note*: at Q = 6 the band is ~17 % wide and
+    // vibrato is +-1.5 %, i.e. the vibrato is inside the band's own bandwidth, so the
+    // band does not have to chase it.  Register changes (the thing that actually moves
+    // the harmonics out of the band) are much slower than 4 Hz.
+    double currentF0() const { return f0Pub_.load(std::memory_order_relaxed); }
+    bool   voicedNow()  const { return voicedPub_.load(std::memory_order_relaxed) != 0; }
+
     double medianF0() const {
         double tot = 0;
         for (int c : f0Hist_) tot += c;
@@ -235,6 +250,11 @@ public:
         double acc = 0;
         for (int i = 0; i < static_cast<int>(f0Hist_.size()); ++i) {
             acc += f0Hist_[i];
+            // the lower edge of the bin.  It is 0-10 Hz below the true median, and every
+            // existing decision (low cut, partial rejection, problem report) is tuned to
+            // that number - changing it to the bin centre moved the top three resonances
+            // and broke gate G3.  The dynamic layers add half a bin themselves, where it
+            // matters, instead of moving the number under everything else.
             if (acc >= 0.5 * tot) return 60.0 + 10.0 * i;
         }
         return 0.0;
@@ -553,7 +573,7 @@ private:
 
         double e0 = 0.0;
         for (int i = 0; i < W; ++i) e0 += src[i] * src[i];
-        if (e0 < 1e-12) return;
+        if (e0 < 1e-12) { voicedPub_.store(0, std::memory_order_relaxed); return; }
 
         // difference function
         for (int tau = 1; tau <= tauMax; ++tau) {
@@ -584,7 +604,7 @@ private:
         if (best < 0) {
             double bv = 1e9;
             for (int tau = tauMin; tau <= tauMax; ++tau) if (cm[tau] < bv) { bv = cm[tau]; best = tau; }
-            if (bv > 0.45) return;                  // too aperiodic to call it a pitch
+            if (bv > 0.45) { voicedPub_.store(0, std::memory_order_relaxed); return; }   // too aperiodic to call it a pitch
         }
         // parabolic refinement
         double tauF = best;
@@ -594,8 +614,10 @@ private:
             if (std::abs(den) > 1e-12) tauF = best + 0.5 * (a - c) / den;
         }
         const double f0 = fs_ / std::max(tauF, 1.0);
-        if (f0 < 60 || f0 > 600) return;
+        if (f0 < 60 || f0 > 600) { voicedPub_.store(0, std::memory_order_relaxed); return; }
         lastF0_ = f0;                       // held between estimates, used by the envelope
+        f0Pub_.store(f0, std::memory_order_relaxed);
+        voicedPub_.store(1, std::memory_order_relaxed);
         int bin = std::clamp(static_cast<int>((f0 - 60.0) / 10.0), 0, static_cast<int>(f0Hist_.size()) - 1);
         ++f0Hist_[bin];
     }
@@ -635,6 +657,8 @@ private:
     std::array<double, 256> envMean_{}, envM2_{};
     std::array<int, 256>    envN_{};
     double lastF0_ = 0.0;
+    std::atomic<double> f0Pub_{0.0};
+    std::atomic<int>    voicedPub_{0};
     int nFrames_ = 0, nActive_ = 0, nNoisy_ = 0;
     long framesSeen_ = 0;
     static constexpr int kLvlBins = 130;         // -120 .. +10 dBFS, 1 dB bins
