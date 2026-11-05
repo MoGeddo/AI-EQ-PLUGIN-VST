@@ -29,6 +29,9 @@
 
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
+#include "ui/ProblemList.h"      // this test renders the report cards on their own, so it
+                                 // includes what it uses instead of relying on the editor
+                                 // header to drag it in (v9's editor no longer does)
 
 namespace {
 
