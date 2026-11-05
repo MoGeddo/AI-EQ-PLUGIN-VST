@@ -20,9 +20,10 @@ constexpr float kMicro = 8.0f, kCap = 10.0f, kBody = 12.0f, kValue = 15.0f;
 // not fractions: the earlier version of this file multiplied a design y by the height
 // scale and the strip collapsed to a line on every window taller than the design.
 constexpr float kHeroTop = 70.0f, kHeroBottom = 556.0f;
-constexpr float kPlotBottom = 486.0f;
-constexpr float kRibbonTop = 494.0f, kRibbonBottom = 520.0f;
-constexpr float kCaptionTop = 528.0f, kCaptionBottom = 542.0f;
+constexpr float kPlotBottom = 470.0f;      // the plot stops here; the strip has its own band
+constexpr float kStopTop = 476.0f, kStopBottom = 492.0f;   // "stopped here", above the clamp
+constexpr float kRibbonTop = 496.0f, kRibbonBottom = 522.0f;
+constexpr float kCaptionTop = 530.0f, kCaptionBottom = 546.0f;
 
 const char* kTagline   = "بيسمع التيك كله، وإنت اللي بتوقفه";
 const char* kSealed    = "مختوم";
@@ -33,7 +34,6 @@ const char* kRestart   = "دوس تعلّم تاني";
 const char* kMeasuredKey = "اللي اتقاس";
 const char* kDecisionKey = "القرار";
 const char* kStatic    = "ثابت";
-const char* kDynamic   = "ديناميك";
 const char* kTracked   = "متابع النغمة";
 const char* kEmptyChip = "لسه";
 const char* kModeRestore = "تصحيح";
@@ -223,7 +223,7 @@ Rectangle<int> AeqAudioProcessorEditor::well() const {
 std::vector<Rectangle<int>> AeqAudioProcessorEditor::chipRects() const {
     const auto c = blocks().chips;
     const int gap = roundToInt (10.0f * float (getWidth()) / kDesignW);
-    const int n = 4;
+    const int n = jmax (1, int (chips_.size()));
     const int w = (c.getWidth() - gap * (n - 1)) / n;
     std::vector<Rectangle<int>> out;
     for (int i = 0; i < n; ++i)
@@ -256,7 +256,8 @@ Rectangle<int> AeqAudioProcessorEditor::resetHit() const {
 Rectangle<int> AeqAudioProcessorEditor::clampHit() const {
     const auto r = ribbon();
     const float sx = float (getWidth()) / kDesignW;
-    const int x = r.getX() + roundToInt (float (r.getWidth()) * float (sealedAt_));
+    const int x = r.getX() + jlimit (10, jmax (10, r.getWidth() - 10),
+                                     roundToInt (float (r.getWidth()) * float (sealedAt_)));
     const int w = roundToInt (26.0f * sx);
     return { x - w, r.getY() - roundToInt (10.0f), w * 2, r.getHeight() + roundToInt (20.0f) };
 }
@@ -409,6 +410,8 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // the learnt part, from the left, turning into the accent as it reaches the clamp:
     // the one place the two hues touch is the moment it was stopped
     const float cut = rib.getWidth() * float (sealedAt_);
+    g.setColour (Palette::take().withAlpha (0.04f));
+    g.fillRoundedRectangle ({ rib.getX() + cut, rib.getY(), rib.getWidth() - cut, rib.getHeight() }, r);
     if (cut > 1.0f) {
         const Rectangle<float> fill (rib.getX(), rib.getY(), cut, rib.getHeight());
         ColourGradient gr (Palette::take().darker (0.55f), rib.getX(), rib.getY(),
@@ -420,7 +423,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     }
 
     // the clamp: a machined part, anodised to the accent, with a shadow under it
-    const int cx = rib.getX() + roundToInt (cut);
+    const int cx = rib.getX() + jlimit (10, jmax (10, int (rib.getWidth()) - 10), roundToInt (cut));
     const int cw = roundToInt (11.0f * sx), chh = roundToInt (float (rib.getHeight()) + 10.0f * sy);
     const Rectangle<float> clamp (float (cx) - cw * 0.5f,
                                   rib.getCentreY() - chh * 0.5f, float (cw), float (chh));
@@ -439,18 +442,18 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
                        clamp.getY() + clamp.getHeight() * (0.22f + 0.56f * float (i)) - 1.5f * sy,
                        3.0f * sx, 3.0f * sy);
 
-    // the seal, labelled above itself
-    arabic (g, kStopMark, { clamp.getCentreX() - 90.0f * sx, rib.getY() - 16.0f * sy,
-                            180.0f * sx, 14.0f * sy },
-            Palette::accentHi(), kMicro * sy, Justification::centred);
+    // the seal, labelled in the row the plot leaves for it
+    const auto stopRow = heroRow (kStopTop, kStopBottom).toFloat();
+    arabic (g, kStopMark, { clamp.getCentreX() - 100.0f * sx, stopRow.getY(),
+                            200.0f * sx, stopRow.getHeight() },
+            Palette::accentHi(), kCap * sy, Justification::centred);
 
     // the caption row, inside the well: what was learnt (left) and the keys (right)
     const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
     const auto st = proc_.core().state();
-    const String learned = "LEARNED " + String (st.analyzedSeconds, 1) + " s  ·  "
-                         + String (int (bands_.size())) + " BANDS  ·  15 SONGS  ·  "
-                         + String (int (proc_.getSampleRate())) + " Hz";
-    trackedText (g, learned, caption, Palette::muted(), kMicro * sy, 1.1f);
+    const String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S  ·  "
+                         + String (int (bands_.size())) + " BANDS  ·  15 SONGS";
+    trackedText (g, learned, caption, Palette::muted(), 9.5f * sy, 1.0f);
 
     float rx = caption.getRight();
     const auto keys = std::array<std::pair<const char*, Colour>, 2> {
@@ -472,13 +475,12 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
 void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
     const float sy = float (getHeight()) / kDesignH;
     const auto rects = chipRects();
-    const int nStatic = staticBandCount();
-    const bool tracked = hasTrackedLayer();
 
-    for (int i = 0; i < int (rects.size()); ++i) {
+    for (int i = 0; i < int (rects.size()) && i < int (chips_.size()); ++i) {
         const auto r = rects[size_t (i)].toFloat();
+        const auto chip = chips_[size_t (i)];
         const bool hover = hoverChip_ == i;
-        const bool hot = tracked && i == int (rects.size()) - 1;
+        const bool hot = chip.tracked >= 0;
 
         g.setColour (Palette::surfaceHi().withAlpha (0.92f));
         g.fillRoundedRectangle (r, kChipR * sy);
@@ -486,54 +488,66 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
                          : Colours::white.withAlpha (hover ? 0.16f : 0.12f));
         g.drawRoundedRectangle (r.reduced (0.5f), kChipR * sy, 1.0f);
 
-        const bool haveBand = i < int (bands_.size());
-        const auto& spec = haveBand ? bands_[size_t (i)] : aeq::BandSpec{};
-        const double trim = i < int (trims_.size()) ? trims_[size_t (i)] : 0.0;
-        const double gain = haveBand ? spec.gainDb + trim : 0.0;
-
-        // index + mode
-        trackedText (g, String (i + 1).paddedLeft ('0', 2),
+        // index, and what kind of thing this is
+        const int index = hot ? chip.tracked + 1 : chip.band + 1;
+        trackedText (g, String (index).paddedLeft ('0', 2),
                      { r.getX() + 12.0f * sy, r.getY() + 7.0f * sy, 40.0f * sy, 12.0f * sy },
                      hot ? Palette::accentHi() : Palette::dim(), kMicro * sy, 1.3f);
-        const String mode = haveBand ? chipMode (size_t (i)) : aeq::ui::u8 (kEmptyChip);
+        const String mode = hot ? aeq::ui::u8 (kTracked) : aeq::ui::u8 (kStatic);
         const float mw = aeq::ui::measure (mode, kCap * sy);
         aeq::ui::draw (g, mode, { r.getRight() - 12.0f * sy - mw, r.getY() + 4.0f * sy, mw,
                                   r.getHeight() * 0.4f },
                        Justification::centredRight, kCap * sy,
-                       hot ? Palette::accentHi() : (i == nStatic - 1 && haveBand ? Palette::take()
-                                                                                 : Palette::muted()));
+                       hot ? Palette::accentHi() : Palette::muted());
 
-        // the number, then the micro line under it
-        if (haveBand) {
-            const String num = (gain >= 0.0 ? "+" : "") + String (gain, 1);
-            const Font big = aeq::ui::font (kValue * sy, Face::SemiBold);
-            g.setFont (big);
-            g.setColour (hot ? Palette::accentHi() : Palette::text());
-            g.drawText (num, r.withTrimmedLeft (12.0f * sy).withTrimmedTop (r.getHeight() * 0.30f)
-                                .withHeight (kValue * sy * 1.4f),
-                        Justification::centredLeft, false);
-            const float nw = aeq::ui::measure (num, kValue * sy, Face::SemiBold);
-            trackedText (g, "dB", { r.getX() + 15.0f * sy + nw, r.getY() + r.getHeight() * 0.42f,
-                                    24.0f * sy, 12.0f * sy },
-                         Palette::dim(), kMicro * sy, 0.4f);
+        // the number: the band's cut, or how far the layer is moving the harmonic now
+        // A tracked layer has no fixed frequency - it sits on a harmonic of the note
+        // being sung, which is the whole point of it - so the chip names the harmonic
+        // and the gain it is applying right now, and never invents a Hz it does not have.
+        double gain = 0.0, f0 = 0.0, q = 0.0;
+        String micro;
+        if (hot) {
+            const auto spec = proc_.core().trackedSpec (chip.tracked);
+            gain = proc_.core().trackedGainDb (chip.tracked);
+            q = spec.q;
+            micro = "H" + String (spec.harmonic) + "  ·  Q " + String (q, 2);
+        } else if (chip.band < int (bands_.size())) {
+            const auto& spec = bands_[size_t (chip.band)];
+            gain = spec.gainDb + (chip.band < int (trims_.size()) ? trims_[size_t (chip.band)] : 0.0);
+            f0 = spec.f0;
+            q = spec.q;
+        }
 
-            const String micro = spec.f0 >= 1000.0
-                ? String (spec.f0 / 1000.0, 2) + " kHz  ·  Q " + String (spec.q, 2)
-                : String (int (spec.f0)) + " Hz  ·  Q " + String (spec.q, 2);
-            trackedText (g, micro, { r.getX() + 12.0f * sy, r.getY() + r.getHeight() * 0.66f,
-                                     r.getWidth() - 24.0f * sy, 12.0f * sy },
-                         Palette::dim(), kMicro * sy, 0.9f);
+        const String num = (gain >= 0.0 ? "+" : "") + String (gain, 1);
+        g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
+        g.setColour (hot ? Palette::accentHi() : Palette::text());
+        g.drawText (num, r.withTrimmedLeft (12.0f * sy).withTrimmedTop (r.getHeight() * 0.28f)
+                            .withHeight (kValue * sy * 1.4f),
+                    Justification::centredLeft, false);
+        const float nw = aeq::ui::measure (num, kValue * sy, Face::SemiBold);
+        trackedText (g, "dB", { r.getX() + 15.0f * sy + nw, r.getY() + r.getHeight() * 0.40f,
+                                24.0f * sy, 12.0f * sy },
+                     Palette::dim(), kMicro * sy, 0.4f);
 
-            // the live bar: a dynamic or a tracked band is moving right now
-            if (hot) {
-                const double lvl = proc_.core().trackedCount() > 0
-                                 ? jlimit (0.0, 1.0, (proc_.core().trackedLevelDb (0) + 60.0) / 60.0)
-                                 : 0.0;
-                g.setColour (Palette::take().withAlpha (0.75f));
-                g.fillRoundedRectangle (r.getX() + 12.0f * sy, r.getBottom() - 9.0f * sy,
-                                        float ((r.getWidth() - 24.0f * sy) * lvl), 2.0f * sy,
-                                        1.0f * sy);
-            }
+        if (! hot)
+            micro = f0 >= 1000.0
+                ? String (f0 / 1000.0, 2) + " kHz  ·  Q " + String (q, 2)
+                : String (int (f0)) + " Hz  ·  Q " + String (q, 2);
+        trackedText (g, micro, { r.getX() + 12.0f * sy, r.getY() + r.getHeight() * 0.62f,
+                                 r.getWidth() - 24.0f * sy, 12.0f * sy },
+                     Palette::dim(), kMicro * sy, 0.9f);
+
+        // a tracked layer is a level, so it gets a meter; a static band has no state
+        if (hot) {
+            const double lvl = jlimit (0.0, 1.0,
+                                       (proc_.core().trackedLevelDb (chip.tracked) + 60.0) / 60.0);
+            g.setColour (Palette::take().withAlpha (0.20f));
+            g.fillRoundedRectangle (r.getX() + 12.0f * sy, r.getBottom() - 8.0f * sy,
+                                    r.getWidth() - 24.0f * sy, 3.0f * sy, 1.5f * sy);
+            g.setColour (Palette::take().withAlpha (0.85f));
+            g.fillRoundedRectangle (r.getX() + 12.0f * sy, r.getBottom() - 8.0f * sy,
+                                    float ((r.getWidth() - 24.0f * sy) * lvl), 3.0f * sy,
+                                    1.5f * sy);
         }
     }
 }
@@ -596,18 +610,8 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
 }
 
 // --------------------------------------------------------------------------- copy
-int AeqAudioProcessorEditor::staticBandCount() const {
-    return int (bands_.size()) - (hasTrackedLayer() ? 1 : 0);
-}
-
 bool AeqAudioProcessorEditor::hasTrackedLayer() const {
     return proc_.core().trackedCount() > 0;
-}
-
-String AeqAudioProcessorEditor::chipMode (size_t index) const {
-    if (hasTrackedLayer() && index + 1 == bands_.size()) return aeq::ui::u8 (kTracked);
-    if (int (index) == staticBandCount() - 1 && bands_.size() > 3) return aeq::ui::u8 (kDynamic);
-    return aeq::ui::u8 (kStatic);
 }
 
 String AeqAudioProcessorEditor::verdictLine() const {
@@ -696,8 +700,8 @@ void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
 
     // a chip is a band: dragging it is a trim, the same edit the curve handle makes
     const int chip = chipAt (p);
-    if (chip >= 0 && chip < int (bands_.size())) {
-        draggedChip_ = chip;
+    if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].band >= 0) {
+        draggedChip_ = chips_[size_t (chip)].band;
         dragStartTrim_ = chip < int (trims_.size()) ? trims_[size_t (chip)] : 0.0;
         dragOrigin_ = p;
         repaint();
@@ -719,8 +723,8 @@ void AeqAudioProcessorEditor::mouseUp (const MouseEvent&) {
 
 void AeqAudioProcessorEditor::mouseDoubleClick (const MouseEvent& e) {
     const int chip = chipAt (e.getPosition());
-    if (chip >= 0) {
-        proc_.core().setBandTrim (chip, 0.0);
+    if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].band >= 0) {
+        proc_.core().setBandTrim (chips_[size_t (chip)].band, 0.0);
         repaint();
     }
 }
@@ -752,6 +756,12 @@ void AeqAudioProcessorEditor::timerCallback() {
 
     trims_.clear();
     for (int i = 0; i < int (bands_.size()); ++i) trims_.push_back (proc_.core().bandTrim (i));
+
+    // the row: the static bands, then the dynamic layers that are actually running
+    chips_.clear();
+    for (int i = 0; i < int (bands_.size()); ++i) chips_.push_back ({ i, -1 });
+    for (int i = 0; i < proc_.core().trackedCount(); ++i) chips_.push_back ({ -1, i });
+
 
     // the seal: where the clamp is.  While learning it rides the head of the take;
     // once stopped it stays exactly where the user left it, which is the promise.

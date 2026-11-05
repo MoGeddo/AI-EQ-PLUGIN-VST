@@ -263,10 +263,40 @@ private:
 
     // The spectrum the user is watching: the 120 ms moving average (thick, accent)
     // with the mean of the whole take behind it (thin) and the peak hold on top.
+    // Display smoothing, and only display.
+    //
+    // The measured mean arrives per band edge, so two neighbouring points can differ by
+    // 10 dB when a band boundary lands on a formant.  Drawn raw that is a staircase with
+    // vertical walls - the picture the user called primitive - while the numbers on the
+    // chips and in the report are correct and stay untouched.  A +-2 point mean over a
+    // log-spaced series is about a sixth of an octave, which is the width every analyser
+    // in this market shows.  Silent bins (-119) are carried through, not averaged in.
+    std::vector<double> displaySmooth (const std::vector<double>& v, int halfWidth = 2) const {
+        if (v.size() < 3 || halfWidth <= 0) return v;
+        std::vector<double> out (v.size(), -119.0);
+        for (size_t i = 0; i < v.size(); ++i) {
+            if (v[i] <= -119.0) continue;
+            double sum = 0.0;
+            int n = 0;
+            const int lo = int (i) - halfWidth, hi = int (i) + halfWidth;
+            for (int j = lo; j <= hi; ++j) {
+                if (j < 0 || j >= int (v.size())) continue;
+                if (v[size_t (j)] <= -119.0) continue;
+                sum += v[size_t (j)];
+                ++n;
+            }
+            if (n > 0) out[i] = sum / double (n);
+        }
+        return out;
+    }
+
     void drawMeasured (juce::Graphics& g) {
         const auto& m = data_.meas;
-        const std::vector<double>& live = data_.liveDb.size() == m.freqs.size() ? data_.liveDb : m.bandDb;
-        if (live.empty() || m.freqs.empty()) return;
+        const auto& rawLive = data_.liveDb.size() == m.freqs.size() ? data_.liveDb : m.bandDb;
+        if (rawLive.empty() || m.freqs.empty()) return;
+        const std::vector<double> live = displaySmooth (rawLive);
+        const std::vector<double> peak = displaySmooth (data_.peakDb);
+        const std::vector<double> bandMean = displaySmooth (m.bandDb);
 
         auto reference = [&] (const std::vector<double>& v) {
             double ref = 0.0; int n = 0;
@@ -281,7 +311,10 @@ private:
                 const double f = m.freqs[i];
                 if (f < kFmin || f > kFmax) continue;
                 if (skipSilent && v[i] <= -119.0) { started = false; continue; }
-                const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, v[i] - ref));
+                const double rel = v[i] - ref;
+                // past the frame the line leaves rather than lying along the border
+                if (rel > kDbMax - 0.2 || rel < kDbMin + 0.2) { started = false; continue; }
+                const float x = xOf (f), y = yOf (rel);
                 if (! started) { p.startNewSubPath (x, y); started = true; } else p.lineTo (x, y);
             }
             return p;
@@ -289,11 +322,11 @@ private:
 
         if (! m.bandDb.empty()) {                       // the settled mean of the take
             g.setColour (Palette::text().withAlpha (0.22f));
-            g.strokePath (pathOf (m.bandDb, reference (m.bandDb), true), juce::PathStrokeType (1.0f));
+            g.strokePath (pathOf (bandMean, reference (bandMean), true), juce::PathStrokeType (1.0f));
         }
         if (data_.peakDb.size() == m.freqs.size()) {    // peak hold, falling 18 dB/s
             g.setColour (Palette::accent2().withAlpha (0.28f));
-            g.strokePath (pathOf (data_.peakDb, reference (live), true), juce::PathStrokeType (1.0f));
+            g.strokePath (pathOf (peak, reference (live), true), juce::PathStrokeType (1.0f));
         }
         g.setColour (Palette::accent2());               // the live analyser
         g.strokePath (pathOf (live, reference (live), true), juce::PathStrokeType (1.8f));
@@ -302,20 +335,23 @@ private:
     void drawEnvelope (juce::Graphics& g) {
         const auto& m = data_.meas;
         if (m.envDb.empty()) return;
+        const std::vector<double> env = displaySmooth (m.envDb, 3);
         double ref = 0.0;
         int n = 0;
-        for (size_t i = 0; i < m.freqs.size(); ++i)
-            if (m.freqs[i] >= 900 && m.freqs[i] < 1150 && m.envDb[i] > -119) { ref += m.envDb[i]; ++n; }
+        for (size_t i = 0; i < m.freqs.size() && i < env.size(); ++i)
+            if (m.freqs[i] >= 900 && m.freqs[i] < 1150 && env[i] > -119) { ref += env[i]; ++n; }
         if (! n) return;
         ref /= n;
 
         juce::Path p;
         bool started = false;
-        for (size_t i = 0; i < m.freqs.size(); ++i) {
-            if (m.envDb[i] <= -119) { started = false; continue; }
+        for (size_t i = 0; i < m.freqs.size() && i < env.size(); ++i) {
+            if (env[i] <= -119) { started = false; continue; }
             const double f = m.freqs[i];
             if (f < kFmin || f > kFmax) continue;
-            const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, m.envDb[i] - ref));
+            const double rel = env[i] - ref;
+            if (rel > kDbMax - 0.2 || rel < kDbMin + 0.2) { started = false; continue; }
+            const float x = xOf (f), y = yOf (rel);
             if (! started) { p.startNewSubPath (x, y); started = true; } else p.lineTo (x, y);
         }
         const float dashes[] = { 7.0f, 5.0f };

@@ -50,6 +50,11 @@ private:
     juce::Rectangle<int> well() const;       // the plot area inside the ribbon
     juce::Rectangle<int> ribbon() const;
     juce::Rectangle<int> clampHit() const;
+    // A chip is one thing in the chain, and which thing it is comes from the core:
+    // band >= 0 is a static band of the committed cascade, tracked >= 0 is a dynamic
+    // layer that sits on a harmonic of the pitch.  The row is built from what exists,
+    // so it cannot claim a layer the plugin is not running.
+    struct Chip { int band = -1; int tracked = -1; };
     std::vector<juce::Rectangle<int>> chipRects() const;
     juce::Rectangle<int> modeSeg (int i) const;
     juce::Rectangle<int> bypassHit() const;
@@ -69,7 +74,6 @@ private:
 
     juce::String verdictLine() const;
     juce::String chipMode (size_t index) const;
-    int   staticBandCount() const;
     bool  hasTrackedLayer() const;
 
     AeqAudioProcessor& proc_;
@@ -93,6 +97,7 @@ private:
     aeq::RestoreState state_;
     aeq::Measurements meas_;
     std::vector<aeq::BandSpec> bands_;
+    std::vector<Chip> chips_;
     std::vector<double> trims_;
     bool haveData_ = false;
 
