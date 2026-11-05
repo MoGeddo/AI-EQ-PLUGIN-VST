@@ -289,7 +289,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 13 passed, 0 failed
 
 - [x] G45: the band that locks onto the note and follows it - "باند يمشي مع النغمة
-  EVIDENCE: automatic-evidence=v1; definition-sha256=a83435c57d7bb5c8d8df8a9154664d4ddf6d4de36747b0da82ce34b267918c0c; exit=0; EXPECT=matched; output-sha256=1f4436f43bca5ffb6455a7d9c90078da463da1f614b67026a7faab2225d887f5; output-bytes=1252; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=6d61a6621c754db07a443b5b00d5cbec91c897ba2b34f9760cc9266fb5eb8ffa; exit=0; EXPECT=matched; output-sha256=54e52338281ee0b10fc4e0ec887e2bb2c983e36106d6439ce21daeb9d5a5a84d; output-bytes=1785; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
   ويثبتها على مستوى" (the one the user called the most important of the four plugins).
   Measured on a synthetic sung note whose f0 glides 110 -> 220 Hz: the centre stays
   within 36 cents of the truth, the worst sample-to-sample step in the output is no
@@ -298,10 +298,13 @@ at any vocal stem first; the other gates need nothing but the source tree.
   the centre by 0 cents (limit 60) while a real octave change is followed in 160 ms, a
   +12 dB note is held within 0.1 dB of where it was and settles in 16 ms, a 3 dB range
   corrects exactly 3.0 dB, and unvoiced audio returns the band to 0 dB.
+  And the loudness link from the corpus: a band told 1.0 leaves a louder note alone (0.00 dB),
+  a band told 0.0 holds it, and the difference between the corpus's 0.19 and a plain hold is
+  the 1.9 dB the slope predicts over a +10 dB note.
   CHECK: ./build/aeq_tracked
-  EXPECT: 19 passed, 0 failed
+  EXPECT: 27 passed, 0 failed
 - [x] G46: the core's dynamic layers, end to end.  After the user stops the pass, every
-  EVIDENCE: automatic-evidence=v1; definition-sha256=0617581bfd593081ac6077c06e2e94110730e7ed343eb66fa7c6d5119111acde; exit=0; EXPECT=matched; output-sha256=82fa1b6eb111d32a19365041f4b804f5459b1332473ad3a1ec777d09c8624fc0; output-bytes=1265; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=dd225695d0050559573f90c16d1bae50daf543346b8fea4d98cd46605c95dddb; exit=0; EXPECT=matched; output-sha256=be1507ff277df9907b117084297d648c0616aa6c6b10cdc621b58b3b7616be7a; output-bytes=1331; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
   learned cut that sits on a harmonic of the measured f0 becomes a band that follows that
   harmonic (never more than two, never boosting), and it does the job a static curve
   cannot: the same performance sung 10 dB louder gets its 3rd harmonic pulled back to
@@ -310,4 +313,18 @@ at any vocal stem first; the other gates need nothing but the source tree.
   touched on its loudest frames, the output stays finite and click-free, and a project
   saved without layers restores with none.
   CHECK: ./build/aeq_layers
-  EXPECT: 12 passed, 0 failed
+  EXPECT: 13 passed, 0 failed
+
+- [x] G47: the corpus is in the DSP, and the DSP did not type it.  The 15 dry stems (49.0
+  EVIDENCE: automatic-evidence=v1; definition-sha256=6a8f7f5eb0d4141a6884f4f10d2e044fced978a7c15188cfce73963bb6f60c15; exit=0; EXPECT=matched; output-sha256=b526f29c6774646a42a68f0ca61b4c936b0606c59b15e07792ebc580c688c723; output-bytes=71; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  minutes, 4084 sung notes) were measured for the one thing that repeats between them:
+  not the level (0 of 24 bands agree within 3 dB across songs, while a band moves 3.4-6.0x
+  more within a single take) and not the shape of an attack (0.79 similarity against a
+  0.75 chance floor), but the profile of how many dB each band moves per dB the voice gets
+  louder - 0.15-0.34 below 160 Hz, 1.0-1.4 in the mids, 0.6-0.8 above 5 kHz.  Fifteen songs
+  agree on it with a leave-one-out correlation of 0.92 against 0.00 for each song's band
+  axis shuffled on its own (300 draws).  The plugin reads that table from
+  plugin/Source/dsp/DynamicProfile.h, which is generated from the measurement, and this
+  gate fails if the file and the measurement ever disagree.
+  CHECK: /tmp/venv/bin/python analysis/scripts/emit_dynamic_profile.py --check
+  EXPECT: DynamicProfile.h matches the corpus (24 bands, slope correlation 0.92)

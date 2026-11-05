@@ -1,0 +1,80 @@
+{
+ "note": "the 15 dry stems analysed for docs/20; audio is copyrighted and not committed",
+ "files": [
+  {
+   "file": "اتأخر عتابنا - عمرو دياب (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 8838791,
+   "sha256_16": "398cc6f2d3202eba"
+  },
+  {
+   "file": "اسكت - أنغام (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 8408293,
+   "sha256_16": "48a6e34fb65ac18d"
+  },
+  {
+   "file": "اسمعيني - رامي صبري (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 8206627,
+   "sha256_16": "53d910a0faa6f24a"
+  },
+  {
+   "file": "القمر - رامي صبري (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 7688358,
+   "sha256_16": "af60989511ba0365"
+  },
+  {
+   "file": "ايامي - رامي صبري (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 10980831,
+   "sha256_16": "6cfb28d5b9905e85"
+  },
+  {
+   "file": "بحاول - عمرو دياب (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 6828407,
+   "sha256_16": "1f4a9a520a856eff"
+  },
+  {
+   "file": "توبه - محمد حماقي (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 8309027,
+   "sha256_16": "b1a297caf3e54223"
+  },
+  {
+   "file": "جرالك ايه - سميرة سعيد (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 10732146,
+   "sha256_16": "ba0693602d06e529"
+  },
+  {
+   "file": "جيتلك - عمرو دياب (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 9479313,
+   "sha256_16": "54ef4975d0c31709"
+  },
+  {
+   "file": "شایف قمر - عمرو دياب (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 5989354,
+   "sha256_16": "9e15812fe221487a"
+  },
+  {
+   "file": "عمرنا مانسينا - محمد حماقي (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 9684113,
+   "sha256_16": "79207499f099ea0e"
+  },
+  {
+   "file": "قالوا عني ايه - محمد حماقي (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 12028864,
+   "sha256_16": "bd03bb86236c2540"
+  },
+  {
+   "file": "كان برئ - أنغام (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 7854497,
+   "sha256_16": "92cd063cbf5bc39b"
+  },
+  {
+   "file": "من غير كلام - توو ليت (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 8691460,
+   "sha256_16": "75414263eb4c6eb0"
+  },
+  {
+   "file": "يا لطيف - سميرة سعيد (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).mp3",
+   "bytes": 10063411,
+   "sha256_16": "05bde9b5b796054d"
+  }
+ ]
+}

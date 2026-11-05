@@ -39,6 +39,7 @@
 #include <new>
 #include <vector>
 
+#include "../Source/dsp/DynamicProfile.h"
 #include "../Source/dsp/TrackedBand.h"
 
 // ---------------------------------------------------------------- allocation spy
@@ -228,6 +229,59 @@ int main() {
         ok(b.gainDb() < -1.0, "and it is cutting while the note is loud (%.2f dB)", b.gainDb());
     }
 
+    // --------------------------- CORPUS SLOPE: the hold tightens with loudness
+    // The 15-stem study says the low end barely follows the singer (0.19 dB of band per
+    // dB of voice at 100 Hz) while the mids follow at 1.0-1.4.  A band told 0.0 holds the
+    // absolute level; a band told 1.0 must do nothing at all, because following loudness
+    // is what a dry take already does and the correct action is no action.
+    {
+        auto drive = [](double slope, double rangeDown) {
+            const long n = long(kSr * 1.6);
+            std::vector<float> in(static_cast<size_t>(n));
+            double phase = 0.0;
+            for (long i = 0; i < n; ++i) {
+                const double amp = (i > long(kSr * 0.6)) ? 0.158 : 0.05;      // +10.0 dB
+                phase += 2.0 * kPi * 100.0 / kSr;
+                in[size_t(i)] = float(amp * std::sin(phase));
+            }
+            auto out = in;
+            aeq::TrackedBand b;
+            b.prepare(kSr);
+            aeq::TrackedBand::Tuning t;
+            t.mode = aeq::TrackedBand::Mode::Fixed;
+            t.fixedHz = 100.0; t.q = 6.0;
+            t.targetDb = rmsDb(in, 0, long(kSr * 0.4));          // hold the quiet level
+            t.rangeDown = rangeDown; t.rangeUp = 0.0;
+            t.holdOffSec = 0.0; t.deadBandDb = 0.0;
+            t.slopeDb = slope;
+            t.loudRefDb = -40.0;                                 // the quiet note's loudness
+            b.setTuning(t);
+            const int blk = 64;
+            for (long i = 0; i + blk <= n; i += blk) {
+                const double t_ = i / kSr;
+                b.setLoudness(-40.0 + (t_ > 0.6 ? 10.0 : 0.0));   // the same +10 dB, as a level
+                b.process(out.data() + i, nullptr, blk);
+            }
+            return b.gainDb();
+        };
+        const double gFollow = drive(1.0, 24.0);      // "let it follow": no relative move
+        const double gHold   = drive(0.0, 24.0);      // "hold it": the jump comes back
+        const double gCorpus = drive(0.19, 24.0);     // what the corpus says at 100 Hz
+        ok(std::abs(gFollow) < 0.5,
+           "a band told 1.0 leaves a louder note alone (%.2f dB)", gFollow);
+        ok(gFollow - gHold > 8.0,
+           "a band told 0.0 holds it: %.2f dB of a +10 dB note comes back", gFollow - gHold);
+        // the two holds differ by exactly slope x 10 dB, which is calibration-free: both
+        // are measured against the same reference, so the band's own detector offset
+        // cancels and the corpus number is what is left
+        ok(std::abs((gCorpus - gHold) - 1.9) < 0.6,
+           "and the corpus's 0.19 instead of 0.0 gives %.2f dB less cut (expect 1.9)",
+           gCorpus - gHold);
+        const double gLimited = drive(0.0, 3.0);
+        ok(std::abs(gLimited) < 3.01 && std::abs(gLimited) > 2.5,
+           "and the range still wins over the slope (%.2f dB of a 3 dB range)", gLimited);
+    }
+
     // ------------------------------------------------ RANGE: never more than asked
     {
         const long n = long(kSr * 1.5);
@@ -349,6 +403,19 @@ int main() {
         for (float x : L) finite = finite && std::isfinite(x);
         for (float x : R) finite = finite && std::isfinite(x);
         ok(finite, "stereo output stays finite");
+    }
+
+    // ------------------------------------------------ the corpus table itself
+    {
+        ok(std::abs(aeq::corpusSlope(100.0) - 0.19) < 0.08,
+           "the corpus table says 100 Hz barely follows loudness (%.2f)", aeq::corpusSlope(100.0));
+        ok(aeq::corpusSlope(1000.0) > 1.0,
+           "and that 1 kHz follows it more than 1:1 (%.2f)", aeq::corpusSlope(1000.0));
+        ok(aeq::corpusCorrectionDb(100.0, 10.0) < -5.0,
+           "so a +10 dB note asks the low end to come down %.1f dB",
+           aeq::corpusCorrectionDb(100.0, 10.0));
+        ok(aeq::corpusCorrectionDb(1000.0, 10.0) == 0.0,
+           "while the mids are never expanded (%.1f dB)", aeq::corpusCorrectionDb(1000.0, 10.0));
     }
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);

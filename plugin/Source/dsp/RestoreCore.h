@@ -18,6 +18,7 @@
 #include "Biquad.h"
 #include "DeEsser.h"
 #include "TrackedBand.h"
+#include "DynamicProfile.h"
 #include "EqSolver.h"
 #include "ProblemDetector.h"
 #include "../model/TargetCurve.h"
@@ -73,6 +74,10 @@ struct TrackedSpec {
     double rangeUp   = 0.0;
     double glideMs   = 25.0;
     double deadBandDb = 3.0;
+    // from the corpus table (DynamicProfile.h): how many dB this harmonic should move per
+    // dB the voice gets louder, and the loudness of the take it was learned on
+    double slopeDb   = 0.0;     // 0 = hold the level, 1 = let it follow loudness
+    double loudRefDb = -30.0;
     double attackMs   = 20.0;
     double releaseMs  = 250.0;
 };
@@ -164,6 +169,9 @@ public:
     }
     double trackedGainDb(int i) const {
         return (i >= 0 && i < kTrackedMax) ? trackedPubGain_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
+    }
+    double trackedSlope(int i) const {
+        return (i >= 0 && i < kTrackedMax) ? trackSpec_[size_t(i)].slopeDb : 1.0;
     }
     double trackedCentreHz(int i) const {
         return (i >= 0 && i < kTrackedMax) ? trackedPubHz_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
@@ -297,7 +305,11 @@ public:
         if (trackedActive_ > 0) {
             const double f0 = analyzer_.currentF0();
             const bool voiced = analyzer_.voicedNow();
-            for (int i = 0; i < trackedActive_; ++i) tracked_[size_t(i)].setPitch(f0, voiced);
+            const double loud = loudPub_.load(std::memory_order_relaxed);
+            for (int i = 0; i < trackedActive_; ++i) {
+                tracked_[size_t(i)].setPitch(f0, voiced);
+                tracked_[size_t(i)].setLoudness(loud);
+            }
         }
 
         for (int base = 0; base < n; base += kMaxChunk) {
@@ -379,6 +391,18 @@ public:
                 const double lossDb = 10.0 * std::log10(inAvg_ / outAvg_);
                 outGain_ = std::pow(10.0, std::clamp(lossDb, -6.0, 6.0) / 20.0);
             }
+        }
+
+        // Loudness, smoothed over ~150 ms, published for the dynamic layers: they hold a
+        // harmonic *relative to how loud the voice is*, by the corpus slope.  Smoothed
+        // because a per-block number jumps with the waveform and would make every layer
+        // ride single notes.
+        {
+            const double ms = inSq / double(n * (right ? 2 : 1));
+            const double loud = 10.0 * std::log10(std::max(ms, 1e-14));
+            const double a = 1.0 - std::exp(-double(n) / (fs_ * 0.15));
+            loudSm_ += a * (loud - loudSm_);
+            loudPub_.store(loudSm_, std::memory_order_relaxed);
         }
     }
 
@@ -728,6 +752,8 @@ public:
             t.glideMs = sp.glideMs;
             t.holdOffSec = 0.25;
             t.deadBandDb = sp.deadBandDb;
+            t.slopeDb = sp.slopeDb;
+            t.loudRefDb = sp.loudRefDb;
             t.attackMs = sp.attackMs;
             t.releaseMs = sp.releaseMs;
             auto& b = tracked_[size_t(i)];
@@ -945,6 +971,14 @@ private:
             // *after* the cut: a louder note is pulled back to where the corrected take
             // sat, not to where the raw take sat.
             sp.targetDb = levelAt(freqs, levelDb, b.f0) + b.gainDb;   // where the curve puts it
+            // How much this harmonic is allowed to travel with loudness, from the corpus
+            // table.  Capped at 1.0: a slope above 1 describes his mids, which move *more*
+            // than the voice does, and matching that would mean boosting when the singer
+            // pushes - on a dry vocal that lifts the noise floor with the harmonic, so the
+            // automatic path never expands.  The corpus can therefore make a hold tighter
+            // (0.19 at 100 Hz, 0.65 at 10 kHz) and never looser.
+            sp.slopeDb = std::min(1.0, corpusSlope(b.f0));
+            sp.loudRefDb = loudPub_.load(std::memory_order_relaxed);
             sp.rangeDown = std::clamp(2.0 - b.gainDb, 2.0, 6.0);
             sp.rangeUp = 0.0;
             cands.push_back({std::abs(b.gainDb), sp});
@@ -1002,6 +1036,8 @@ private:
     std::array<TrackedBand, kTrackedMax> tracked_{};   // audio thread only
     TrackedSpec trackSpec_[kTrackedMax]{};
     int trackedActive_ = 0;
+    double loudSm_ = -30.0;
+    std::atomic<double> loudPub_{-30.0};
     std::atomic<double> trackedPubLevel_[kTrackedMax];
     std::atomic<double> trackedPubGain_[kTrackedMax];
     std::atomic<double> trackedPubHz_[kTrackedMax];

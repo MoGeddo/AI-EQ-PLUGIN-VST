@@ -30,6 +30,7 @@
 #include <memory>
 #include <vector>
 
+#include "../Source/dsp/DynamicProfile.h"
 #include "../Source/dsp/RestoreCore.h"
 
 static const double kPi = 3.14159265358979323846;
@@ -192,6 +193,18 @@ int main() {
             if (!found) std::printf("    layer %d points at no learned cut\n", i + 1);
         }
         checkTrue(layers == 0 || allPointAtACut, "every layer sits on a cut the solver made");
+        // ... and the corpus decides how much each one may travel with loudness: a layer
+        // on a mid harmonic is told 1.0 (leave it alone, since his mids move with the
+        // voice).  The number is never hand-written in the DSP - it is read from the
+        // table the analysis emits (G47 checks that the table still is that table).
+        bool slopeFromCorpus = true;
+        for (int i = 0; i < layers; ++i) {
+            const auto sp = a.core->trackedSpec(i);
+            const double want = std::min(1.0, aeq::corpusSlope(sp.harmonic * st.measuredF0));
+            slopeFromCorpus = slopeFromCorpus && std::abs(sp.slopeDb - want) < 1e-6;
+        }
+        checkTrue(slopeFromCorpus, "each layer's loudness slope is the corpus's, not a guess");
+
         bool cutsOnly = true;
         for (int i = 0; i < layers; ++i) cutsOnly = cutsOnly && a.core->trackedSpec(i).rangeUp <= 0.001;
         checkTrue(cutsOnly, "and none of them can boost a harmonic");

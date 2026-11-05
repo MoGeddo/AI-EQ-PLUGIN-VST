@@ -71,6 +71,14 @@ public:
         double glideMs    = 25.0;    // 110 Hz -> 220 Hz arrives in ~4 x 25 ms
         double holdOffSec = 0.25;    // unvoiced this long -> gain returns to 0 dB
         double deadBandDb = 0.0;     // act only on the part of the error beyond this
+        // Loudness-linked target: how many dB this band follows the voice per dB the
+        // voice gets louder.  0 = hold the absolute level (the default: this is the band
+        // that "holds a frequency at a set level"), 1 = let it travel with loudness (i.e.
+        // do nothing, which is what a dry take already does).  The corpus study
+        // (analysis/scripts/structure_moves.py, 15 dry stems) supplies the number per
+        // frequency: 0.15 at 100 Hz, 0.65 at 10 kHz, >= 1 in the mids.
+        double slopeDb    = 0.0;
+        double loudRefDb  = -30.0;   // loudness of the take this layer was learned on
         int    jumpVotes  = 3;       // agreement needed for an octave-sized jump
     };
 
@@ -94,6 +102,7 @@ public:
         voiced_ = false;
         unvoicedSec_ = 0.0;
         snap_ = false;
+        loudDb_ = tuning_.loudRefDb;
     }
 
     void setTuning(const Tuning& t) {
@@ -111,6 +120,10 @@ public:
 
     // Control input, at whatever rate the tracker publishes.  voiced = false covers
     // consonants, breaths and silence.
+    // Loudness of the block about to be processed (any consistent reference - only the
+    // difference from loudRefDb is used).  Called once per block.
+    void setLoudness(double db) { loudDb_ = db; }
+
     void setPitch(double f0Hz, bool voiced) {
         if (!voiced || !(f0Hz > 20.0) || f0Hz > 2000.0) {
             voiced_ = false;
@@ -159,7 +172,17 @@ public:
             // the gain this sub-block should reach, from what the previous 16 samples saw
             const double meas = 10.0 * std::log10(std::max(env_, 1e-18));
             levelDb_ = meas;
-            double want = tuning_.targetDb - meas;      // negative = the note is too loud
+            // The target is not a fixed level: it moves with the voice by the corpus
+            // slope, so a band the corpus says barely follows loudness (0.19 at 100 Hz)
+            // is pulled down as soon as the singer pushes.
+            const double dLoud = std::clamp(loudDb_ - tuning_.loudRefDb, -24.0, 24.0);
+            const double targetNow = tuning_.targetDb + tuning_.slopeDb * dLoud;
+            // slope 1 means "let this band travel with loudness", and a band that is left
+            // alone does exactly that - so the correct action is no action.  Computed as
+            // target - measured instead, it would chase the difference between the
+            // analyser's 1/3-octave level and this band's own detector, i.e. a 2.4 dB
+            // offset that has nothing to do with the voice.
+            double want = (tuning_.slopeDb >= 0.999) ? 0.0 : (targetNow - meas);
             // The dead band is what makes this a stabiliser instead of a compressor on one
             // harmonic: inside it the band does nothing, so an ordinary note passing
             // through is not ridden.  Outside it the band aims at the target properly -
@@ -197,6 +220,11 @@ public:
     double gainDb() const   { return gainDb_; }
     double levelDb() const  { return levelDb_; }
     double targetDb() const { return tuning_.targetDb; }
+    double targetNowDb() const {
+        const double d = std::clamp(loudDb_ - tuning_.loudRefDb, -24.0, 24.0);
+        return tuning_.targetDb + tuning_.slopeDb * d;
+    }
+    double slope() const { return tuning_.slopeDb; }
     double trackedF0() const { return f0_; }
     bool   locked() const   { return tuning_.mode == Mode::Fixed || f0_ > 0.0; }
     bool   voiced() const   { return voiced_; }
@@ -261,6 +289,7 @@ private:
     double f0_ = 0.0;
     double pendingHz_ = 0.0;
     int    votes_ = 0;
+    double loudDb_ = -30.0;
     bool   voiced_ = false;
     bool   snap_ = false;         // set by setPitch, consumed by the audio thread
     double unvoicedSec_ = 0.0;
