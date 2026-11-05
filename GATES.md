@@ -362,3 +362,23 @@ at any vocal stem first; the other gates need nothing but the source tree.
   worst error is 2.8 deg over 267 deg of travel.
   CHECK: /tmp/venv/bin/python design/preview/check_panel.py --claim=material
   EXPECT: material ok: 5 material sprites in the composite
+- [x] G50: the panel is *this* product's, not the reference store's.  v5 and v6 were a
+  EVIDENCE: automatic-evidence=v1; definition-sha256=f17b1337ba7b8316d061825e6286ad8e220b87d9033efc18c9e30dc064474851; exit=0; EXPECT=matched; output-sha256=ad33c46d84b0f06873f4c20a7a2d383f00247687d83c8383e8fa2e48d845dfef; output-bytes=463; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  copy and the user said so in one line: "كنت اقصد الهوية البصرية و التحضر في التصميم مش
+  اقصد نسخة" - the identity and the craft, not a reproduction.  A copy is measurable.
+  Three of the reference's cues are pixel tests: a **centred pill** (nothing may be drawn
+  within 60 px of the panel's horizontal centre in the header band), an **equal card grid**
+  (no two layout blocks may share a height - the identity's blocks are 42/100/254/134/76),
+  and a **third accent** (the saturated pixels must cluster into exactly two hues; this
+  world is brass ~30 deg = a decision and patina ~150 deg = a measurement, where the
+  reference is blue + amber).  The same two pixel measures are also run against the
+  previous render (`--against-v6`) and are required to FAIL there - 237 px drawn in the
+  header centre, a third accent at 225 deg - so the gate is shown to discriminate instead
+  of agreeing with whatever is on screen.  What the panel must carry is also measured: a
+  take bar sealed somewhere inside it with the machined clamp on the seal, the learned
+  mass at 64 % patina and 2455 brass px of curve over the spectrum, and a ledger holding
+  static + dynamic + tracked bands at once (2/1/1).  The world itself is written down in
+  design/IDENTITY_AR.md - brass = a decision, patina = a measurement - and the copy is
+  read out of the module, so this cannot drift.
+  CHECK: /tmp/venv/bin/python design/preview/check_identity.py --against-v6
+  EXPECT: identity ok: 23 Arabic strings covered

@@ -9,14 +9,18 @@ attempts are the evidence - they were flat because every pixel was a shape.
 So the parts are rendered once, as photographs of nothing in particular:
 
     design/assets/src/knob_plain.png    a large machined knob, plain face
+    design/assets/src/knob_gold.png     the brass knob (the one that makes decisions)
+    design/assets/src/clamp_brass.png   the machined clamp that seals a learned take
     design/assets/src/button_unlit.png  a smoked-glass button, off
     design/assets/src/button_round.png  the same button, lit amber (from under the glass)
     design/assets/src/plate_carbon.png  the brushed panel material
 
 and this script cuts them into what the panel actually composites:
 
-    knob_body.png / knob_body_sm.png    the knob with its face present and *no pointer*
-    knob_body_warm.png                  the same face, tinted warm for the learn section
+    knob_body.png / knob_body_sm.png    the steel knob, face present, *no pointer*
+    knob_body_warm.png                  the same face, tinted warm
+    knob_brass.png / _sm                the brass knob - brass means "a decision"
+    clamp.png / clamp_sm.png            the seal, on its own so it can sit on the take bar
     button_off.png / button_on.png      the two states
     panel_plate.png                     the plate, graded and vignetted to the window
 
@@ -79,6 +83,20 @@ def main() -> int:
     warm.putalpha(knob.resize((320, 320), Image.LANCZOS).getchannel("A"))
     save(warm, "knob_body_warm.png")
 
+    # ---- brass: the knob the product uses for its own decisions -------------------
+    # (identity rule in design/IDENTITY_AR.md: brass = a decision, patina = a
+    #  measurement.  The two never swap, so they cannot be recoloured casually.)
+    brass = tight(cut(load("knob_gold.png")))
+    save(brass.resize((320, 320), Image.LANCZOS), "knob_brass.png")
+    save(brass.resize((196, 196), Image.LANCZOS), "knob_brass_sm.png")
+
+    # ---- the seal: a machined clamp, the one part the story is about --------------
+    clamp = tight(cut(load("clamp_brass.png")))
+    h64 = 64
+    w64 = int(clamp.size[0] * h64 / clamp.size[1])
+    save(clamp.resize((w64, h64), Image.LANCZOS), "clamp.png")
+    save(clamp.resize((w64 // 2, h64 // 2), Image.LANCZOS), "clamp_sm.png")
+
     # ---- buttons: the two real states ---------------------------------------------
     on = tight(cut(load("button_round.png")))
     off = tight(cut(load("button_unlit.png")))
@@ -90,7 +108,13 @@ def main() -> int:
     plate = load("plate_carbon.png").convert("RGB")
     w, h = 1180, 700
     tile = plate.resize((w, h), Image.LANCZOS)
-    tile = ImageEnhance.Brightness(tile).enhance(0.92)
+    # warm the material towards lacquer (IDENTITY: #0A0908 -> #14110E, never a
+    # cold grey) - the render is neutral carbon and the world is not
+    r, g, b = tile.split()
+    tile = Image.merge("RGB", (r.point(lambda v: min(255, int(v * 1.10 + 3))),
+                               g.point(lambda v: min(255, int(v * 1.00 + 1))),
+                               b.point(lambda v: min(255, int(v * 0.86)))))
+    tile = ImageEnhance.Brightness(tile).enhance(0.94)
     # a soft top-down gradient so the plate reads as lit from above
     grad = Image.new("L", (1, h))
     gp = grad.load()
@@ -109,12 +133,13 @@ def main() -> int:
 
     missing = [p.name for p in [OUT / n for n in
                ("knob_body.png", "knob_body_sm.png", "knob_body_warm.png",
+                "knob_brass.png", "knob_brass_sm.png", "clamp.png", "clamp_sm.png",
                 "button_on.png", "button_off.png", "panel_plate.png")]
                if not p.exists()]
     if missing:
         print("missing sprites: " + ", ".join(missing), file=sys.stderr)
         return 1
-    print("sprites written: 7 files from 4 materials")
+    print("sprites written: 12 files from 7 materials")
     return 0
 
 
