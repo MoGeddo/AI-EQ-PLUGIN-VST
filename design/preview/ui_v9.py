@@ -76,14 +76,18 @@ WORLDS = {
                                                (0.97, 1.20, 0.66, "second", 26)),
                     wells=((0.24, 0.66, 0.58, "second", 28), (0.78, 0.30, 0.52, "accent", 22)),
                     knob="brass", knob_tint=(255, 128, 92)),
-    "neon": dict(ink_top=(24, 18, 36), ink_bot=(8, 7, 14), text=(250, 244, 252),
+    # 1.2.9: the ground was lifted.  The first pass at this world was correct in hue and
+    # too dark in value - "ألوان مبهجة أكتر من كدة حاسه قديم اوي" is a complaint about
+    # brightness, not about taste - so the field, the plate and the ambient blooms all
+    # gain light.  The two accents do not move; the roles do not move.
+    "neon": dict(ink_top=(52, 33, 74), ink_bot=(17, 12, 30), text=(252, 246, 254),
                  soft=(206, 196, 220), dim=(176, 168, 196), faint=(140, 134, 160),
                  line=(246, 240, 250),
                  accent=(255, 94, 168), accent_hot=(255, 186, 220),
                  second=(84, 214, 255), second_hot=(186, 240, 255),
-                 chip=(26, 21, 36), blooms=((0.08, -0.28, 0.70, "accent", 28),
-                                            (0.97, 1.20, 0.64, "second", 28)),
-                 wells=((0.22, 0.68, 0.55, "second", 22), (0.80, 0.28, 0.50, "accent", 16)),
+                 chip=(40, 30, 56), blooms=((0.08, -0.28, 0.74, "accent", 44),
+                                            (0.97, 1.20, 0.68, "second", 40)),
+                 wells=((0.22, 0.68, 0.60, "second", 30), (0.80, 0.28, 0.56, "accent", 24)),
                  knob="brass", knob_tint=(255, 94, 168)),
     # ink-teal, lime decision, coral measurement: the most cheerful pair and the one
     # that reads least "audio plugin".
@@ -499,7 +503,9 @@ def draw_graph(canvas):
     """
     x0, y0, x1, y1 = GRAPH
     size = (x1 - x0, y1 - y0)
-    plate = Image.new("RGBA", size, (10, 10, 12, 214))
+    # the well is the world's own dark, not a neutral black: a black inset in a violet
+    # panel reads as a hole, and at this size the hole was most of what the eye saw.
+    plate = Image.new("RGBA", size, mix(INK_BOT, INK_TOP, 0.34) + (222,))
     plate.putalpha(rounded_mask(size, GRAPH_R))
     canvas.alpha_composite(plate, (x0, y0))
     over(canvas, lambda d: (d.rounded_rectangle([x0, y0, x1, y1], radius=GRAPH_R,
@@ -777,6 +783,16 @@ def draw_footer(canvas):
 
 # ------------------------------------------------------------------ build
 def build():
+    # AEQ_GROUND_ONLY draws the field and nothing else, to ui_v9_<world>_ground.png.
+    # The identity gate diffs the panel against it: on a panel whose *ground* is
+    # colourful, a saturation-only hue count reports the room's light instead of the
+    # drawing's ink, and "exactly two accents" stops meaning anything.
+    if os.environ.get("AEQ_GROUND_ONLY"):
+        g = ground()
+        g.putalpha(rounded_mask((W, H), PANEL_R))
+        g.save(HERE / f"ui_v9_{PALETTE}_ground.png")
+        return 0
+
     canvas = ground()
     mask = rounded_mask((W, H), PANEL_R)
 

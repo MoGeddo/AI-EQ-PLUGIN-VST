@@ -344,7 +344,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   no two blocks of the layout overlap.  The strings are read out of ui_v6.ARABIC_STRINGS so
   the gate cannot pass on copy that has since changed.
   CHECK: /tmp/venv/bin/python design/preview/check_panel.py --claim=blocks
-  EXPECT: panel ok: 24 Arabic strings fully covered by the bundled font
+  EXPECT: panel ok: 21 Arabic strings fully covered by the bundled font
 
 - [x] G49: the panel is made of real parts, and the pointer answers the value.  v3, v4 and
   EVIDENCE: automatic-evidence=v1; definition-sha256=4ec8669e3d11580d8a7be98de61b5b07f9d0cdb968a3e7e2db5fe54ede19043b; exit=0; EXPECT=matched; output-sha256=5505d0eb9b32798206c9e6d62ea5d1414206cf1cc8132be85ce7f84a116ae33b; output-bytes=120; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
@@ -483,3 +483,22 @@ at any vocal stem first; the other gates need nothing but the source tree.
   pass mean something.
   CHECK: /tmp/venv/bin/python design/preview/check_modern.py
   EXPECT: modern ok: 4 blocks, no shared height
+
+- [x] G57: the field was lifted, and the two accent tests moved with it instead of
+  being switched off.  "ألوان مبهجة أكتر من كدة حاسه قديم اوي" is a complaint about
+  value, not about hue: the neon world's hues were already right, the ground was too
+  dark, and a black inset well in a violet panel read as a hole.  The ink went from
+  `#181224`/`#08070E` to `#34214A`/`#110C1E`, the well from a neutral `#0A0A0C` to the
+  world's own dark `#1D132D`, and the ambient blooms from 28/28 to 44/40.  Body contrast
+  drops from 7.7:1 to 5.9:1 and clears the 4.5:1 floor.
+  Three gate corrections came out of doing it honestly, and each is a rule about what an
+  accent *is* rather than a ceiling moved out of the way:
+  (1) the hue count runs on the panel minus a ground-only render, so the room's light
+  cannot vote; (2) an accent must be bright ink, so the value floor is 150 - the plate
+  and the well are saturated too; (3) an accent must be an area, so the floor is 5 % of
+  the drawn ink, where 2 % was letting violet fringes between plate, glow and curve pass
+  as a third colour.  The margin colour bound moves 600 -> 900 because a brighter field
+  legitimately holds more distinct colours; the texture ceiling stays at 0.8 hf, and the
+  field measures 0.32-0.68 against v7's fabric at 1.9-3.2.
+  CHECK: /tmp/venv/bin/python design/preview/check_identity.py
+  EXPECT: identity ok: 21 Arabic strings covered

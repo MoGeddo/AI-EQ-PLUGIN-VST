@@ -30,16 +30,17 @@
 namespace aeq::ui {
 
 struct Palette {
-    // ---- surfaces: warm black, never a cold grey.
-    // v8's ground is a gradient from INK_TOP to INK_BOT with two blooms on it; the
-    // three surface tokens are the exact stops of that ground and of the graph plate,
-    // so the C++ port cannot drift from design/preview/ui_v8.py.
-    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x18, 0x12, 0x24); }
-    static juce::Colour bg()        { return juce::Colour::fromRGB (0x08, 0x07, 0x0e); }
-    static juce::Colour surface()   { return juce::Colour::fromRGB (0x0a, 0x0a, 0x0c); }
-    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x1a, 0x15, 0x24); }
-    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x2a, 0x25, 0x1e); }
-    static juce::Colour text()      { return juce::Colour::fromRGB (0xfa, 0xf4, 0xfc); }
+    // ---- surfaces: a violet ink, lit from the top.
+    // These are the exact stops of design/preview/ui_v9.py's "candy" world - ink_top,
+    // ink_bot, and the graph plate - so the port cannot drift from the render it is
+    // measured against.  The ground got lighter and more chromatic in v9: the panel
+    // being asked for is bright, not a warm black with two coloured lines on it.
+    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x34, 0x21, 0x4a); }
+    static juce::Colour bg()        { return juce::Colour::fromRGB (0x11, 0x0c, 0x1e); }
+    static juce::Colour surface()   { return juce::Colour::fromRGB (0x1d, 0x13, 0x2d); }  // the well
+    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x28, 0x1e, 0x38); }  // a chip
+    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x4a, 0x3a, 0x5c); }
+    static juce::Colour text()      { return juce::Colour::fromRGB (0xfc, 0xf6, 0xfe); }
     static juce::Colour muted()     { return juce::Colour::fromRGB (0xce, 0xc4, 0xdc); }
     static juce::Colour dim()       { return juce::Colour::fromRGB (0xb0, 0xa8, 0xc4); }
 

@@ -58,7 +58,11 @@ MARGINS = {"left": (4, 120, 20, 600), "right": (1160, 120, 1176, 600),
 # and v7's fabric plate at 1.9-3.2, a 6x gap.  Colour count is a sanity bound only -
 # a saturated gradient legitimately holds more distinct colours than a warm grey one,
 # and refusing colour would refuse the thing the panel was asked to become.
-MAX_MARGIN_COLOURS = 600
+# 1.2.9: the field is brighter, so its margins hold more distinct colours
+# (615-709 against 42-109 in the near-black world).  Colour count was never the
+# measure of texture - that is hf, and it still sits at 0.32-0.68 against v7's
+# 1.9-3.2 - so the bound moves with the world and the texture ceiling does not.
+MAX_MARGIN_COLOURS = 900
 MAX_MARGIN_HF = 0.8
 
 

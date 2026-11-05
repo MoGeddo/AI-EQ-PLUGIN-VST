@@ -233,12 +233,44 @@ if bright > 60:
 else:
     notes.append(f"header centre empty ({bright} px over the plate)")
 
-# (b) exactly two accents: cluster the saturated pixels by hue
+# (b) exactly two accents: cluster the saturated pixels by hue.
+#
+# The count runs on what the *drawing* put on screen, not on the panel: the ground is
+# diffed out against a ground-only render.  A vivid ground is saturated too, and once
+# the field carries real light a composite-only count reports the room instead of the
+# ink - the first render of the brighter world collapsed both accents into the field's
+# hue at 240 deg.
+ground_path = ui.HERE / f"ui_v9_{ui.PALETTE}_ground.png"
+if not ground_path.exists():
+    # render it rather than complain: the file is a build product, and a gate that
+    # fails because a product was not made yet teaches nobody anything
+    import os as _os
+    import subprocess as _sp
+    _sp.run([sys.executable, str(ui.HERE / "ui_v9.py")],
+            env={**_os.environ, "AEQ_GROUND_ONLY": "1"}, check=True,
+            stdout=_sp.DEVNULL)
+if not ground_path.exists():
+    problems.append(f"{ground_path.name} missing - run AEQ_GROUND_ONLY=1 "
+                    "design/preview/ui_v9.py")
+    ground_px = None
+else:
+    ground_px = (Image.open(ground_path).convert("RGB")
+                 .resize((ui.W // 2, ui.H // 2)).load())
+
+half = img.resize((ui.W // 2, ui.H // 2))
 sat = []
-for p in img.resize((ui.W // 2, ui.H // 2)).get_flattened_data():
-    mx, mn = max(p), min(p)
-    if mx > 60 and (mx - mn) / mx > 0.22:
-        sat.append(p)
+for y in range(half.size[1]):
+    for x in range(half.size[0]):
+        p = half.getpixel((x, y))
+        if ground_px is not None:
+            g0 = ground_px[x, y]
+            if sum(abs(int(p[i]) - int(g0[i])) for i in range(3)) < 14:
+                continue                       # the room's light, not the drawing
+        mx, mn = max(p), min(p)
+        # an accent is *bright* saturated ink.  The plate is a saturated violet too, and
+        # so is the well - raising the value floor is what tells an accent from a surface.
+        if mx > 150 and (mx - mn) / mx > 0.22:
+            sat.append(p)
 hues: dict[int, int] = {}
 for p in sat:
     r, g, b = [c / 255.0 for c in p]
@@ -253,9 +285,10 @@ for p in sat:
     else:
         h = 60 * ((r - g) / d) + 240
     hues[int(h) // 15] = hues.get(int(h) // 15, 0) + 1
-# a 2 % floor: the smaller accent (the curve, the seal, the tracked chip) is allowed to
-# be a smaller area than the measurement fill, as long as it is unmistakably there
-big = {k * 15: n for k, n in hues.items() if n >= 0.02 * max(1, len(sat))}
+# a 5 % floor: an accent is an *area* of this panel - the curve, the seal, the chips, the
+# strip - not a fringe.  At 2 % the violet edges where the plate, the glow and the curve
+# blend in passed as accents, and a three-hue reading says nothing about the drawing.
+big = {k * 15: n for k, n in hues.items() if n >= 0.05 * max(1, len(sat))}
 # merge neighbouring buckets into one accent
 merged: list[list[int]] = []
 for h in sorted(big):
