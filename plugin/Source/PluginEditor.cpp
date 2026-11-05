@@ -751,7 +751,13 @@ void AeqAudioProcessorEditor::timerCallback() {
 
     state_ = proc_.core().state();
     meas_ = proc_.core().measurements();
-    bands_ = proc_.core().activeBands();
+
+    // activeBands() also carries the corpus' taste bands; at rest they are all 0 dB and
+    // the cascade skips them.  Show the bands that are doing something, so the count on
+    // the caption, the chips and the handles all agree with appliedBandCount().
+    bands_.clear();
+    for (const auto& b : proc_.core().activeBands())
+        if (std::abs (b.gainDb) > 0.05) bands_.push_back (b);
     haveData_ = state_.valid;
 
     trims_.clear();

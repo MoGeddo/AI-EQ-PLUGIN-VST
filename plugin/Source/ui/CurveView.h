@@ -312,9 +312,10 @@ private:
                 if (f < kFmin || f > kFmax) continue;
                 if (skipSilent && v[i] <= -119.0) { started = false; continue; }
                 const double rel = v[i] - ref;
-                // past the frame the line leaves rather than lying along the border
-                if (rel > kDbMax - 0.2 || rel < kDbMin + 0.2) { started = false; continue; }
-                const float x = xOf (f), y = yOf (rel);
+                // A take with a loud low end sits above the top of a fixed +18 dB window;
+                // it clips there, the way every analyser in this market clips, instead of
+                // leaving a hole in the line where the voice went over.
+                const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, rel));
                 if (! started) { p.startNewSubPath (x, y); started = true; } else p.lineTo (x, y);
             }
             return p;
@@ -349,9 +350,7 @@ private:
             if (env[i] <= -119) { started = false; continue; }
             const double f = m.freqs[i];
             if (f < kFmin || f > kFmax) continue;
-            const double rel = env[i] - ref;
-            if (rel > kDbMax - 0.2 || rel < kDbMin + 0.2) { started = false; continue; }
-            const float x = xOf (f), y = yOf (rel);
+            const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, env[i] - ref));
             if (! started) { p.startNewSubPath (x, y); started = true; } else p.lineTo (x, y);
         }
         const float dashes[] = { 7.0f, 5.0f };
