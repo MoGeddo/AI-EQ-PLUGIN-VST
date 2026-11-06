@@ -130,16 +130,23 @@ WELLS = tuple((cxr, cyr, r, (_W[c] if c in ("accent", "second") else c), a)
 # ---- one type scale, four steps ----------------------------------------------------
 # 1.2.10: everything went up a step and the numbers went up two - the panel is read
 # at arm's length on a 1180 px window, and 8 px micro-caps are a hat, not a label.
-T_MICRO, T_CAP, T_BODY, T_VALUE = 11, 13, 16, 21
+# 1.2.18: everything one step up.  The panel was read at arm's length and the labels on
+# the controls - "strength", "auto-stop", "STATIC", the frequency under each band - were
+# the ones a person could not make out.  Four steps, still four: 13 / 15 / 18 / 24.
+T_MICRO, T_CAP, T_BODY, T_VALUE = 13, 15, 18, 24
 
 # ---- geometry ----------------------------------------------------------------------
 M = 22                                   # margin: tighter than v7, so the graph can breathe
 X0, X1 = M, W - M
 HEADER = (X0, 14, X1, 54)
-GRAPH = (X0, 70, X1, 556)                # 496 px = 71 % of the window
-TAKE_RIBBON = (X0 + 18, 494, X1 - 18, 520)
-CHIPS = (X0, 572, X1, 636)
-FOOTER = (X0, 646, X1, 682)
+# 1.2.18: the type went up one step and the two rows under the graph had to grow with
+# it.  The old footer was 36 px tall and a 24 px knob value hung out of the bottom of the
+# window - the render said so before the window did.  The graph gives up 44 px of height
+# (67 %, still the instrument) and both rows below it gain room.
+GRAPH = (X0, 70, X1, 540)                # 470 px = 67 % of the window
+TAKE_RIBBON = (X0 + 18, 486, X1 - 18, 512)
+CHIPS = (X0, 548, X1, 628)
+FOOTER = (X0, 634, X1, 680)
 
 PANEL_R, GRAPH_R, CHIP_R, PILL_R, SMALL_R = 16, 14, 12, 11, 4
 RADII = (PANEL_R, GRAPH_R, CHIP_R, PILL_R, SMALL_R, 2)
@@ -542,10 +549,10 @@ def draw_graph(canvas):
     d = ImageDraw.Draw(canvas)
     rx = x1 - 16
     for label, col in ((DECISION_KEY, BRASS), (MEASURED_KEY, PATINA)):
-        ky = TAKE_RIBBON[3] + 12
+        ky = TAKE_RIBBON[3] + 8
         lw = ar_w(label, T_CAP)
         ar_text(ImageDraw.Draw(canvas), (rx, ky), label, T_CAP, DIM, anchor="ra")
-        over(canvas, lambda dd, rx=rx, lw=lw: dd.ellipse([rx - lw - 18, ky + 5, rx - lw - 10, ky + 13],
+        over(canvas, lambda dd, rx=rx, lw=lw: dd.ellipse([rx - lw - 17, ky + 2, rx - lw - 9, ky + 10],
                                                         fill=col + (230,)))
         rx -= lw + 44
 
@@ -707,15 +714,18 @@ def draw_take(canvas):
     # one strip under the ribbon: learned (left), the stop (centre), the keys (right).
     # Nothing is stacked, and nothing sits over the clamp itself.
     # under the band: what was learnt (left, Arabic) and the keys (right).
-    caps(d, (x0, y1 + 12), "HEARD 24.9 S  ·  96 BANDS  ·  15 REFERENCE TAKES"
+    caps(d, (x0, y1 + 12), "HEARD 24.9 S  ·  4 BANDS  ·  AMIR 15 + 13-TAKE CONSENSUS"
                           "  ·  AUTO GAIN -1.8 DB", T_MICRO, DIM, 1.1)
-    # the seal itself is labelled: above the band, where nothing else lives
-    mark_w = ar_w(STOP_MARK, T_MICRO)
+    # The clamp's own label.  It is a chip in the row above the ribbon, clamped inside
+    # it, because the clamp rides towards the right edge as the take grows - and it is
+    # the only control that starts and stops the pass, so it always says its verb.
+    mark_w = ar_w(STOP_MARK, T_MICRO) + 22
+    mx = min(max(x0, seal_x - mark_w / 2), x1 - mark_w)
     over(canvas, lambda dd: dd.rounded_rectangle(
-        [seal_x - mark_w / 2 - 8, y0 - 24, seal_x + mark_w / 2 + 8, y0 - 5],
-        radius=4, fill=(10, 8, 16, 200)))
+        [mx, y0 - 25, mx + mark_w, y0 - 5], radius=SMALL_R, fill=(0, 0, 0, 214),
+        outline=BRASS + (130,)))
     d = ImageDraw.Draw(canvas)
-    ar_text(d, (seal_x, y0 - 21), STOP_MARK, T_MICRO, BRASS_HOT, anchor="ma")
+    ar_text(d, (mx + mark_w / 2, y0 - 24), STOP_MARK, T_MICRO, BRASS_HOT, anchor="ma")
 
 
 def draw_chips(canvas):
@@ -748,14 +758,14 @@ def draw_chips(canvas):
         d = ImageDraw.Draw(canvas)
         # two rows, not three: the number owns the left, the spec owns the right, and
         # the chip keeps the height the band row has always had.
-        caps(d, (cx0 + 12, y0 + 7), f"0{i + 1}", T_MICRO, BRASS_HOT if hot else FAINT, 1.3)
+        caps(d, (cx0 + 12, y0 + 7), f"0{i + 1}", T_MICRO, BRASS_HOT if hot else DIM, 1.3)
         ar_text(d, (cx1 - 12, y0 + 5), BAND_MODES[mode], T_CAP,
                 BRASS_HOT if hot else (PATINA if mode == 2 else DIM), anchor="ra")
         w = num(canvas, cx0 + 12, y0 + 22, f"{g:+.1f}", T_VALUE,
                 BRASS_HOT if hot else TEXT, anchor="la")
         d = ImageDraw.Draw(canvas)
         caps(d, (cx0 + 17 + w, y0 + 30), CHIP_UNIT, T_MICRO, DIM, 0.3)
-        caps(d, (cx1 - 12, y0 + 31), f"{bf:.0f} Hz · Q {q:.2f}", T_MICRO, FAINT, 0.9,
+        caps(d, (cx1 - 12, y0 + 32), f"{bf:.0f} Hz · Q {q:.2f}", T_MICRO, DIM, 0.9,
              anchor="ra")
         if live > 0.02:
             over(canvas, lambda dd, cx0=cx0, cx1=cx1: dd.rounded_rectangle(
@@ -794,13 +804,13 @@ def draw_footer(canvas):
     # the plugin puts "strength" on the left dial and "auto-stop" on the right one, so the
     # render does too: the row reads in the order the chain works
     for i, (val, label) in enumerate(((0.0, KNOB_LABELS[1]), (0.62, KNOB_LABELS[0]))):
-        cx = x1 - 30 - i * 128
+        cx = x1 - 34 - i * 168
         knob_small(canvas, cx, cy, 42, val, brass=(_W.get("knob", "brass") == "brass"))
         d = ImageDraw.Draw(canvas)
-        ar_text(d, (cx - 34, cy - 19), label, T_MICRO, DIM, anchor="ra")
+        ar_text(d, (cx - 40, cy - 20), label, T_CAP, DIM, anchor="ra")
         readout = ("OFF" if val < 0.01 else "45 s") if label == KNOB_LABELS[1] \
             else f"{val * 100:.0f}%"
-        num(canvas, cx - 34, cy + 1, readout, T_BODY, TEXT, anchor="ra")
+        num(canvas, cx - 40, cy - 3, readout, T_VALUE, TEXT, anchor="ra")
 
 
 # ------------------------------------------------------------------ build

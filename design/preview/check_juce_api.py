@@ -72,7 +72,7 @@ if not cxx:
     sys.exit(1)
 
 HEADERS = ["ui/Theme.h", "ui/MotionSpec.h", "ui/ArabicText.h", "ui/CurveView.h",
-           "ui/ProblemList.h"]
+           "ui/ProblemList.h", "ui/PanelCopy.h", "ui/BandRow.h"]
 
 # ...and the editor itself.  The UI headers compiled for four versions while the
 # window they were supposed to describe still drew the old layout; a gate that stops
@@ -161,6 +161,72 @@ with tempfile.TemporaryDirectory() as td:
             problems.append(f"the knob box is {box.group(1)} px - the value ring is drawn "
                             "at 1.19 x the body and gets clipped by the child's bounds")
         notes.append("the dials take proportions, not values, and their boxes hold the ring")
+
+    # ---- 4. every control a person can press does something ---------------------
+    # The user's report was "some keys do not come back and I cannot tell where the scan
+    # stops or starts".  Both were true, and neither was a drawing problem:
+    #   * reset called requestReset(), which cleared the core but left the processor not
+    #     learning - one reset after one stop and the plugin never analysed again;
+    #   * the clamp called core().reopen() while the processor stayed stopped, so "OPEN"
+    #     was a word with nothing behind it.
+    # A handler that names a control has to reach a function that changes the state, and
+    # this reads the handlers to check it does.
+    if editor.exists():
+        src = editor.read_text()
+        handlers = {
+            "the clamp": ("if (clampHit().contains (p))", "proc_.reopenPass()",
+                          "proc_.stopLearning()"),
+            "reset":     ("if (resetHit().contains (p))", "proc_.relearn()", None),
+            "bypass":    ("if (bypassHit().contains (p))", "setValueNotifyingHost", None),
+            "the mode":  ("if (modeSeg (i).contains (p))", "setValueNotifyingHost", None),
+            "space":     ("keyPressed", "proc_.stopLearning()", "proc_.reopenPass()"),
+        }
+        # Inside mouseDown only.  The first version of this check searched the whole file
+        # and found the *tooltip* text for reset first, then reported that reset changes
+        # nothing - a gate reading the wrong function is the same bug it was written to
+        # catch, one level up.
+        down_at = src.find("void AeqAudioProcessorEditor::mouseDown")
+        down_end = src.find("\nvoid ", down_at + 10) if down_at >= 0 else -1
+        if down_at < 0 or down_end < 0:
+            problems.append("there is no mouseDown to check - the controls cannot be verified")
+            down_at, down_end = 0, len(src)
+        mouse = src[down_at:down_end]
+        for name, (anchor_txt, *needs) in handlers.items():
+            scope = src if anchor_txt == "keyPressed" else mouse
+            at = scope.find(anchor_txt)
+            if at < 0:
+                problems.append(f"{name} has no handler in "
+                                + ("keyPressed" if anchor_txt == "keyPressed" else "mouseDown")
+                                + " - the control is decorative")
+                continue
+            body = scope[at:at + 900]
+            for need in [n for n in needs if n]:
+                if need not in body:
+                    problems.append(f"{name}'s handler never reaches {need} - the "
+                                    "control changes nothing a person can see")
+        if "proc_.relearn()" not in src:
+            problems.append("nothing calls relearn(): a reset cannot put the plugin back to "
+                            "listening")
+        if "proc_.reopenPass()" not in src:
+            problems.append("nothing calls reopenPass(): a sealed take cannot be opened again")
+        notes.append(f"{len(handlers)} controls answer to a handler that changes state")
+
+    # ---- 5. the panel's type is big enough to read ------------------------------
+    # 1.2.18: "الخطوط مش واضحة اللي على الأزرار صغيرة و مش باينة".  The smallest string on
+    # the panel is the one that matters, and it was 11 px.  The floor is a number so it
+    # cannot quietly drift back down.
+    sizes = re.search(r"kMicro = ([0-9.]+)f, kCap = ([0-9.]+)f, kBody = ([0-9.]+)f, "
+                      r"kValue = ([0-9.]+)f", editor.read_text() if editor.exists() else "")
+    if not sizes:
+        problems.append("the editor does not declare its four type steps")
+    else:
+        micro, cap, body, value = [float(x) for x in sizes.groups()]
+        if micro < 12.0:
+            problems.append(f"the smallest label is {micro} px - under the 12 px floor")
+        if not (micro < cap < body < value):
+            problems.append(f"the type scale is not a scale: {micro}/{cap}/{body}/{value}")
+        notes.append(f"type {micro:.0f}/{cap:.0f}/{body:.0f}/{value:.0f} px, smallest at "
+                     f"the floor")
 
     shot = SRC.parent / "Tests" / "ui_shot.cpp"
     if shot.exists():

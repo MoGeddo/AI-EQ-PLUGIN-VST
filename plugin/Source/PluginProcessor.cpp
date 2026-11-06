@@ -191,7 +191,11 @@ AeqAudioProcessor::AutoState AeqAudioProcessor::autoState() const {
     return a;
 }
 
-void AeqAudioProcessor::requestReset() { resetRequested_ = true; }
+void AeqAudioProcessor::requestReset() {
+    resetRequested_.store (true);
+    learning_.store (true);      // a reset that leaves the plugin not listening is a reset
+                                 // that needs a second, invisible button
+}
 
 // Stop the learn pass: the decision is solved from everything heard so far, applied
 // with a 200 ms fade, and then frozen (Tests/test_commit.cpp proves all three).
@@ -203,6 +207,12 @@ void AeqAudioProcessor::stopLearning() {
 void AeqAudioProcessor::relearn() {
     core_.relearn();
     learning_ = true;
+}
+
+void AeqAudioProcessor::reopenPass() {
+    core_.reopen();
+    learning_ = true;          // the analysis has to start counting again, or "open" is
+                               // a word on a panel and nothing behind it
 }
 
 void AeqAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {

@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "ui/BandRow.h"
 #include "ui/PanelCopy.h"
 
 using namespace juce;
@@ -17,17 +18,23 @@ constexpr float kPanelR = 16.0f, kWellR = 14.0f, kChipR = 12.0f, kPillR = 11.0f;
 // 1.2.10: the type was too small to read at arm's length and the copy was Arabic.
 // Both changed at the user's instruction: the window is English now and everything is
 // one size up, twice in the case of the numbers people actually read.
-constexpr float kMicro = 11.0f, kCap = 13.0f, kBody = 16.0f, kValue = 21.0f;
+// 1.2.18: the user read the panel and said the labels on the controls were too small to
+// make out.  Every size went up one step (11/13/16/21 -> 13/15/18/24) and the four
+// steps are still four: a fifth size is how a panel turns into a ransom note.
+constexpr float kMicro = 13.0f, kCap = 15.0f, kBody = 18.0f, kValue = 24.0f;
 
 // the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
 // the take strip is 494..520, and the caption row is 528..542.  These are y values,
 // not fractions: the earlier version of this file multiplied a design y by the height
 // scale and the strip collapsed to a line on every window taller than the design.
-constexpr float kHeroTop = 70.0f, kHeroBottom = 556.0f;
-constexpr float kPlotBottom = 470.0f;      // the plot stops here; the strip has its own band
-constexpr float kStopTop = 476.0f, kStopBottom = 492.0f;   // "stopped here", above the clamp
-constexpr float kRibbonTop = 496.0f, kRibbonBottom = 522.0f;
-constexpr float kCaptionTop = 530.0f, kCaptionBottom = 546.0f;
+// 1.2.18: the type went up a step, so the hero gives 16 px of height back to the two rows
+// under it (the graph is still 67 % of the window) and every row inside the hero moved up
+// with it.  These are the same numbers as design/preview/ui_v9.py.
+constexpr float kHeroTop = 70.0f, kHeroBottom = 540.0f;
+constexpr float kPlotBottom = 458.0f;      // the plot stops here; the strip has its own band
+constexpr float kStopTop = 464.0f, kStopBottom = 480.0f;   // "stopped here", above the clamp
+constexpr float kRibbonTop = 486.0f, kRibbonBottom = 512.0f;
+constexpr float kCaptionTop = 518.0f, kCaptionBottom = 536.0f;
 
 // The copy, in English.  Short enough to stay one line at the larger type, and it still
 // says what the instrument does rather than what it would like to be.
@@ -37,7 +44,8 @@ const char* kListening = "LISTENING";
 const char* kSubSeal   = "nothing moves on its own";
 const char* kStopMark  = "STOPPED BY YOU";     // the pass ended where the user ended it
 const char* kStopAuto  = "STOPPED AT THE CAP"; // ... or where they told it to stop for them
-const char* kStopHere  = "STOP HERE";          // the same clamp, on hover, while listening
+const char* kStop      = "STOP";               // the clamp at rest: this is where the pass ends
+const char* kStopHere  = "STOP HERE";          // ... and on hover, while listening
 const char* kRestart   = "learn again";
 const char* kMeasuredKey = "measured";
 const char* kDecisionKey = "decision";
@@ -156,6 +164,7 @@ AeqAudioProcessorEditor::AeqAudioProcessorEditor (AeqAudioProcessor& p)
     setLookAndFeel (look_.get());
 
     setResizable (true, true);
+    setWantsKeyboardFocus (true);
     setResizeLimits (1000, 660, 1800, 1200);
 
     curve_.setEmbedded (true);
@@ -233,9 +242,9 @@ AeqAudioProcessorEditor::Blocks AeqAudioProcessorEditor::blocks() const {
     };
     Blocks b;
     b.header = R (kMargin, 14, kDesignW - kMargin, 54);
-    b.hero   = R (kMargin, 70, kDesignW - kMargin, 556);
-    b.chips  = R (kMargin, 572, kDesignW - kMargin, 636);
-    b.footer = R (kMargin, 646, kDesignW - kMargin, 682);
+    b.hero   = R (kMargin, kHeroTop, kDesignW - kMargin, kHeroBottom);
+    b.chips  = R (kMargin, 548, kDesignW - kMargin, 628);
+    b.footer = R (kMargin, 634, kDesignW - kMargin, 680);
     return b;
 }
 
@@ -304,6 +313,66 @@ int AeqAudioProcessorEditor::chipAt (Point<int> p) const {
     return -1;
 }
 
+bool AeqAudioProcessorEditor::chipDraggable (size_t index) const {
+    return index < chips_.size() && chips_[index].src >= 0;
+}
+
+String AeqAudioProcessorEditor::tooltipAt (Point<int> p) const {
+    if (clampHit().contains (p))
+        return proc_.isFrozen() ? String ("Open the take again - every sample stays")
+                                : String ("Stop the pass here and seal this decision");
+    if (bypassHit().contains (p))
+        return String ("Bypass: the same take, untouched");
+    if (resetHit().contains (p))
+        return String ("Forget this take and listen again");
+    for (int i = 0; i < 2; ++i)
+        if (modeSeg (i).contains (p))
+            return i == 0 ? String ("Restore: fix what is wrong, keep the singer")
+                          : String ("Match: pull the take onto the reference curve");
+    const int chip = chipAt (p);
+    if (chip >= 0 && chip < int (chips_.size())) {
+        const auto& c = chips_[size_t (chip)];
+        if (c.tracked >= 0)
+            return String ("Dynamic layer on harmonic ") + String (proc_.core().trackedSpec (c.tracked).harmonic)
+                 + " - it follows the note, so there is no frequency to drag";
+        if (c.src >= 0)
+            return String ("Drag up or down to trim this band; right click hands it back; "
+                           "double click returns the solver's answer");
+    }
+    if (ribbon().contains (p)) return String ("The take: it fills while the plugin listens");
+    if (well().contains (p))   return String ("Measured (blue) against the decision (pink)");
+    return {};
+}
+
+bool AeqAudioProcessorEditor::keyPressed (const KeyPress& key) {
+    if (key == KeyPress::spaceKey) {
+        if (proc_.isFrozen()) { proc_.reopenPass(); stoppedByUser_ = false; }
+        else                  { proc_.stopLearning(); stoppedByUser_ = true; }
+        lastVersion_ = -1;
+        tooltip_ = proc_.isFrozen() ? "Sealed" : "Listening";
+        repaint();
+        return true;
+    }
+    if (key == KeyPress::escapeKey) {
+        proc_.reopenPass();
+        stoppedByUser_ = false;
+        lastVersion_ = -1;
+        repaint();
+        return true;
+    }
+    return false;
+}
+
+void AeqAudioProcessorEditor::mouseWheelMove (const MouseEvent& e, const MouseWheelDetails& w) {
+    // The knob under the pointer takes the wheel; everywhere else the wheel does nothing
+    // rather than something surprising.
+    for (auto* s : { &amountKnob_, &settleKnob_ })
+        if (s->getBounds().contains (e.getPosition())) {
+            s->mouseWheelMove (e.getEventRelativeTo (s), w);
+            return;
+        }
+}
+
 // --------------------------------------------------------------------------- paint
 void AeqAudioProcessorEditor::paint (Graphics& g) {
     const auto b = blocks();
@@ -345,7 +414,25 @@ void AeqAudioProcessorEditor::paint (Graphics& g) {
     drawChips (g, b.chips);
     drawFooter (g, b.footer);
 
+    drawTooltip (g);
     juce::ignoreUnused (sy);
+}
+
+void AeqAudioProcessorEditor::drawTooltip (Graphics& g) {
+    if (tooltip_.isEmpty() || ! isMouseOver (true)) return;
+    const float sy = float (getHeight()) / kDesignH;
+    const auto m = getMouseXYRelative().toFloat();
+    const float w = aeq::ui::measure (tooltip_, kMicro * sy) + 24.0f * sy;
+    const float h = kMicro * sy * 2.0f;
+    auto box = Rectangle<float> (m.x + 14.0f, m.y + 18.0f, w, h);
+    if (box.getRight() > getWidth() - 6.0f) box.setX (getWidth() - 6.0f - w);
+    if (box.getBottom() > getHeight() - 6.0f) box.setY (m.y - h - 10.0f);
+    g.setColour (Colours::black.withAlpha (0.90f));
+    g.fillRoundedRectangle (box, 6.0f * sy);
+    g.setColour (Palette::hairline().withAlpha (0.35f));
+    g.drawRoundedRectangle (box, 6.0f * sy, 1.0f);
+    aeq::ui::draw (g, tooltip_, box.reduced (12.0f * sy, 0.0f), Justification::centredLeft,
+                   kMicro * sy, Palette::text());
 }
 
 void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
@@ -396,9 +483,10 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     aeq::ui::draw (g, sealText, pill.translated (10.0f * sy, 0.0f).withTrimmedRight (12.0f * sy),
                    Justification::centred, kCap * sy, Palette::accentHi());
 
+    // 13 px type in a 12 px box is a clipped line: the box is measured from the type now
     arabic (g, String (aeq::copy::stateSub (panelFacts())).toRawUTF8(),
-            { pill.getRight() - 140.0f * sy, pill.getBottom() + 2.0f * sy,
-              140.0f * sy, 12.0f * sy },
+            { pill.getRight() - 250.0f * sy, pill.getBottom() + 1.0f * sy,
+              250.0f * sy, kMicro * sy * 1.3f },
             Palette::dim(), kMicro * sy, Justification::centredRight);
 }
 
@@ -483,27 +571,37 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // actually been stopped.  An empty window that says "STOPPED BY YOU" next to a pill
     // that says LISTENING is the panel contradicting itself, and a decision the plugin
     // made for itself is not one the user made either: the label follows the truth.
-    const char* stopLabel = nullptr;
-    if (proc_.isFrozen() || proc_.isCommitted())
+    // The clamp is the only control that starts and stops the pass, and its label used to
+    // appear only on hover or after the fact - so "where do I stop it" had no answer on
+    // screen.  It says its own verb in every state: STOP while the pass is running,
+    // OPEN once it is sealed.
+    const auto facts = panelFacts();
+    String stopLabel;
+    if (aeq::copy::sealed (facts))
         stopLabel = stoppedByUser_ ? kStopMark : kStopAuto;
-    else if (hoverClamp_)
-        stopLabel = kStopHere;
-    if (stopLabel != nullptr) {
+    else
+        stopLabel = hoverClamp_ ? kStopHere : kStop;
+    {
         const auto stopRow = heroRow (kStopTop, kStopBottom).toFloat();
-        const float stopW = aeq::ui::measure (aeq::ui::u8 (stopLabel), kMicro * sy) + 16.0f * sx;
-        g.setColour (Colours::black.withAlpha (0.78f));
-        g.fillRoundedRectangle ({ clamp.getCentreX() - stopW / 2, stopRow.getY(),
-                                  stopW, stopRow.getHeight() }, 4.0f * sy);
-        arabic (g, stopLabel, { clamp.getCentreX() - stopW / 2, stopRow.getY(),
-                                stopW, stopRow.getHeight() },
-                Palette::accentHi(), kMicro * sy, Justification::centred);
+        const float stopW = aeq::ui::measure (stopLabel, kMicro * sy, Face::SemiBold) + 22.0f * sx;
+        // clamped inside the ribbon: the clamp rides towards the right edge as the take
+        // grows, and a label that hangs off the end is unreadable at exactly the moment
+        // it matters
+        const float lx = jlimit (rib.getX(), jmax (rib.getX(), rib.getRight() - stopW),
+                                 clamp.getCentreX() - stopW / 2.0f);
+        g.setColour (Colours::black.withAlpha (0.82f));
+        g.fillRoundedRectangle ({ lx, stopRow.getY(), stopW, stopRow.getHeight() }, 4.0f * sy);
+        g.setColour (Palette::accent().withAlpha (0.50f));
+        g.drawRoundedRectangle ({ lx, stopRow.getY(), stopW, stopRow.getHeight() }, 4.0f * sy, 1.0f);
+        aeq::ui::draw (g, stopLabel, { lx, stopRow.getY(), stopW, stopRow.getHeight() },
+                       Justification::centred, kMicro * sy, Palette::accentHi(), Face::SemiBold);
     }
 
     // the caption row, inside the well: what was learnt (left) and the keys (right)
     const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
     const auto st = proc_.core().state();
     String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S   ·   "
-                   + String (int (bands_.size())) + " BANDS   ·   15 REFERENCE TAKES";
+                   + String (int (bands_.size())) + " BANDS   ·   AMIR 15 + 13-TAKE CONSENSUS";
     // the level match runs by itself, so it is a number on the panel rather than a fudge
     // in the dark: how much gain it is holding to keep the take where it was
     if (proc_.isFrozen() || proc_.isCommitted())
@@ -670,7 +768,7 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     }
 
     // one sentence, then nothing else - the report card is gone
-    const float knobsX = float (area.getRight()) - 158.0f * sx - 96.0f * sx;
+    const float knobsX = float (area.getRight()) - 202.0f * sx - 110.0f * sx;
     arabic (g, verdictLine().toRawUTF8(),
             { pill.getRight() + 24.0f * sx, cy - 12.0f * sy,
               jmax (120.0f, knobsX - pill.getRight() - 40.0f * sx), 26.0f * sy },
@@ -678,30 +776,33 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
 
     // the two things a hand turns: the knobs themselves are child sliders drawn by
     // the look and feel, so this only writes their two labels and their two numbers
-    const Point<float> k2 (float (area.getRight()) - 30.0f * sx, cy);
-    const Point<float> k1 (float (area.getRight()) - 158.0f * sx, cy);
+    const Point<float> k2 (float (area.getRight()) - 34.0f * sx, cy);
+    const Point<float> k1 (float (area.getRight()) - 202.0f * sx, cy);
     const float knobSize = 42.0f * sy;          // the body; the box below adds the ring
 
     auto labelFor = [&] (const char* s, Point<float> c, float dx) {
         const String t2 = aeq::ui::u8 (s);
         const float w = aeq::ui::measure (t2, kMicro * sy);
-        aeq::ui::draw (g, t2, { c.x - dx - w, cy - 19.0f * sy, w, 14.0f * sy },
-                       Justification::centredRight, kMicro * sy, Palette::muted());
+        aeq::ui::draw (g, t2, { c.x - dx - w, cy - 20.0f * sy, w, kCap * sy * 1.35f },
+                       Justification::centredRight, kCap * sy, Palette::muted());
     };
     labelFor (kStrength, k1, knobSize * 0.62f + 8.0f * sy);
     labelFor (kAutoStop, k2, knobSize * 0.62f + 8.0f * sy);
 
-    g.setFont (aeq::ui::font (kBody * sy, Face::SemiBold));
+    g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
     g.setColour (Palette::text());
     const String v1 = String (roundToInt (amountKnob_.getValue())) + "%";
     const String v2 = roundToInt (settleKnob_.getValue()) >= 1
                         ? String (roundToInt (settleKnob_.getValue())) + " s"
                         : String ("OFF");
-    g.drawText (v1, Rectangle<float> (k1.x - 34.0f * sx - 46.0f * sy, cy + 1.0f * sy,
-                                      46.0f * sy, 18.0f * sy),
+    // the label and the value are one block beside the dial, and the value box is
+    // measured from the type: at 24 px in an 18 px box the bottom of every number was
+    // clipped by the row it sat in
+    g.drawText (v1, Rectangle<float> (k1.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
+                                      60.0f * sy, kValue * sy * 1.25f),
                 Justification::centredRight, false);
-    g.drawText (v2, Rectangle<float> (k2.x - 34.0f * sx - 46.0f * sy, cy + 1.0f * sy,
-                                      46.0f * sy, 18.0f * sy),
+    g.drawText (v2, Rectangle<float> (k2.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
+                                      60.0f * sy, kValue * sy * 1.25f),
                 Justification::centredRight, false);
 }
 
@@ -739,8 +840,8 @@ void AeqAudioProcessorEditor::resized() {
     const float sx = float (getWidth()) / kDesignW;
     const int cy = b.footer.getCentreY();
     const int box = roundToInt (54.0f * sy);    // body (42) + ring + seat
-    const int c1 = b.footer.getRight() - roundToInt (158.0f * sx);
-    const int c2 = b.footer.getRight() - roundToInt (30.0f * sx);
+    const int c1 = b.footer.getRight() - roundToInt (202.0f * sx);
+    const int c2 = b.footer.getRight() - roundToInt (34.0f * sx);
     amountKnob_.setBounds (c1 - box / 2, cy - box / 2, box, box);
     settleKnob_.setBounds (c2 - box / 2, cy - box / 2, box, box);
 }
@@ -749,12 +850,18 @@ void AeqAudioProcessorEditor::resized() {
 void AeqAudioProcessorEditor::mouseMove (const MouseEvent& e) {
     const int chip = chipAt (e.getPosition());
     const bool clamp = clampHit().contains (e.getPosition());
+    const bool drag = chip >= 0 && chipDraggable (size_t (chip));
     if (chip != hoverChip_ || clamp != hoverClamp_) {
         hoverChip_ = chip;
         hoverClamp_ = clamp;
+        // An up-down cursor over something that does not move when you drag it is the
+        // shape of "the buttons do not work": a tracked layer has no frequency to drag,
+        // so it does not advertise a drag.
         setMouseCursor (clamp ? MouseCursor::PointingHandCursor
-                              : (chip >= 0 ? MouseCursor::UpDownResizeCursor
-                                           : MouseCursor::NormalCursor));
+                              : (drag ? MouseCursor::UpDownResizeCursor
+                                      : (chip >= 0 ? MouseCursor::PointingHandCursor
+                                                   : MouseCursor::NormalCursor)));
+        tooltip_ = tooltipAt (e.getPosition());
         repaint();
     }
 }
@@ -767,14 +874,18 @@ void AeqAudioProcessorEditor::mouseExit (const MouseEvent&) {
 
 void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
     const auto p = e.getPosition();
+    grabKeyboardFocus();          // space and escape only work once the window has focus
 
     // The clamp: stop when it is listening, open the take again when it is sealed.  It
     // used to call relearn() when sealed, i.e. one accidental click after a good take
     // threw the whole pass away.  Reopening keeps every sample and every band; the reset
     // icon is the one that forgets.
     if (clampHit().contains (p)) {
-        if (proc_.isCommitted() || proc_.isFrozen()) {
-            proc_.core().reopen();
+        if (proc_.isFrozen()) {
+            // open the take again: same samples, same correction, and the analysis
+            // resumes (core_.reopen() alone left the processor not listening, so the
+            // panel said "open" over a pass that had stopped counting)
+            proc_.reopenPass();
             stoppedByUser_ = false;
         } else {
             proc_.stopLearning();
@@ -792,9 +903,15 @@ void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
         return;
     }
     if (resetHit().contains (p)) {
-        proc_.requestReset();
+        // Forget the take and listen again.  This used to call requestReset(), which
+        // cleared the core but left the processor not learning: one reset after one stop
+        // and the plugin never analysed anything again for the rest of the session.
+        proc_.relearn();
         proc_.core().clearTrims();
         haveData_ = false;
+        stoppedByUser_ = false;
+        sealedAt_ = 0.0;
+        lastVersion_ = -1;
         repaint();
         return;
     }
@@ -814,7 +931,8 @@ void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
         // user's own offset, so "off" is an offset of -gain - no second mechanism, and
         // double click still returns it to the solver's answer.
         if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].band >= 0) {
-            const int band = chips_[size_t (chip)].band;
+            const int band = chips_[size_t (chip)].src;
+            if (band < 0) return;
             if (band < int (bands_.size())) {
                 const double spec = bands_[size_t (band)].gainDb;
                 const double trim = band < int (trims_.size()) ? trims_[size_t (band)] : 0.0;
@@ -826,7 +944,11 @@ void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
         return;
     }
     if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].band >= 0) {
-        draggedChip_ = chips_[size_t (chip)].band;
+        // the row position is not the band index: bands at 0 dB are not drawn, so a drag
+        // has to be addressed by the index the core knows (`src`)
+        const auto& c = chips_[size_t (chip)];
+        if (c.src < 0) return;                       // a resonance/manual band has no trim
+        draggedChip_ = c.src;
         dragStartTrim_ = chip < int (trims_.size()) ? trims_[size_t (chip)] : 0.0;
         dragOrigin_ = p;
         repaint();
@@ -848,8 +970,8 @@ void AeqAudioProcessorEditor::mouseUp (const MouseEvent&) {
 
 void AeqAudioProcessorEditor::mouseDoubleClick (const MouseEvent& e) {
     const int chip = chipAt (e.getPosition());
-    if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].band >= 0) {
-        proc_.core().setBandTrim (chips_[size_t (chip)].band, 0.0);
+    if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].src >= 0) {
+        proc_.core().setBandTrim (chips_[size_t (chip)].src, 0.0);
         repaint();
     }
 }
@@ -880,18 +1002,28 @@ void AeqAudioProcessorEditor::timerCallback() {
     // activeBands() also carries the corpus' taste bands; at rest they are all 0 dB and
     // the cascade skips them.  Show the bands that are doing something, so the count on
     // the caption, the chips and the handles all agree with appliedBandCount().
+    // Bands at 0 dB are not drawn (they would be a row of handles lying on the 0 line),
+    // so the drawn index and the core's index diverge.  Keep both: `src` is the one
+    // setBandTrim() and bandTrim() take.
     bands_.clear();
-    for (const auto& b : proc_.core().activeBands())
-        if (std::abs (b.gainDb) > 0.05) bands_.push_back (b);
+    chips_.clear();
+    trims_.clear();
+    {
+        const auto all = proc_.core().activeBands();
+        std::vector<double> gains;
+        gains.reserve (all.size());
+        for (const auto& b : all) gains.push_back (b.gainDb);
+        for (const auto& row : aeq::bands::visible (gains.data(), int (gains.size()),
+                                                   proc_.core().correctiveCount())) {
+            bands_.push_back (all[size_t (row.index)]);
+            chips_.push_back ({ int (bands_.size()) - 1, -1, row.src });
+            trims_.push_back (row.src >= 0 ? proc_.core().bandTrim (row.src) : 0.0);
+        }
+    }
     haveData_ = state_.valid;
 
-    trims_.clear();
-    for (int i = 0; i < int (bands_.size()); ++i) trims_.push_back (proc_.core().bandTrim (i));
-
-    // the row: the static bands, then the dynamic layers that are actually running
-    chips_.clear();
-    for (int i = 0; i < int (bands_.size()); ++i) chips_.push_back ({ i, -1 });
-    for (int i = 0; i < proc_.core().trackedCount(); ++i) chips_.push_back ({ -1, i });
+    // ... then the dynamic layers that are actually running
+    for (int i = 0; i < proc_.core().trackedCount(); ++i) chips_.push_back ({ -1, i, -1 });
 
 
     // the seal: where the clamp is.  While learning it rides the head of the take;

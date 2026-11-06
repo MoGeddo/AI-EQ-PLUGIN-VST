@@ -27,7 +27,8 @@
 // either one puts it back.
 // ---------------------------------------------------------------------------
 class AeqAudioProcessorEditor : public juce::AudioProcessorEditor,
-                                private juce::Timer {
+                                private juce::Timer,
+                                public juce::TooltipClient {
 public:
     explicit AeqAudioProcessorEditor (AeqAudioProcessor&);
     ~AeqAudioProcessorEditor() override;
@@ -40,6 +41,11 @@ public:
     void mouseDoubleClick (const juce::MouseEvent&) override;
     void mouseMove (const juce::MouseEvent&) override;
     void mouseExit (const juce::MouseEvent&) override;
+    void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
+    // Space stops and opens a pass; the arrows nudge the knob that has focus.  A control
+    // a person can only reach with a mouse is a control half the people cannot reach.
+    bool keyPressed (const juce::KeyPress&) override;
+    juce::String getTooltip() override { return tooltip_; }
 
 private:
     // ---- the four blocks, as fractions of the window so a resize is proportional
@@ -55,7 +61,16 @@ private:
     // band >= 0 is a static band of the committed cascade, tracked >= 0 is a dynamic
     // layer that sits on a harmonic of the pitch.  The row is built from what exists,
     // so it cannot claim a layer the plugin is not running.
-    struct Chip { int band = -1; int tracked = -1; };
+    //
+    // `src` is the index into the core's band list - which is what setBandTrim wants -
+    // while the chip's position in the row is not that index, because bands at 0 dB are
+    // not shown.  They were the same number in 1.2.16, and a drag on the third visible
+    // band moved whichever band happened to be third in the array.
+    struct Chip { int band = -1; int tracked = -1; int src = -1; };
+    bool chipDraggable (size_t index) const;
+    // What the thing under the mouse is called and what it does.  Every control on this
+    // panel is a shape; a shape with no words is a puzzle.
+    juce::String tooltipAt (juce::Point<int>) const;
     std::vector<juce::Rectangle<int>> chipRects() const;
     juce::Rectangle<int> modeSeg (int i) const;
     juce::Rectangle<int> bypassHit() const;
@@ -72,6 +87,7 @@ private:
     void drawTake (juce::Graphics&, juce::Rectangle<int>);
     void drawChips (juce::Graphics&, juce::Rectangle<int>);
     void drawFooter (juce::Graphics&, juce::Rectangle<int>);
+    void drawTooltip (juce::Graphics&);
 
     // what the panel knows about the pass; the sentences themselves are in ui/PanelCopy.h
     aeq::copy::Facts panelFacts() const;
@@ -103,6 +119,8 @@ private:
     std::vector<aeq::BandSpec> bands_;
     std::vector<Chip> chips_;
     std::vector<double> trims_;
+    // what is under the mouse, for the tooltip: the panel names its own controls
+    juce::String tooltip_;
     bool haveData_ = false;
 
     long lastVersion_ = -1;

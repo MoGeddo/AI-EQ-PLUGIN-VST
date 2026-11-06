@@ -180,7 +180,20 @@ public:
     // analysis continue, so the next stop solves from the longer take.
     void reopen() {
         frozen_.store (false, std::memory_order_release);
+        // Committed stays Committed on purpose: the correction that is already in the
+        // signal path must keep playing while the pass listens on.  "Committed and not
+        // frozen" is its own state and the panel says so ("OPEN"); the fade is only for
+        // the moment a decision first lands.
         version_.fetch_add (1, std::memory_order_release);
+    }
+
+    // How many of the bands in activeBands() are corrective - i.e. how many of them a
+    // trim can address.  Trims are keyed by the index into state_.corrective, and the
+    // window shows a filtered list, so without this number a drag on the third visible
+    // band would write the trim of whichever band happened to be third in the array.
+    int correctiveCount() const {
+        std::lock_guard<std::mutex> lk (stateMx_);
+        return static_cast<int> (state_.corrective.size());
     }
 
     // Forget everything and listen again (the editor's "learn again").

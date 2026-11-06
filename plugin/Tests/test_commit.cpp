@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "../Source/dsp/RestoreCore.h"
+#include "../Source/ui/BandRow.h"
 #include "../Source/ui/PanelCopy.h"
 
 static const double kPi = 3.14159265358979323846;
@@ -285,6 +286,17 @@ int main() {
                      && ! has (early, "settles"),
                    "6c. a take sealed before the trust threshold says so, with its seconds");
 
+        // the clamp's second press: the decision still plays, the pass counts again
+        {
+            aeq::copy::Facts o = f;
+            o.frozen = false; o.committed = true; o.settled = false;
+            const std::string open = aeq::copy::verdict (o);
+            checkTrue (has (open, "Open again") && aeq::copy::stateWord (o) == "OPEN"
+                         && aeq::copy::clampVerb (o) == "STOP",
+                       "6c2. a reopened take says it is open, keeps its bands, and the "
+                       "clamp says STOP again");
+        }
+
         f.settled = true;
         const std::string sealed = aeq::copy::verdict (f);
         checkTrue (sealed.rfind ("Sealed at 3 bands.", 0) == 0
@@ -315,6 +327,36 @@ int main() {
             if (! has (v, "Sealed") && aeq::copy::stateWord (g) == "SEALED") oneStory = false;
         }
         checkTrue (oneStory, "6f. every state says exactly one thing, and the pill agrees with it");
+    }
+
+    // ---- 7. a chip addresses the band it shows ---------------------------------
+    // The row under the graph drops the bands sitting at 0 dB, so the row's position and
+    // the core's band index drift apart.  In 1.2.16 the editor used one as the other: a
+    // drag on the third visible band moved whichever band happened to be third in the
+    // array.  These are the four cases that mapping has to answer.
+    {
+        // corrective: 3 bands, the middle one at rest; then two resonances, one of them
+        // doing something.  6 entries, 3 of them trimmable.
+        const double gains[] = { -3.0, 0.0, 2.5, 0.0, 0.0, -4.0 };
+        const auto rows = aeq::bands::visible (gains, 6, 3);
+        checkTrue (rows.size() == 3, "7a. three of the six bands are doing something, "
+                                     "and three chips are drawn");
+
+        bool mapped = rows.size() == 3
+                   && rows[0].index == 0 && rows[0].src == 0
+                   && rows[1].index == 2 && rows[1].src == 2      // the 0 dB band is skipped
+                   && rows[2].index == 5 && rows[2].src == aeq::bands::kNoTrim;
+        checkTrue (mapped, "7b. the third chip is band 3 of the core, not band 2 of the "
+                           "row - and the resonance after it cannot be trimmed");
+
+        const double empty[] = { 0.0, 0.0, 0.0 };
+        checkTrue (aeq::bands::visible (empty, 3, 3).empty(),
+                   "7c. a take with nothing to correct draws no chips");
+
+        const double nan[] = { std::nan ("") , 1.0 };
+        const auto nr = aeq::bands::visible (nan, 2, 2);
+        checkTrue (nr.size() == 1 && nr[0].index == 1,
+                   "7d. a band whose gain is not a number is not drawn");
     }
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);

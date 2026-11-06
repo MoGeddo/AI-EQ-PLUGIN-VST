@@ -42,6 +42,12 @@ public:
     // The workflow: listen to the take, the user stops it, it is frozen - and the
     // decision survives a project reload (a track that learned stays learned).
     void stopLearning();
+    // Open a sealed pass again: the take stays, the correction stays in the path, and
+    // the analysis resumes.  This is the clamp's second press.
+    void reopenPass();
+    // Forget the take and listen again: the reset icon.  It has to put `learning_` back
+    // too - it did not in 1.2.16, so after one stop a reset left the plugin with nothing
+    // analysing and no way back short of reopening the project.
     void relearn();
     bool isFrozen() const { return core_.frozen(); }
     bool isCommitted() const { return core_.committed(); }
