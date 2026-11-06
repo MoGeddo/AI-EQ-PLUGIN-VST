@@ -1,0 +1,38 @@
+[shot] start, mode controls, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   the clamp can be hit by a pointer
+[shot]   ok   the bypass can be hit by a pointer
+[shot]   ok   the reset can be hit by a pointer
+[shot]   ok   the RESTORE can be hit by a pointer
+[shot]   ok   the MATCH can be hit by a pointer
+[shot]   ok   the strength dial can be hit by a pointer
+[shot]   ok   the auto-stop dial can be hit by a pointer
+[shot]   ok   seven controls are on the panel and each one is reachable
+[shot]   ok   the clamp is findable
+[shot]   ok   clicking the clamp seals the take
+[shot]   ok   clicking it again opens the take
+[shot]   ok   opening a take starts the analysis again (it did not before 1.2.18)
+[shot]   ok   bypass goes on and comes back off
+[shot]   ok   reset after a stop puts the plugin back to listening
+[shot]   ok   and it is not left sealed
+[shot]   ok   and the take it had heard is gone, on the counter the panel reads
+[shot]   ok   the strength dial follows the strength parameter
+[shot]   ok   the auto-stop dial is attached to auto-stop, not to the trust threshold
+[shot]   ok   a chip's band takes a trim
+[shot]   ok   and the same chip returns the solver's answer
+[shot]   ok   space stops the pass, like the clamp
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   a relearn really does empty the take
+[shot]   ok   reopening the project restores the sealed decision
+[shot]   FAIL and the same number of bands comes back with it
+[shot]   ok   the take that was saved had been sealed in the first place
+[shot] controls: 24 passed, 1 failed
+[shot] done
