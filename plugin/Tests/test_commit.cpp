@@ -202,6 +202,27 @@ int main() {
         checkTrue(afterSecond.analyzedSeconds > beforeReopen.analyzedSeconds,
                   "3b. the second stop solves from a longer take");
 
+        // ---- 3c. a rule that changes, changes the sealed decision ------------
+        {
+            const auto before = c.core->state();
+            double strongest = 0.0;
+            for (const auto& b : before.corrective)
+                if (std::abs (b.gainDb) > std::abs (strongest)) strongest = b.gainDb;
+            auto s2 = c.core->settings();
+            s2.correctionAmount = 0.25;                 // the strength macro, moved
+            c.core->setSettings (s2);
+            c.core->resolveNow();                       // what the processor's timer does
+            const auto after = c.core->state();
+            double strongest2 = 0.0;
+            for (const auto& b : after.corrective)
+                if (std::abs (b.gainDb) > std::abs (strongest2)) strongest2 = b.gainDb;
+            std::printf("  strength 100%% -> 25%%: strongest band %.2f -> %.2f dB\n",
+                        strongest, strongest2);
+            checkTrue(c.core->frozen(), "3c. re-solving does not unfreeze the pass");
+            checkTrue(std::abs (strongest2) < std::abs (strongest) * 0.9,
+                      "3c. the same take, a gentler rule, a smaller correction");
+        }
+
         // ---- 4. relearn resets ---------------------------------------------
         c.core->relearn();
         checkTrue(c.core->phase() == aeq::RestoreCore::Phase::Learning, "4. relearn goes back to learning");

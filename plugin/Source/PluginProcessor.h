@@ -70,6 +70,10 @@ private:
     aeq::RestoreSettings settings_, lastPushed_;
     juce::AudioProcessorValueTreeState apvts_;
     std::atomic<bool> learning_{true}, resetRequested_{false};
+    // A control that changes the rule was moved while the pass is sealed: re-solve it on
+    // the message thread (see timerCallback), never on the audio thread.
+    std::atomic<bool> needsResolve_{false};
+    int resolveTick_ = 0;
     int slowTick_ = 0;             // see timerCallback(): slow adaptation once settled
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AeqAudioProcessor)
 };

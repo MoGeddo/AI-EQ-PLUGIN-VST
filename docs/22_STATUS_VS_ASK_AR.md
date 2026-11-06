@@ -25,7 +25,7 @@
 | الأنالايزر سريع | ✅ | `test_live`: «display updates: 27 per second of audio»، «falling 8 dB down 250 ms after the tone stops» |
 | مستقر في FL Studio (مكانش يكرش) | ✅ | `test_threads` (٢/٢) + المحرر «never touches the filter objects» (`PluginEditor.cpp` timerCallback) |
 
-**الإجمالي المقاس الآن على الشجرة دي:** ١٠ أجنحة، **١٢٥ تأكيد، ٠ فشل**.
+**الإجمالي المقاس الآن على الشجرة دي:** ١٠ أجنحة، **١٢٧ تأكيد، ٠ فشل**.
 الأمر:
 
 ```bash

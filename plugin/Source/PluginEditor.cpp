@@ -891,6 +891,7 @@ void AeqAudioProcessorEditor::timerCallback() {
     d.trims = trims_;
     d.valid = haveData_;
     d.settled = state_.settled;
+    d.sampleRate = proc_.getSampleRate() > 8000.0 ? proc_.getSampleRate() : 48000.0;
     d.analysedSeconds = state_.analyzedSeconds;
     curve_.setData (std::move (d));
 

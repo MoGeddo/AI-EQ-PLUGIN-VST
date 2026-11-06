@@ -24,6 +24,15 @@ bool sameSettings(const aeq::RestoreSettings& a, const aeq::RestoreSettings& b) 
         && a.learn == b.learn && a.settleSeconds == b.settleSeconds
         && a.autoStopSeconds == b.autoStopSeconds;
 }
+
+// Settings that change the answer rather than how it is played back.  Bypass, learn and
+// the two stop settings are deliberately not here: they change what you hear, not what
+// was solved.
+bool solveRelevant(const aeq::RestoreSettings& a, const aeq::RestoreSettings& b) {
+    return a.mode != b.mode || a.correctionAmount != b.correctionAmount
+        || a.hpfHz != b.hpfHz || a.deEssAmount != b.deEssAmount
+        || a.airTrimDb != b.airTrimDb || a.axis1 != b.axis1 || a.axis2 != b.axis2;
+}
 } // namespace
 
 juce::AudioProcessorValueTreeState::ParameterLayout AeqAudioProcessor::createLayout() {
@@ -114,6 +123,12 @@ void AeqAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     // the cascade, and doing that on every block is an allocation on the audio
     // thread for no reason
     if (!sameSettings(settings_, lastPushed_)) {
+        // A control that changes the *rule* - the mode, the strength macro, a taste axis,
+        // the low cut - has to re-solve the take it already heard, or it does nothing at
+        // all once the pass is sealed.  Which is what they all did in 1.2.12: the seal
+        // froze the decision and the panel went on showing a mode that was not in it.
+        // Flagged here (audio thread, one store) and solved on the message thread.
+        if (solveRelevant(settings_, lastPushed_)) needsResolve_.store (true, std::memory_order_release);
         core_.setSettings(settings_);
         lastPushed_ = settings_;
     }
@@ -144,6 +159,17 @@ void AeqAudioProcessor::timerCallback() {
     // works with its window closed - which is what "automatic" has to mean.
     // Every tick: drain the audio thread's ring and publish the display spectrum.
     core_.pump();
+
+    // A sealed pass still has to answer when the user moves a control that changes the
+    // rule.  Throttled: the solve is the expensive half, and a dragged knob must not turn
+    // a 4 Hz job into a 30 Hz one.
+    if (needsResolve_.load (std::memory_order_acquire) && core_.committed()
+        && (++resolveTick_ % 4 == 0)) {
+        needsResolve_.store (false, std::memory_order_release);
+        core_.resolveNow();
+    }
+    else if (!core_.committed()) needsResolve_.store (false, std::memory_order_release);
+
     if (! learning_.load()) return;
 
     // Solving is the costly half (FFT statistics, solver, detector, report text) and

@@ -157,6 +157,23 @@ public:
         version_.fetch_add(1, std::memory_order_release);
     }
 
+    // Solve the take again, now, with the settings as they are - for a control that
+    // changes the *rule* rather than the audio (mode, the strength macro, the taste
+    // axes).  Without this those controls did nothing at all while the pass was sealed:
+    // the solve only ran at commit, and commit had already happened.  A frozen decision
+    // may not move on its own, but it must move when the user moves it.
+    void resolveNow() {
+        const bool wasFrozen = frozen();
+        frozen_.store (false, std::memory_order_release);
+        {
+            std::lock_guard<std::mutex> lk (analyzeMx_);
+            drainFromAudioThread();
+            refreshLocked();
+        }
+        if (wasFrozen) frozen_.store (true, std::memory_order_release);
+        version_.fetch_add (1, std::memory_order_release);
+    }
+
     // Open the take again without throwing a second of it away.  A stop made one
     // phrase early should cost one click, not the whole pass: this keeps every sample
     // already measured, keeps the correction that is currently in the path, and lets the

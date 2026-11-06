@@ -29,6 +29,7 @@ public:
         std::vector<aeq::BandSpec> bands;
         std::vector<aeq::Problem> problems;
         std::vector<double> trims;
+        double sampleRate = 48000.0;   // the correction curve is drawn at the host's rate
         bool valid = false;
         bool settled = false;
         double analysedSeconds = 0.0;
@@ -391,7 +392,10 @@ private:
 
     void drawCorrection (juce::Graphics& g) {
         if (data_.bands.empty()) return;
-        const double fs = 48000.0;
+        // The band edges of a shelf move with the sample rate, so a curve drawn at 48 kHz
+        // in a 44.1 kHz session is a different curve - by a couple of dB at the top, which
+        // is exactly where the panel is claiming something.  It comes from the host now.
+        const double fs = data_.sampleRate > 8000.0 ? data_.sampleRate : 48000.0;
         juce::Path p, fillDown;
         bool started = false;
         for (int i = 0; i <= 300; ++i) {
