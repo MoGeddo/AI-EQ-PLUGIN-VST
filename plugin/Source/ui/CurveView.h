@@ -177,7 +177,9 @@ private:
 
     // ---- layers -----------------------------------------------------------
     void drawGrid (juce::Graphics& g) {
-        g.setColour (Palette::line().withAlpha (0.55f));
+        // the render's grid is nearly invisible: it is there to be found, not to be
+        // read.  At 0.55 the eight decade lines were the loudest thing in the well.
+        g.setColour (Palette::line().withAlpha (0.10f));
         const double ticks[] = { 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
         for (double f : ticks) {
             const float x = xOf (f);
@@ -188,7 +190,7 @@ private:
         }
         for (int db = int (kDbMin); db <= int (kDbMax); db += 6) {
             const float y = yOf (double (db));
-            g.setColour (Palette::line().withAlpha (db == 0 ? 0.9f : 0.45f));
+            g.setColour (Palette::line().withAlpha (db == 0 ? 0.18f : 0.09f));
             g.drawHorizontalLine (int (y), plot_.getX(), plot_.getRight());
             label (g, (db > 0 ? "+" : "") + juce::String (db),
                    { int (plot_.getX()) - 38, int (y) - 8, 32, 16 },

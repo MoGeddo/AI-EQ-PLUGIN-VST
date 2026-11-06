@@ -28,7 +28,7 @@ The edges are found the same way in both images, so this cannot pass by knowing 
 answer: it passes when two independent drawings agree.
 
 Usage:
-    .venv/bin/python design/preview/check_match.py                 # docs/ui-1.2.9-*.png
+    .venv/bin/python design/preview/check_match.py                 # docs/ui-1.2.10-*.png
     .venv/bin/python design/preview/check_match.py --shot x.png --render y.png
     .venv/bin/python design/preview/check_match.py --against-v8    # must FAIL
 """
@@ -152,6 +152,34 @@ def nearest(edges: list[int], target: int) -> tuple[int, int]:
     return best, abs(best - target)
 
 
+# A block edge is looked for *where the design says it is*, not picked from a global
+# top-ten list.  The two are not the same test: when the band row happens to hold three
+# wide chips instead of four, its top border covers almost the whole width and becomes
+# one of the strongest rows in the picture - which pushed the graph's own bottom edge out
+# of the top ten and made the matcher report a 16 px error between two identical panels.
+# So: search a window around the declared line, take the strongest row inside it, and
+# require that it is a real edge (at least half as strong as the strongest row anywhere)
+# rather than the shadow of a neighbouring block.
+EDGE_WINDOW_PX = 10
+# An edge is a spike against the panel's own texture, not a fraction of the loudest
+# border in the picture: the well's bottom is a 1 px hairline in the window and a hard
+# fill boundary in the render, and comparing it with the panel's outer border is how a
+# gate ends up measuring the wrong thing.
+EDGE_SPIKE = 6.0
+
+
+def edge_at(im: Image.Image, target: int) -> tuple[int, float, float]:
+    """(the row near the target, its strength, the median row strength)."""
+    rows = row_edges(im)
+    strengths = sorted(s for s, _ in rows) or [1.0]
+    median = strengths[len(strengths) // 2]
+    near = [(s, y) for s, y in rows if abs(y - target) <= EDGE_WINDOW_PX]
+    if not near:
+        return target + 999, 0.0, median
+    s, y = max(near)
+    return y, s, median
+
+
 def fingerprint(im: Image.Image, gx: int = 16, gy: int = 12) -> list[float]:
     """A 16x12 grid of mean luminance, normalised, as the panel's composition."""
     small = im.resize((gx, gy), Image.BOX).convert("L")
@@ -184,15 +212,16 @@ def compare(shot_path: str, render_path: str, verbose: bool = True) -> int:
 
     measured: dict[str, tuple[int, int]] = {}
     for name, target in BLOCKS.items():
-        s_edge, s_delta = nearest(shot_edges, target)
-        r_edge, r_delta = nearest(render_edges, target)
+        s_edge, s_str, s_floor = edge_at(shot, target)
+        r_edge, r_str, r_floor = edge_at(render, target)
         measured[name] = (s_edge, r_edge)
-        if abs(s_edge - r_edge) > TOLERANCE_PX:
+        if (s_str < EDGE_SPIKE * s_floor) or (r_str < EDGE_SPIKE * r_floor):
+            problems.append(f"{name}: no edge at the design's {target} px "
+                            f"(window {s_str:.0f} vs floor {EDGE_SPIKE * s_floor:.0f}, "
+                            f"render {r_str:.0f} vs floor {EDGE_SPIKE * r_floor:.0f})")
+        elif abs(s_edge - r_edge) > TOLERANCE_PX:
             problems.append(f"{name}: the window puts it at {s_edge} px, "
                             f"the render at {r_edge} px (tolerance {TOLERANCE_PX})")
-        elif s_delta > 6:
-            problems.append(f"{name}: neither drawing is where the design says "
-                            f"({target} px); the window is at {s_edge}")
 
     graph_h = measured["graph bottom"][0] - measured["graph top"][0]
     if graph_h < MIN_GRAPH_SHARE * ui.H:
@@ -230,7 +259,7 @@ def compare(shot_path: str, render_path: str, verbose: bool = True) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.9-window.png"))
+    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.10-window.png"))
     ap.add_argument("--render", default=str(ui.OUT))
     ap.add_argument("--against-v8", action="store_true",
                     help="compare the approved v8 panel with the v9 window: must FAIL")
