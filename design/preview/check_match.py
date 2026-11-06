@@ -28,7 +28,7 @@ The edges are found the same way in both images, so this cannot pass by knowing 
 answer: it passes when two independent drawings agree.
 
 Usage:
-    .venv/bin/python design/preview/check_match.py                 # docs/ui-1.2.10-*.png
+    .venv/bin/python design/preview/check_match.py                 # docs/ui-1.2.12-*.png
     .venv/bin/python design/preview/check_match.py --shot x.png --render y.png
     .venv/bin/python design/preview/check_match.py --against-v8    # must FAIL
 """
@@ -259,7 +259,7 @@ def compare(shot_path: str, render_path: str, verbose: bool = True) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.10-window.png"))
+    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.12-window.png"))
     ap.add_argument("--render", default=str(ui.OUT))
     ap.add_argument("--against-v8", action="store_true",
                     help="compare the approved v8 panel with the v9 window: must FAIL")
