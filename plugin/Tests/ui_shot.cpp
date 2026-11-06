@@ -331,6 +331,34 @@ int runControls(const juce::File& dir) {
         check(proc.isFrozen() != wasFrozen, "space stops the pass, like the clamp");
     }
 
+    // ---- 8. the decision survives the project being closed and opened ------------
+    // The promise the user made first and the one a DAW user notices in a minute: save a
+    // project, open it again, and the take is still sealed with the same bands.  This
+    // exercises getStateInformation / setStateInformation, which set restoreDecision() -
+    // the path that used to rebuild the cascade from the wrong thread.
+    {
+        proc.relearn();
+        analyse(proc, true);
+        proc.stopLearning();
+        pump();
+        const int before = proc.core().appliedBandCount();
+        const bool wasFrozen = proc.isFrozen();
+        juce::MemoryBlock saved;
+        proc.getStateInformation(saved);
+
+        proc.relearn();                      // "close the project"
+        pump();
+        check(! proc.isFrozen() && proc.core().appliedBandCount() == 0,
+              "a relearn really does empty the take");
+
+        proc.setStateInformation(saved.getData(), int(saved.getSize()));
+        pump();
+        check(proc.isFrozen(), "reopening the project restores the sealed decision");
+        check(proc.core().appliedBandCount() == before,
+              "and the same number of bands comes back with it");
+        check(wasFrozen, "the take that was saved had been sealed in the first place");
+    }
+
     stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)
           + " failed");
     // a log line the gate reads, and an exit code the build reads

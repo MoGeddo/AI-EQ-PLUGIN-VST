@@ -195,6 +195,7 @@ void AeqAudioProcessor::requestReset() {
     resetRequested_.store (true);
     learning_.store (true);      // a reset that leaves the plugin not listening is a reset
                                  // that needs a second, invisible button
+    core_.refresh();             // ... and the analysis half is done here, not "soon"
 }
 
 // Stop the learn pass: the decision is solved from everything heard so far, applied
@@ -207,6 +208,13 @@ void AeqAudioProcessor::stopLearning() {
 void AeqAudioProcessor::relearn() {
     core_.relearn();
     learning_ = true;
+    // Perform the analysis half of the reset now, on this thread - the same thread the
+    // 30 Hz timer runs on, so there is nothing to race with.  Without it the counter the
+    // panel reads stayed at "HEARD 21.4 S" until the next refresh, and a refresh straight
+    // after a reset publishes nothing (the analyser has no window yet) - so the number
+    // could sit there for a whole second, or, in a host that is not processing audio,
+    // forever.  The control gate caught it: "and the take it had heard is gone".
+    core_.refresh();
 }
 
 void AeqAudioProcessor::reopenPass() {
