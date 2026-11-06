@@ -278,8 +278,9 @@ int runControls(const juce::File& dir) {
             juce::MessageManager::getInstance()->runDispatchLoopUntil(120);
             check(proc.isLearning(), "reset after a stop puts the plugin back to listening");
             check(! proc.isFrozen(), "and it is not left sealed");
-            check(proc.core().state().analyzedSeconds < 1.0,
-                  "and the take it had heard is gone");
+            check(proc.core().state().analyzedSeconds < 0.5
+                    && proc.autoState().heardSeconds < 0.5,
+                  "and the take it had heard is gone, on the counter the panel reads");
         } else {
             check(false, "reset is findable");
         }

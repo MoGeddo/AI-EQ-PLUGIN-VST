@@ -285,6 +285,16 @@ private:
         fifoDropped_.store(0);
         analyzer_.reset();
         learnProgress_ = 0.0;
+        // The published counter has to go too.  The DSP half clears state_, but
+        // analyzedSeconds is republished by the next refresh - and a refresh right after a
+        // reset returns early (the analyser is not "ready" until it has a window again),
+        // so the window kept showing "HEARD 21.4 S" over a take it had just forgotten.
+        // The control test in aeq_shot caught it: "and the take it had heard is gone".
+        {
+            std::lock_guard<std::mutex> lk (stateMx_);   // message thread: waiting is fine
+            state_.analyzedSeconds = 0.0;
+            state_.settled = false;
+        }
     }
 
 public:
