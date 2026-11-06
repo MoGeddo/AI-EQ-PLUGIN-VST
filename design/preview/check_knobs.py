@@ -33,7 +33,7 @@ import math
 import os
 import sys
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -94,6 +94,33 @@ def arc_coverage(im: Image.Image, centre, want_hue: float, radius: float) -> tup
     return (BUCKETS - run) / BUCKETS, lit
 
 
+def selftest() -> list[str]:
+    """Can the gate read a ring it drew itself?
+
+    A measurement that cannot be checked against a known answer is not a measurement.  The
+    arc below is the one the editor draws now - JUCE measures from 12 o'clock, clockwise,
+    with the travel at -135..+135 and the lit part from -135 to the value.  PIL measures
+    from 3 o'clock, so the dial's -135 (bottom left) is PIL's 135, and the travel runs
+    135..405.  Three values, three known answers - and the 25 % one is the check that
+    matters: at 0 % and 100 % any offset in the mapping still gives the right answer.
+    """
+    problems: list[str] = []
+    hue = hue_deg(ui.BRASS)[0]
+    cy = (ui.FOOTER[1] + ui.FOOTER[3]) / 2.0
+    for value in (0.0, 0.25, 1.0):
+        im = Image.new("RGB", (ui.W, ui.H), (20, 14, 32))
+        if value > 0.0:
+            cx, c = ui.W - 158, cy
+            ImageDraw.Draw(im).arc([cx - RING, c - RING, cx + RING, c + RING],
+                                   start=135, end=135 + 270 * value,
+                                   fill=tuple(ui.BRASS), width=3)
+        got, _ = arc_coverage(im, (ui.W - 158, cy), hue, RING)
+        if abs(got - value) > 0.06:
+            problems.append(f"self-test: a ring drawn at {value:.0%} reads {got:.0%} - the "
+                            "gate cannot see its own drawing, so it cannot judge a screenshot")
+    return problems
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.13-window.png"))
@@ -103,9 +130,15 @@ def main() -> int:
         print(f"FAIL no screenshot at {args.shot}")
         return 1
 
+    problems = selftest()
+    if problems:
+        for p in problems:
+            print("FAIL " + p)
+        print(f"{len(problems)} problem(s)")
+        return 1
+
     im = Image.open(args.shot).convert("RGB")
     want = hue_deg(ui.BRASS)[0]
-    problems: list[str] = []
     notes: list[str] = []
 
     for name, (expect, centre) in EXPECTED.items():

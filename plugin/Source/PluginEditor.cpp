@@ -94,8 +94,11 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     g.drawEllipse (centre.x - r + 0.5f, centre.y - r + 0.5f, r * 2 - 1.0f, r * 2 - 1.0f, 1.0f);
     g.setColour (Palette::accentHi().withAlpha (0.16f));
     Path cap;
+    // the specular highlight belongs on the lit side of the part, which is the top: at
+    // 1.12 pi..1.88 pi it was being drawn across the bottom of every knob
     cap.addCentredArc (centre.x, centre.y, r * 0.86f, r * 0.86f, 0.0f,
-                       MathConstants<float>::pi * 1.12f, MathConstants<float>::pi * 1.88f, true);
+                       -MathConstants<float>::pi * 0.34f,
+                       MathConstants<float>::pi * 0.34f, true);
     g.strokePath (cap, PathStrokeType (1.2f));
 
     // the value ring: a groove from -135 to +135, and the accent from the centre detent
@@ -106,9 +109,14 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     g.setColour (Palette::hairline().withAlpha (0.75f));
     g.strokePath (groove, PathStrokeType (2.0f, PathStrokeType::curved, PathStrokeType::rounded));
 
+    // The arc runs from the *start of the travel* to the value, not from the value to 12
+    // o'clock: JUCE measures angles from the top, clockwise, so the travel is -135..+135
+    // and the lit part is -135..a.  Drawn the other way round the ring sat on the wrong
+    // side of the knob and its length had nothing to do with the number.
     const float a = degreesToRadians (-135.0f + 270.0f * value);
     Path arc;
-    arc.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f, a, 0.0f, true);
+    arc.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
+                       degreesToRadians (-135.0f), a, true);
     g.setColour (accent.withAlpha (0.90f));
     g.strokePath (arc, PathStrokeType (2.4f, PathStrokeType::curved, PathStrokeType::rounded));
 
