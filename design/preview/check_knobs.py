@@ -67,12 +67,16 @@ def arc_coverage(im: Image.Image, centre, want_hue: float, radius: float) -> tup
     w, h = im.size
     sx, sy = w / ui.W, h / ui.H
     cx, cy = centre[0] * sx, centre[1] * sy
-    r = radius * min(sx, sy)
+    # the editor sizes a knob from the *vertical* scale (box = roundToInt (54 * sy)), so
+    # the radius scales with sy even when the window is wider than the design
+    r = radius * sy
     lit = [0] * BUCKETS
     px = im.load()
     for i in range(BUCKETS):
         a = math.radians(-135.0 + (270.0 / BUCKETS) * (i + 0.5))
-        for dr in (-1.5, -0.5, 0.5, 1.5):        # the stroke is ~2.4 px wide
+        # a radial scan rather than a single radius: the ring's exact radius depends on
+        # the window's height (box = 54 * sy) and this gate must not be a scale test
+        for dr in (-4, -3, -2, -1, 0, 1, 2, 3, 4):
             x = int(round(cx + math.sin(a) * (r + dr)))
             y = int(round(cy - math.cos(a) * (r + dr)))
             if 0 <= x < w and 0 <= y < h:
