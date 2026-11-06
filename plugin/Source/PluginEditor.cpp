@@ -447,15 +447,19 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
                        clamp.getY() + clamp.getHeight() * (0.22f + 0.56f * float (i)) - 1.5f * sy,
                        3.0f * sx, 3.0f * sy);
 
-    // the seal, labelled in the row the plot leaves for it
-    const auto stopRow = heroRow (kStopTop, kStopBottom).toFloat();
-    const float stopW = aeq::ui::measure (aeq::ui::u8 (kStopMark), kMicro * sy) + 16.0f * sx;
-    g.setColour (Colours::black.withAlpha (0.78f));
-    g.fillRoundedRectangle ({ clamp.getCentreX() - stopW / 2, stopRow.getY(),
-                              stopW, stopRow.getHeight() }, 4.0f * sy);
-    arabic (g, kStopMark, { clamp.getCentreX() - stopW / 2, stopRow.getY(),
-                            stopW, stopRow.getHeight() },
-            Palette::accentHi(), kMicro * sy, Justification::centred);
+    // the seal, labelled in the row the plot leaves for it - and only once the user has
+    // actually stopped it.  An empty window that says "STOPPED BY YOU" next to a pill
+    // that says LISTENING is the panel contradicting itself.
+    if (proc_.isFrozen() || proc_.isCommitted()) {
+        const auto stopRow = heroRow (kStopTop, kStopBottom).toFloat();
+        const float stopW = aeq::ui::measure (aeq::ui::u8 (kStopMark), kMicro * sy) + 16.0f * sx;
+        g.setColour (Colours::black.withAlpha (0.78f));
+        g.fillRoundedRectangle ({ clamp.getCentreX() - stopW / 2, stopRow.getY(),
+                                  stopW, stopRow.getHeight() }, 4.0f * sy);
+        arabic (g, kStopMark, { clamp.getCentreX() - stopW / 2, stopRow.getY(),
+                                stopW, stopRow.getHeight() },
+                Palette::accentHi(), kMicro * sy, Justification::centred);
+    }
 
     // the caption row, inside the well: what was learnt (left) and the keys (right)
     const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
@@ -483,6 +487,33 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
 
 void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
     const float sy = float (getHeight()) / kDesignH;
+
+    // Nothing measured yet: the row keeps its four seats.  Dropping the row entirely left
+    // a 100 px hole between the well and the footer and made the window look unfinished;
+    // a seat with no number in it says "this is where the bands will be" and claims
+    // nothing.
+    if (chips_.empty()) {
+        const auto c = blocks().chips;
+        const int gap = roundToInt (10.0f * float (getWidth()) / kDesignW);
+        const int w = (c.getWidth() - gap * 3) / 4;
+        for (int i = 0; i < 4; ++i) {
+            const Rectangle<float> r (float (c.getX() + i * (w + gap)), float (c.getY()),
+                                      float (w), float (c.getHeight()));
+            g.setColour (Palette::surfaceHi().withAlpha (0.55f));
+            g.fillRoundedRectangle (r, kChipR * sy);
+            g.setColour (Colours::white.withAlpha (0.07f));
+            g.drawRoundedRectangle (r.reduced (0.5f), kChipR * sy, 1.0f);
+            trackedText (g, String (i + 1).paddedLeft ('0', 2),
+                         { r.getX() + 12.0f * sy, r.getY() + 7.0f * sy, 46.0f * sy, 15.0f * sy },
+                         Palette::dim().withAlpha (0.55f), kMicro * sy, 1.3f);
+            trackedText (g, "-", { r.getX() + 12.0f * sy, r.getY() + 22.0f * sy,
+                                   60.0f * sy, 26.0f * sy },
+                         Palette::dim().withAlpha (0.45f), kValue * sy, 0.0f,
+                         Justification::centredLeft, Face::SemiBold);
+        }
+        return;
+    }
+
     const auto rects = chipRects();
 
     for (int i = 0; i < int (rects.size()) && i < int (chips_.size()); ++i) {

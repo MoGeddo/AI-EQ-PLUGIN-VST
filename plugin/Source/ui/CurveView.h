@@ -143,7 +143,10 @@ public:
 private:
     // ---- geometry ---------------------------------------------------------
     static constexpr double kFmin = 40.0, kFmax = 16000.0;
-    static constexpr double kDbMax = 18.0, kDbMin = -30.0;
+    // +-30 dB, symmetric: the take's low end can sit 25 dB over its own 1 kHz, and a
+    // +18 ceiling drew the whole bass half of a boomy vocal as a line pinned to the
+    // top border, which reads as a broken meter rather than as a loud low end.
+    static constexpr double kDbMax = 30.0, kDbMin = -30.0;
 
     float xOf (double f) const {
         const double t = std::log (juce::jlimit (kFmin, kFmax, f) / kFmin) / std::log (kFmax / kFmin);
