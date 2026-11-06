@@ -338,6 +338,9 @@ int runControls(const juce::File& dir) {
         ed->keyPressed(sp);
         pump();
         check(proc.isFrozen() != wasFrozen, "space stops the pass, like the clamp");
+        check(ed->getTooltip() == (proc.isFrozen() ? juce::String("Sealed")
+                                                   : juce::String("Listening")),
+              "and the panel says what the key just did");
     }
 
     // ---- 8. the decision survives the project being closed and opened ------------
@@ -369,6 +372,64 @@ int runControls(const juce::File& dir) {
         check(freqs(proc.core().activeBands()) == freqsBefore,
               "on the same frequencies, to the hertz");
         check(wasFrozen, "the take that was saved had been sealed in the first place");
+    }
+
+    // ---- 9. the keys do something, and only what they say ----------------------
+    // "keys that do nothing and give nothing back" was one of the complaints.  Escape is the
+    // one key a mixer reaches for to get out of something; it opens a sealed take, and
+    // pressing it twice must not change the answer twice.
+    {
+        proc.relearn();
+        analyse(proc, true);
+        proc.stopLearning();
+        pump();
+        check(proc.isFrozen(), "there is a sealed take to escape from");
+        check(ed->keyPressed(juce::KeyPress(juce::KeyPress::escapeKey)),
+              "escape is handled, not swallowed");
+        pump();
+        check(! proc.isFrozen(), "escape opens the sealed take");
+        check(proc.isLearning(), "and the plugin is listening again, not idle");
+        check(ed->getTooltip() == juce::String("Listening"),
+              "and the panel says so, so the key does not look like it did nothing");
+        ed->keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
+        pump();
+        check(! proc.isFrozen(), "pressing it again does not seal anything behind your back");
+        check(! ed->keyPressed(juce::KeyPress('q')),
+              "and an unclaimed key is passed on, not eaten");
+    }
+
+    // ---- 10. the wheel moves the dial under it, and nothing else ----------------
+    {
+        auto* amount = proc.apvts().getParameter("amount");
+        check(amount != nullptr, "the strength parameter is reachable by name");
+        if (amount != nullptr) {
+            const float was = amount->getValue();
+            const auto dial = ed->strengthShown() >= 0.0f
+                            ? ed->controlBounds(AeqAudioProcessorEditor::Control::StrengthKnob)
+                            : juce::Rectangle<int>();
+            check(! dial.isEmpty(), "the strength dial reports where it is");
+            juce::MouseWheelDetails up;
+            up.deltaY = 0.15f;
+            juce::MouseEvent we(juce::Desktop::getInstance().getMainMouseSource(),
+                                dial.getCentre().toFloat(), juce::ModifierKeys(), 1.0f, 0.0f, 0.0f,
+                                0.0f, 0.0f, ed, ed, juce::Time::getCurrentTime(),
+                                dial.getCentre().toFloat(), juce::Time::getCurrentTime(), 1, false);
+            ed->mouseWheelMove(we, up);
+            pump();
+            const float moved = amount->getValue();
+            check(std::abs(moved - was) > 1.0e-4f, "the wheel moves the strength dial");
+            check(moved > was, "and upward is more, not less");
+            const auto before = amount->getValue();
+            const juce::Point<float> bare (80.0f, 300.0f);
+            juce::MouseEvent away(juce::Desktop::getInstance().getMainMouseSource(), bare,
+                                  juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, ed, ed,
+                                  juce::Time::getCurrentTime(), bare,
+                                  juce::Time::getCurrentTime(), 1, false);
+            ed->mouseWheelMove(away, up);
+            pump();
+            check(std::abs(amount->getValue() - before) < 1.0e-6f,
+                  "and the same wheel over the bare field changes nothing");
+        }
     }
 
     stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)

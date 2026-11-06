@@ -55,6 +55,10 @@ public:
     enum class Control { None, Clamp, Bypass, Reset, ModeRestore, ModeMatch,
                          Chip, StrengthKnob, AutoStopKnob };
     Control controlAt (juce::Point<int>) const;
+    // The one place that answers "where is this control" - for the hit test above, and for
+    // the tests that click the real panel instead of trusting a number they were told.
+    juce::Rectangle<int> controlBounds (Control c) const;
+
     float strengthShown() const { return float (amountKnob_.getValue()); }
     float autoStopShown() const { return float (settleKnob_.getValue()); }
     int   chipCount() const { return int (chips_.size()); }

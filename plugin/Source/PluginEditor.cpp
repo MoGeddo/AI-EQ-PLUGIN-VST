@@ -313,6 +313,27 @@ int AeqAudioProcessorEditor::chipAt (Point<int> p) const {
     return -1;
 }
 
+Rectangle<int> AeqAudioProcessorEditor::controlBounds (Control c) const {
+    switch (c) {
+        case Control::Clamp:       return clampHit();
+        case Control::Bypass:      return bypassHit();
+        case Control::Reset:       return resetHit();
+        case Control::ModeRestore: return modeSeg (0);
+        case Control::ModeMatch:   return modeSeg (1);
+        case Control::Chip: {
+            const auto rects = chipRects();
+            if (rects.empty()) return {};
+            Rectangle<int> all = rects[0];
+            for (const auto& r : rects) all = all.getUnion (r);
+            return all;
+        }
+        case Control::StrengthKnob: return amountKnob_.getBounds();
+        case Control::AutoStopKnob: return settleKnob_.getBounds();
+        case Control::None:         break;
+    }
+    return {};
+}
+
 AeqAudioProcessorEditor::Control AeqAudioProcessorEditor::controlAt (Point<int> p) const {
     if (clampHit().contains (p))         return Control::Clamp;
     if (bypassHit().contains (p))        return Control::Bypass;
@@ -369,6 +390,9 @@ bool AeqAudioProcessorEditor::keyPressed (const KeyPress& key) {
         proc_.reopenPass();
         stoppedByUser_ = false;
         lastVersion_ = -1;
+        tooltip_ = "Listening";       // a key that changes the state must say so, or it looks
+                                     // like it did nothing - which is what the panel was
+                                     // reported for: "keys that give nothing back"
         repaint();
         return true;
     }
