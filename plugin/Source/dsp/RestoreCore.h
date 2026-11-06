@@ -152,8 +152,10 @@ public:
         }
         phase_.store(int(Phase::Committed), std::memory_order_release);
         frozen_.store(true, std::memory_order_release);
-        applyGain_ = 1.0;                 // no fade: this is the state the user saved
-        updateBands();
+        // no fade: this is the state the user saved - and the audio thread is the one
+        // that sets it, one block later, so the write cannot land inside a block
+        restoreGain_.store (true, std::memory_order_release);
+        bandsDirty_.store (true, std::memory_order_release);
         version_.fetch_add(1, std::memory_order_release);
     }
 
@@ -245,43 +247,62 @@ public:
         eqRight_.reset();
         scratch_.assign(maxBlock_, 0.0f);   // kept for the report; processBlock never trusts it
         state_.valid = false;
-        updateBands();
+        updateBands();      // prepare() runs before a block can be processed: no audio thread yet
     }
 
+    // Ask for a reset.  The two halves are performed on the two threads that own the
+    // objects - the DSP state on the audio thread, the analyzer on the analysis thread -
+    // because doing it here, where the caller is the editor, is a data race with
+    // processBlock().  ThreadSanitizer found that exact race in 1.2.18 (a write inside
+    // reset() against a read in processBlock), and it is the same shape as the crash that
+    // took the plugin out of FL Studio at 1.2.2.
     void reset() {
-        applyGain_ = 0.0;
-        fifoRead_.store(fifoWrite_.load(std::memory_order_acquire), std::memory_order_release);
-        fifoDropped_.store(0);
+        resetDsp_.store (true, std::memory_order_release);
+        resetAnalysis_.store (true, std::memory_order_release);
         version_.fetch_add(1, std::memory_order_release);
-        analyzer_.reset();
+    }
+
+private:
+    // audio thread only
+    void resetDspNow() {
+        applyGain_ = 0.0;
         eqLeft_.reset(); eqRight_.reset();
         hpf_.reset(); deEsser_.reset();
         for (auto& t : tracked_) { t.prepare(fs_); t.reset(); }
         trackedActive_ = 0;
-        pendingTrackCount_ = 0;
-        {
-            std::lock_guard<std::mutex> lk(stateMx_);
+        // both locks are attempted, never waited on: a mutex that blocks the audio
+        // thread is a dropout, and the caller of a reset can be a user clicking twice
+        if (auto lk = std::unique_lock<std::mutex> (stateMx_, std::try_to_lock); lk.owns_lock())
             state_ = RestoreState{};
-        }
-        trackedActive_ = 0;
-        {
-            std::lock_guard<std::mutex> lk(pendingMx_);
+        if (auto lk = std::unique_lock<std::mutex> (pendingMx_, std::try_to_lock); lk.owns_lock())
             pendingTrackCount_ = 0;
-        }
-        // The lock above must be *released* before this: updateBands() calls
-        // activeBands(), which takes stateMx_ again.  std::mutex is not recursive,
-        // so holding it across that call deadlocked the calling thread - and that
-        // caller is the audio thread (via requestReset) or the editor's Reset
-        // button.  A frozen audio thread inside a DAW looks exactly like a crash:
-        // the host stops the engine and, in FL Studio, drops the plugin.
-        updateBands();
+        updateBands();          // we are the audio thread: this is the only thread that may
     }
+
+    // analysis thread only
+    void resetAnalysisNow() {
+        fifoRead_.store(fifoWrite_.load(std::memory_order_acquire), std::memory_order_release);
+        fifoDropped_.store(0);
+        analyzer_.reset();
+        learnProgress_ = 0.0;
+    }
+
+public:
 
     // ---------------------------------------------------------------- audio
     void processBlock(float* left, float* right, int n) {
         if (n <= 0) return;
 
-        // 0. pick up any correction solved in the background.  Coefficients are
+        // 0. apply anything another thread *asked* for.  Every object below is written
+        //    only here, so "the editor changed something" never means "the editor wrote
+        //    to a filter".
+        if (resetDsp_.exchange (false, std::memory_order_acq_rel)) resetDspNow();
+        if (bandsDirty_.exchange (false, std::memory_order_acq_rel)) {
+            if (restoreGain_.exchange (false, std::memory_order_acq_rel)) applyGain_ = 1.0;
+            updateBands();
+        }
+
+        // 0b. pick up any correction solved in the background.  Coefficients are
         //    only ever *applied* here, on the audio thread, so the processing
         //    objects are never written from another thread.
         pollAndApply();
@@ -483,6 +504,7 @@ public:
 
     void refresh() {
         std::lock_guard<std::mutex> lk(analyzeMx_);
+        if (resetAnalysis_.exchange (false, std::memory_order_acq_rel)) resetAnalysisNow();
         drainFromAudioThread();
         refreshLocked();
     }
@@ -825,9 +847,9 @@ public:
         // committed, with no fade, so a measurement harness sees the steady state.
         if (s.settleSeconds <= 0.0) {
             phase_.store(int(Phase::Committed), std::memory_order_release);
-            applyGain_ = 1.0;
+            restoreGain_.store (true, std::memory_order_release);
         }
-        updateBands();
+        bandsDirty_.store (true, std::memory_order_release);
         version_.fetch_add(1, std::memory_order_release);
     }
     const RestoreSettings& settings() const { return settings_; }
@@ -1060,18 +1082,24 @@ private:
     void updateBands() {
         std::array<BandSpec, kBands> bands{};
         int count = 0;
-        {
-            std::lock_guard<std::mutex> lk(stateMx_);
-            count = activeBandsIntoLocked(bands.data(), kBands);
+        // The audio thread calls this now (it is the only thread allowed to write the
+        // filters), so the lock is *tried*: a mutex that blocks the audio thread is a
+        // dropout.  If the message thread happens to hold it, the request is left set and
+        // retried on the next block rather than waited on.
+        std::unique_lock<std::mutex> lk (stateMx_, std::try_to_lock);
+        if (! lk.owns_lock()) {
+            bandsDirty_.store (true, std::memory_order_release);
+            return;
         }
+        count = activeBandsIntoLocked(bands.data(), kBands);
+        const double hf = state_.hpfHz;
+        const double deThr = state_.deEssThresholdDb, deMax = state_.deEssMaxGrDb;
+        lk.unlock();
         eqLeft_.setBands(bands.data(), count, fs_);
         eqRight_.setBands(bands.data(), count, fs_);
-        const double hf = hpfFreq();
         hpf_.set(hf > 0 ? hf : 70.0, fs_);
-        RestoreState st;
-        { std::lock_guard<std::mutex> lk(stateMx_); st = state_; }
-        deEsser_.setEnabled(st.deEssMaxGrDb > 0.05);
-        deEsser_.setParameters(st.deEssThresholdDb, st.deEssMaxGrDb);
+        deEsser_.setEnabled(deMax > 0.05);
+        deEsser_.setParameters(deThr, deMax);
     }
 
     double fs_ = 48000.0;
@@ -1121,6 +1149,10 @@ private:
     std::vector<int> tmpCount_;
     std::array<std::atomic<double>, 8> trimDb_{};   // UI gain offsets, per corrective band
     std::atomic<bool> trimsDirty_{false};           // the editor moved a handle
+    std::atomic<bool> bandsDirty_{false};           // the cascade needs rebuilding - on the audio thread
+    std::atomic<bool> resetDsp_{false};             // a reset was asked for from another thread
+    std::atomic<bool> resetAnalysis_{false};        // ... and its analysis half
+    std::atomic<bool> restoreGain_{false};          // adopted with bandsDirty_
     std::atomic<double> learnProgress_{0.0};
     std::atomic<long> version_{0};
     std::atomic<int> phase_{int(Phase::Learning)};

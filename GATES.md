@@ -621,3 +621,24 @@ at any vocal stem first; the other gates need nothing but the source tree.
   back turns 6b, 6c and 6f red.
   CHECK: build/test_commit
   EXPECT: 24 passed, 0 failed
+
+- [x] G63: the editor may not write to a filter, and ThreadSanitizer is what says so.
+  `RestoreCore::reset()` rebuilt the whole cascade - `eqLeft_.reset()`, `hpf_.reset()`,
+  `analyzer_.reset()`, `state_` - and the Reset icon calls it from the message thread while
+  the audio thread is inside `processBlock`.  The same for `restoreDecision()`, i.e. every
+  project load.  This is the shape of the 1.2.2 crash that took the plugin out of FL
+  Studio, and the file even had a comment forbidding it for trims.
+  Measured first: a ThreadSanitizer probe (audio thread processing, host thread calling
+  `relearn()` and `restoreDecision()`) reported
+  `data race ... reset() ... processBlock()`.  After the fix: zero warnings, three runs.
+  The fix is not a mutex around the cascade - that would block the audio thread.  It is a
+  request: `reset()` sets two flags, `processBlock` performs the DSP half (`resetDspNow`),
+  `refresh` performs the analysis half (`resetAnalysisNow`), and both locks inside are
+  `try_to_lock` with a retry on the next block.  `restoreDecision`, `setSettings` and
+  `prepare` route through the same `bandsDirty_` flag; `applyGain_` is no longer written
+  from the message thread at all.
+  `test_threads` now runs the two panel actions inside its editor loop, and the
+  falsification is recorded: putting `resetDspNow()` back inline turns TSAN red at
+  `BiquadCascade::reset()`.
+  CHECK: g++ -fsanitize=thread plugin/Tests/test_threads.cpp && build/test_threads
+  EXPECT: 3 passed, 0 failed

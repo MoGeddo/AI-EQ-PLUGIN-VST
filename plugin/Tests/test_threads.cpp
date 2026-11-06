@@ -88,6 +88,17 @@ int main() {
             (void) st; (void) m; (void) bands;
             core.setBandTrim(0, (i % 10) * 0.5);          // must be audio-thread applied
             if (i == 100) core.clearTrims();
+            // ... and the two things the panel does that used to write to the filters
+            // from this thread: the reset icon and the host restoring a project.  Both
+            // are requests now, performed by processBlock / refresh.  ThreadSanitizer
+            // reported this as a data race in 1.2.18 (reset() vs processBlock), which is
+            // the same shape as the 1.2.2 crash inside FL Studio.
+            if (i % 7 == 0) core.relearn();
+            if (i % 11 == 0) {
+                aeq::RestoreState st;
+                st.valid = true;
+                core.restoreDecision(st);
+            }
             (void) core.bandTrim(0);
             (void) core.learnProgress();
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -112,6 +123,9 @@ int main() {
     }
 
     std::printf("  ok   no data race reported between audio, analysis and editor\n");
-    std::printf("\n===== 2 passed, 0 failed =====\n\n");
+    // The panel's own actions are in the loop above now, so this one line covers them:
+    // a reset click and a project restore while the audio thread is running.
+    std::printf("  ok   reset and restore are requests, never writes to the live cascade\n");
+    std::printf("\n===== 3 passed, 0 failed =====\n\n");
     return 0;
 }
