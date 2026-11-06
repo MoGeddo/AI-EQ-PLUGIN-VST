@@ -601,3 +601,23 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: /tmp/venv/bin/python design/preview/check_knobs.py
   EXPECT: knobs ok: strength 100% of the ring (expected 100%); auto-stop 0% of the ring
   (expected 0%)
+
+- [x] G62: the panel may tell one story at a time.
+  The 1.2.16 window shipped three on one frame: `SEALED` in the header, `STOPPED BY YOU` on
+  the take strip, and "Measuring every second against the 15 reference takes. The verdict
+  lands when it settles." in the footer.  The cause was ordering - the verdict asked "has
+  it settled?" before "is it sealed?", and `settled` means "enough audio to trust the
+  numbers", not "the pass is closed", so a take stopped at 21 s of a 45 s pass was sealed
+  *and* still described as measuring.
+  The sentences moved to `plugin/Source/ui/PanelCopy.h`: a `Facts` struct (have data,
+  frozen, committed, settled, bands, heard s, trust s) and three functions - `verdict`,
+  `stateWord`, `stateSub` - so the pill, its sub-line and the footer cannot answer the same
+  question differently.  Sealed beats measured, and a take sealed before the trust
+  threshold says so with both numbers: "Sealed at 3 bands on 24 s of a 45 s pass - the
+  numbers are coarse, the decision is not."
+  The file is plain C++ (no JUCE) so the gate that builds without a GUI links it:
+  `test_commit` 6a-6f, 6 assertions, including the invariant "every one of the 8 states
+  says exactly one thing and the pill agrees with it".  Falsified: putting the old ordering
+  back turns 6b, 6c and 6f red.
+  CHECK: build/test_commit
+  EXPECT: 24 passed, 0 failed

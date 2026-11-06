@@ -3,6 +3,7 @@
 
 #include "PluginProcessor.h"
 #include "ui/CurveView.h"
+#include "ui/PanelCopy.h"
 #include "ui/Theme.h"
 
 // ---------------------------------------------------------------------------
@@ -72,6 +73,8 @@ private:
     void drawChips (juce::Graphics&, juce::Rectangle<int>);
     void drawFooter (juce::Graphics&, juce::Rectangle<int>);
 
+    // what the panel knows about the pass; the sentences themselves are in ui/PanelCopy.h
+    aeq::copy::Facts panelFacts() const;
     juce::String verdictLine() const;
     juce::String chipMode (size_t index) const;
     bool  hasTrackedLayer() const;

@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "ui/PanelCopy.h"
 
 using namespace juce;
 using aeq::ui::Palette;
@@ -370,8 +371,9 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
                            h.getHeight() - markH - 2.0f * sy },
             Palette::muted(), kCap * sy);
 
-    // right cluster: master bypass, reset, the seal pill with its LED, and the promise
-    const bool frozen = proc_.isFrozen() || proc_.isCommitted();
+    // right cluster: master bypass, reset, the seal pill with its LED, and the promise.
+    // The pill's words come from panelFacts() now, so this function no longer decides
+    // what "sealed" means on its own.
     const auto by = bypassHit();
     const bool bypassed = proc_.apvts().getRawParameterValue ("bypass")->load() > 0.5f;
     aeq::ui::icon (g, Icon::Power, by.toFloat().reduced (by.getWidth() * 0.18f),
@@ -380,7 +382,7 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     aeq::ui::icon (g, Icon::Reset, rs.toFloat().reduced (rs.getWidth() * 0.18f),
                    Palette::muted(), 1.5f * sy);
 
-    const String sealText = aeq::ui::u8 (frozen ? kSealed : kListening);
+    const String sealText = String (aeq::copy::stateWord (panelFacts()));
     const float textW = aeq::ui::measure (sealText, kCap * sy);
     const float pillW = textW + 44.0f * sy;
     const Rectangle<float> pill (float (rs.getX()) - pillW - 10.0f * sy,
@@ -394,8 +396,9 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     aeq::ui::draw (g, sealText, pill.translated (10.0f * sy, 0.0f).withTrimmedRight (12.0f * sy),
                    Justification::centred, kCap * sy, Palette::accentHi());
 
-    arabic (g, kSubSeal, { pill.getRight() - 120.0f * sy, pill.getBottom() + 2.0f * sy,
-                           120.0f * sy, 12.0f * sy },
+    arabic (g, String (aeq::copy::stateSub (panelFacts())).toRawUTF8(),
+            { pill.getRight() - 140.0f * sy, pill.getBottom() + 2.0f * sy,
+              140.0f * sy, 12.0f * sy },
             Palette::dim(), kMicro * sy, Justification::centredRight);
 }
 
@@ -707,19 +710,23 @@ bool AeqAudioProcessorEditor::hasTrackedLayer() const {
     return proc_.core().trackedCount() > 0;
 }
 
+// The state of the pass, as the sentences need it.  One place builds it, so the pill, its
+// sub-line and the footer cannot answer the same question differently.
+aeq::copy::Facts AeqAudioProcessorEditor::panelFacts() const {
+    const auto st = proc_.autoState();
+    aeq::copy::Facts f;
+    f.haveData   = haveData_;
+    f.frozen     = proc_.isFrozen();
+    f.committed  = proc_.isCommitted();
+    f.settled    = state_.settled;
+    f.bands      = int (bands_.size());
+    f.heardSeconds = st.heardSeconds;
+    f.trustSeconds = st.needSeconds;
+    return f;
+}
+
 String AeqAudioProcessorEditor::verdictLine() const {
-    if (! haveData_)
-        return String ("Listening. Play the take, then press the clamp to stop it.");
-    if (! state_.settled)
-        return String ("Measuring every second against the 15 reference takes. "
-                       "The verdict lands when it settles.");
-    if (! proc_.isFrozen() && ! proc_.isCommitted())
-        return String ("Still learning. You stop it when you have heard the whole take.");
-    if (bands_.empty())
-        return String ("Everything is inside the engineer's range. Nothing to do but leave it.");
-    return String ("Sealed at ") + String (int (bands_.size()))
-         + (bands_.size() == 1 ? " band. " : " bands. ")
-         + "The decision does not move on its own.";
+    return String (aeq::copy::verdict (panelFacts()));
 }
 
 // --------------------------------------------------------------------------- layout

@@ -21,13 +21,19 @@
 #include <cstdio>
 #include <memory>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "../Source/dsp/RestoreCore.h"
+#include "../Source/ui/PanelCopy.h"
 
 static const double kPi = 3.14159265358979323846;
 static const double kSr = 48000.0;
 static int gPass = 0, gFail = 0;
+
+static bool has (const std::string& s, const char* needle) {
+    return s.find (needle) != std::string::npos;
+}
 
 static void checkTrue(bool ok, const char* what) {
     std::printf("  %s   %s\n", ok ? "ok  " : "FAIL", what);
@@ -251,6 +257,64 @@ int main() {
         for (size_t i = 0; same && i < a.corrective.size(); ++i)
             same = a.corrective[i].f0 == b.corrective[i].f0 && a.corrective[i].gainDb == b.corrective[i].gainDb;
         checkTrue(same, "5. the same take commits to the same decision, twice");
+    }
+
+    // ---- 6. the panel says one thing at a time --------------------------------
+    // The 1.2.16 window said SEALED in the header and "the verdict lands when it
+    // settles" in the footer, on the same frame, because the verdict asked "has it
+    // settled?" before "is it sealed?".  The sentences live in ui/PanelCopy.h now and
+    // these are the promises they make.
+    {
+        aeq::copy::Facts f;
+        f.haveData = false;
+        const std::string waiting = aeq::copy::verdict (f);
+        checkTrue (has (waiting, "clamp") && ! has (waiting, "Sealed"),
+                   "6a. before a take, the panel asks for a take - it does not claim a verdict");
+
+        f.haveData = true; f.settled = false; f.frozen = false; f.committed = false;
+        const std::string listening = aeq::copy::verdict (f);
+        checkTrue (has (listening, "Listening") && ! has (listening, "Sealed"),
+                   "6b. while learning it says it is listening, and nothing else");
+
+        // sealed by the user, but stopped before the solver had the audio it trusts:
+        // still a decision, and the sentence carries both numbers instead of pretending
+        f.frozen = true; f.committed = true; f.bands = 3;
+        f.heardSeconds = 21.4; f.trustSeconds = 45.0;
+        const std::string early = aeq::copy::verdict (f);
+        checkTrue (has (early, "Sealed at 3 bands") && has (early, "coarse")
+                     && ! has (early, "settles"),
+                   "6c. a take sealed before the trust threshold says so, with its seconds");
+
+        f.settled = true;
+        const std::string sealed = aeq::copy::verdict (f);
+        checkTrue (sealed.rfind ("Sealed at 3 bands.", 0) == 0
+                     && has (sealed, "does not move on its own"),
+                   "6d. a sealed take says sealed, once");
+
+        f.bands = 0;
+        checkTrue (has (aeq::copy::verdict (f), "nothing to correct"),
+                   "6e. a sealed take with no bands says there was nothing to do");
+
+        // the invariant, over every combination the panel can be in: the footer never
+        // carries two stages at once
+        bool oneStory = true;
+        for (int mask = 0; mask < 8; ++mask) {
+            aeq::copy::Facts g;
+            g.haveData  = (mask & 1) != 0;
+            g.settled   = (mask & 2) != 0;
+            g.frozen    = (mask & 4) != 0;
+            g.committed = g.frozen;
+            g.bands = (mask & 2) ? 2 : 0;
+            g.heardSeconds = 20.0; g.trustSeconds = 45.0;
+            const std::string v = aeq::copy::verdict (g);
+            const int stories = (has (v, "Sealed") ? 1 : 0)
+                              + (has (v, "learning") ? 1 : 0)
+                              + (has (v, "Listening") ? 1 : 0);
+            if (stories != 1) oneStory = false;
+            if (has (v, "Sealed") && aeq::copy::stateWord (g) != "SEALED") oneStory = false;
+            if (! has (v, "Sealed") && aeq::copy::stateWord (g) == "SEALED") oneStory = false;
+        }
+        checkTrue (oneStory, "6f. every state says exactly one thing, and the pill agrees with it");
     }
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);
