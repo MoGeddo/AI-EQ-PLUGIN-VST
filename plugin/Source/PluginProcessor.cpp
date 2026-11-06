@@ -246,6 +246,21 @@ void AeqAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
         bands.appendChild(v, nullptr);
     }
     state.appendChild(bands, nullptr);
+    // The resonances are part of the applied curve too - they are the narrow notches the
+    // detector placed on the take's own ringing, and `activeBands()` includes them.  They
+    // were not being saved, so a reopened project came back with fewer bands than the one
+    // that was closed: the control gate caught it ("and the same number of bands comes
+    // back with it"), which is the one promise a mixer must be able to trust.
+    juce::ValueTree resonances("resonance");
+    for (const auto& r : st.resonance) {
+        juce::ValueTree v("band");
+        v.setProperty("f0", r.f0, nullptr);
+        v.setProperty("q", r.q, nullptr);
+        v.setProperty("gain", r.gainDb, nullptr);
+        v.setProperty("type", int(r.type), nullptr);
+        resonances.appendChild(v, nullptr);
+    }
+    state.appendChild(resonances, nullptr);
     // ... and so are the dynamic layers: the bands that follow the note are part of the
     // decision, not a live guess.  Without them a reopened session would sound different
     // from the one that was saved, which is the one thing a mixer must be able to trust.
@@ -289,6 +304,17 @@ void AeqAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
                     b.gainDb = double(v.getProperty("gain", 0.0));
                     b.type = aeq::BandType(int(v.getProperty("type", 0)));
                     st.corrective.push_back(b);
+                }
+            }
+            if (auto res = tree.getChildWithName("resonance"); res.isValid()) {
+                for (int i = 0; i < res.getNumChildren(); ++i) {
+                    const auto v = res.getChild(i);
+                    aeq::BandSpec b;
+                    b.f0 = double(v.getProperty("f0", 1000.0));
+                    b.q = double(v.getProperty("q", 1.0));
+                    b.gainDb = double(v.getProperty("gain", 0.0));
+                    b.type = aeq::BandType(int(v.getProperty("type", 0)));
+                    st.resonance.push_back(b);
                 }
             }
             std::vector<aeq::TrackedSpec> layers_;

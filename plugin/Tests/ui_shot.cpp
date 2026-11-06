@@ -70,6 +70,15 @@ std::vector<float> voice(double f0, double seconds, unsigned seed = 7) {
     return x;
 }
 
+// The frequencies of a band set, to the hertz: two takes are the same take when the notches
+// sit in the same places, whatever order the solver happened to place them in.
+std::vector<int> freqs(const std::vector<aeq::BandSpec>& bands) {
+    std::vector<int> f;
+    for (const auto& b : bands) f.push_back(int(std::floor(b.f0 + 0.5)));
+    std::sort(f.begin(), f.end());
+    return f;
+}
+
 // A boom under 120 Hz and a bell at 230 Hz: something the plugin has an opinion
 // about, so the window is not a picture of an empty state.
 void addFaults(std::vector<float>& x) {
@@ -342,6 +351,7 @@ int runControls(const juce::File& dir) {
         proc.stopLearning();
         pump();
         const int before = proc.core().appliedBandCount();
+        const auto freqsBefore = freqs(proc.core().activeBands());
         const bool wasFrozen = proc.isFrozen();
         juce::MemoryBlock saved;
         proc.getStateInformation(saved);
@@ -356,6 +366,8 @@ int runControls(const juce::File& dir) {
         check(proc.isFrozen(), "reopening the project restores the sealed decision");
         check(proc.core().appliedBandCount() == before,
               "and the same number of bands comes back with it");
+        check(freqs(proc.core().activeBands()) == freqsBefore,
+              "on the same frequencies, to the hertz");
         check(wasFrozen, "the take that was saved had been sealed in the first place");
     }
 
