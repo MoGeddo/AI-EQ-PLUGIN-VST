@@ -84,6 +84,7 @@ int main() {
     aeq::RestoreSettings s;
     s.learn = true;
     s.settleSeconds = 1.0;      // settle quickly, so the correction lands mid-run
+    s.autoStopSeconds = 1.0;    // ... and stop by itself: nothing here presses the clamp
 
     // A voiced take, not a sine: the analyser's gate only counts frames it believes
     // are a voice (that is the point of it), and a pure tone is not one.  This is the

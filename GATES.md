@@ -544,3 +544,37 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: /tmp/venv/bin/python design/preview/check_identity.py && /tmp/venv/bin/python design/preview/check_match.py
   EXPECT: identity ok: 20 panel strings covered ... / match ok: 6 edges agree within 2 px
 
+- [x] G60: the controls are a state machine, not a row of buttons.  Seven targets is
+  right for a tool whose thesis is "it decides, you stop it" - what was wrong was the
+  logic behind three of them and the drawing behind two.
+  *The dials.*  `drawRotarySlider` was handed `s.getValue()` - the value in parameter
+  units - where a turn in 0..1 was expected, so 100 % of "strength" became
+  -135 + 270 x 100 = 26 865 degrees and both knobs span like a slot machine on the way
+  to their value.  They took proportions now (`valueToProportionOfLength`, which is also
+  the only version that respects a skewed range).  The value ring is drawn at 1.19 x the
+  body radius and a child is clipped to its own bounds, so at a 42 px box the ends of
+  every ring were cut off; the box is 54 px and the body 42 inside it.
+  *The stop.*  The plugin stopped itself: `settle_s` (default 45) froze the decision
+  without anybody pressing anything, and the panel then said "STOPPED BY YOU" and
+  "nothing moves on its own" over a decision the user had not made.  Readiness and
+  stopping are two questions now: `settleSeconds` only sets `state().settled`, and a new
+  `autoStopSeconds` - 0 by default, and what the second knob drives - is the only thing
+  that can end a pass by itself.  When it does, the seal says `STOPPED AT THE CAP`.
+  *The reversibility.*  The clamp called `relearn()` when sealed: one accidental click
+  after a good take threw the whole pass away.  It calls `reopen()` now - every sample
+  and every band stay, the correction keeps playing, the analysis keeps running, and the
+  next stop solves from the longer take.  `relearn()` is the reset icon's job.
+  *The veto.*  Right-click a band chip and it hands that band back (`trim = -gain`, the
+  same offset a drag writes); double click still restores the solver's answer.
+  *The number.*  The level match runs by itself and was invisible; the caption now
+  carries `AUTO GAIN -1.8 DB` when a decision is in the path.
+  Measured, not asserted: `check_knobs.py` reads the shipped screenshot and asks how much
+  of each value ring is lit.  On the 1.2.12 window it said `strength 47 % of the ring
+  (expected 100 %)` and `auto-stop 47 % (expected 0 %)` - both bugs, from one number.  On
+  1.2.13 it reads 100 % and 0 %, and the full ring is lit at both ends of the travel,
+  which is the clipping check.  `check_juce_api.py` also refuses `getValue()` in
+  `drawRotarySlider` and a knob box under 50 px, and the rule was falsified before it was
+  trusted: putting the old line back turns it red.
+  CHECK: /tmp/venv/bin/python design/preview/check_knobs.py && /tmp/venv/bin/python design/preview/check_juce_api.py
+  EXPECT: knobs ok: strength 100% of the ring
+

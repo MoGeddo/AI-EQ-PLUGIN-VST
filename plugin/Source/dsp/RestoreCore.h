@@ -44,12 +44,21 @@ struct RestoreSettings {
     double axis1 = 0.0;              // -1 .. +1
     double axis2 = 0.0;              // -1 .. +1
 
-    // How much sung audio to collect before the correction is allowed into the
-    // signal path.  0 = apply immediately (the CLI and the gates want this).
-    // The plugin sets ~30 s because a curve solved from four seconds of a verse
-    // is not a curve for the performance - and the first thing a mixer hears
-    // must be the answer, not a guess that keeps changing.
+    // How much sung audio to collect before the decision is *trusted* - it sets
+    // `state().settled`, and the solver keeps refining until it is true.  0 means "trust
+    // at once", which is what the CLI and the offline gates want.
     double settleSeconds = 0.0;
+
+    // Stop the pass by ourselves after this many seconds.  0 - the plugin's default -
+    // means the pass ends when the *person* ends it, which is the whole product.  The
+    // CLI and the gates set it, because they have nobody to press the clamp.
+    //
+    // This used to be `settleSeconds`, and the two ideas were one knob: the plugin
+    // stopped itself 45 s into a take, froze the decision, and then the panel said
+    // "STOPPED BY YOU" and "nothing moves on its own" over a decision the user had not
+    // made.  Readiness and stopping are different questions and now they are different
+    // numbers.
+    double autoStopSeconds = 0.0;
 };
 
 // The display spectrum: a 120 ms moving average plus its peak hold, published as
@@ -146,6 +155,15 @@ public:
         applyGain_ = 1.0;                 // no fade: this is the state the user saved
         updateBands();
         version_.fetch_add(1, std::memory_order_release);
+    }
+
+    // Open the take again without throwing a second of it away.  A stop made one
+    // phrase early should cost one click, not the whole pass: this keeps every sample
+    // already measured, keeps the correction that is currently in the path, and lets the
+    // analysis continue, so the next stop solves from the longer take.
+    void reopen() {
+        frozen_.store (false, std::memory_order_release);
+        version_.fetch_add (1, std::memory_order_release);
     }
 
     // Forget everything and listen again (the editor's "learn again").
@@ -696,10 +714,12 @@ public:
         }
         pendingSeen_.store(false);
 
-        // Automatic commit: the CLI and the older automatic gates ask for a decision
-        // after N seconds of sung audio; the plugin sets this as a *safety cap* so a
-        // forgotten Stop button cannot leave the tool listening forever.
-        if (settings_.settleSeconds > 0.0 && state_.settled) {
+        // Automatic stop: only when the caller asked for one.  The plugin's default is
+        // zero - the pass ends when the person ends it - because a tool that freezes its
+        // own decision 45 s into a take is a tool that says "stopped by you" about
+        // something you did not stop.
+        if (settings_.autoStopSeconds > 0.0
+            && state_.analyzedSeconds >= settings_.autoStopSeconds) {
             phase_.store(int(Phase::Committed), std::memory_order_release);
             frozen_.store(true, std::memory_order_release);
         }

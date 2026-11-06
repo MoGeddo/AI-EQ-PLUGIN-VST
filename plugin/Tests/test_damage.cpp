@@ -174,6 +174,7 @@ static Processed play(const std::vector<float>& take, double settleSeconds) {
     aeq::RestoreSettings s;
     s.learn = true;
     s.settleSeconds = settleSeconds;
+    s.autoStopSeconds = settleSeconds;
     core.prepare(kSr, 512);
     core.setSettings(s);
 

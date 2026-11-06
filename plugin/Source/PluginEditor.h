@@ -88,6 +88,7 @@ private:
     // the seal: how much of the take was heard when it was stopped
     double sealedAt_ = 0.0;        // 0..1 of the ribbon
     bool   committedSeen_ = false;
+    bool   stoppedByUser_ = true;  // who ended the pass - the label has to know
     int    hoverChip_ = -1;
     bool   hoverClamp_ = false;
     int    draggedChip_ = -1;

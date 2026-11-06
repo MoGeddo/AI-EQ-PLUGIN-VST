@@ -34,17 +34,20 @@ const char* kTagline   = "listens to the whole take; you stop it";
 const char* kSealed    = "SEALED";
 const char* kListening = "LISTENING";
 const char* kSubSeal   = "nothing moves on its own";
-const char* kStopMark  = "STOPPED BY YOU";
+const char* kStopMark  = "STOPPED BY YOU";     // the pass ended where the user ended it
+const char* kStopAuto  = "STOPPED AT THE CAP"; // ... or where they told it to stop for them
+const char* kStopHere  = "STOP HERE";          // the same clamp, on hover, while listening
 const char* kRestart   = "learn again";
 const char* kMeasuredKey = "measured";
 const char* kDecisionKey = "decision";
 const char* kStatic    = "STATIC";
 const char* kTracked   = "TRACKED";
 const char* kEmptyChip = "EMPTY";
+const char* kOff       = "OFF";        // a band the user has handed back
 const char* kModeRestore = "RESTORE";
 const char* kModeMatch   = "MATCH";
 const char* kStrength  = "strength";
-const char* kListenFor = "listen";
+const char* kAutoStop  = "auto-stop";
 
 // A tracked-out Latin caption.  Arabic must never be tracked (it breaks the joins),
 // so this path exists only for the Latin micro-lines.
@@ -66,8 +69,13 @@ void arabic (Graphics& g, const char* s, Rectangle<float> area, Colour c, float 
 
 // The knob: a machined part drawn as paths, because the binary carries no sprites -
 // anodised to the accent so a metal never introduces a third hue into the panel.
-void drawKnob (Graphics& g, Point<float> centre, float size, double value, bool hover) {
-    const float r = size * 0.5f;
+// `box` is the width of the whole control, ring and seat included; the body is 78 % of
+// it.  The caller passes a box, not a body, because the value ring is drawn 1.19 x the
+// body radius and a child is clipped to its own bounds: at 42 px the ring was being cut
+// off at the top of every knob.
+void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bool hover) {
+    const float r = box * 0.39f;
+    const float value = jlimit (0.0f, 1.0f, proportion);
     const auto accent = Palette::accent();
 
     // seat: a recess with a lit top edge and a shadowed bottom one
@@ -81,9 +89,9 @@ void drawKnob (Graphics& g, Point<float> centre, float size, double value, bool 
     ColourGradient body (Palette::surfaceHi().brighter (0.10f), centre.x, centre.y - r * 0.35f,
                          Palette::bg().darker (0.35f), centre.x, centre.y + r, false);
     g.setGradientFill (body);
-    g.fillEllipse (centre.x - r, centre.y - r, size, size);
+    g.fillEllipse (centre.x - r, centre.y - r, r * 2, r * 2);
     g.setColour (Colours::white.withAlpha (hover ? 0.22f : 0.14f));
-    g.drawEllipse (centre.x - r + 0.5f, centre.y - r + 0.5f, size - 1.0f, size - 1.0f, 1.0f);
+    g.drawEllipse (centre.x - r + 0.5f, centre.y - r + 0.5f, r * 2 - 1.0f, r * 2 - 1.0f, 1.0f);
     g.setColour (Palette::accentHi().withAlpha (0.16f));
     Path cap;
     cap.addCentredArc (centre.x, centre.y, r * 0.86f, r * 0.86f, 0.0f,
@@ -91,14 +99,14 @@ void drawKnob (Graphics& g, Point<float> centre, float size, double value, bool 
     g.strokePath (cap, PathStrokeType (1.2f));
 
     // the value ring: a groove from -135 to +135, and the accent from the centre detent
-    const float ringR = r * 1.24f;
+    const float ringR = r * 1.19f;
     Path groove;
     groove.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
                           degreesToRadians (-135.0f), degreesToRadians (135.0f), true);
     g.setColour (Palette::hairline().withAlpha (0.75f));
     g.strokePath (groove, PathStrokeType (2.0f, PathStrokeType::curved, PathStrokeType::rounded));
 
-    const float a = degreesToRadians (-135.0f + 270.0f * float (value));
+    const float a = degreesToRadians (-135.0f + 270.0f * value);
     Path arc;
     arc.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f, a, 0.0f, true);
     g.setColour (accent.withAlpha (0.90f));
@@ -121,8 +129,13 @@ class AeqSliderLook : public LookAndFeel_V4 {
 public:
     void drawRotarySlider (Graphics& g, int x, int y, int width, int height,
                            float, float, float, Slider& s) override {
+        // The slider's value is in *parameter* units (0..100 %, 0..300 s); the dial is in
+        // proportions.  Passing getValue() straight into the angle arithmetic is how the
+        // knobs came to spin: 100 % was 26 865 degrees.  valueToProportionOfLength also
+        // respects a skewed range, so the needle points where the number says.
+        const float p = float (s.valueToProportionOfLength (s.getValue()));
         drawKnob (g, { x + width * 0.5f, y + height * 0.5f }, float (jmin (width, height)),
-                  s.getValue(), s.isMouseOverOrDragging());
+                  p, s.isMouseOverOrDragging());
     }
     void drawLabel (Graphics&, Label&) override {}   // every label here is drawn by the editor
 };
@@ -159,11 +172,16 @@ void AeqAudioProcessorEditor::buildControls() {
     };
     const K specs[] = {
         { &amountKnob_, &amountName_, "amount",   kStrength,  0 },
-        { &settleKnob_, &settleName_, "settle_s", kListenFor, 0 },
+        { &settleKnob_, &settleName_, "auto_stop", kAutoStop, 0 },
     };
 
     for (const auto& k : specs) {
         k.slider->setSliderStyle (Slider::RotaryVerticalDrag);
+        // 320 px of travel for the whole range: a hand can find 1 % on a 42 px knob.
+        k.slider->setMouseDragSensitivity (320);
+        k.slider->setVelocityBasedMode (false);
+        k.slider->setRepaintsOnMouseActivity (true);
+        k.slider->setTooltip (k.label);
         k.slider->setTextBoxStyle (Slider::NoTextBox, false, 0, 0);
         k.slider->setRotaryParameters (MathConstants<float>::pi * 1.25f,
                                        MathConstants<float>::pi * 2.75f, true);
@@ -447,16 +465,22 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
                        clamp.getY() + clamp.getHeight() * (0.22f + 0.56f * float (i)) - 1.5f * sy,
                        3.0f * sx, 3.0f * sy);
 
-    // the seal, labelled in the row the plot leaves for it - and only once the user has
-    // actually stopped it.  An empty window that says "STOPPED BY YOU" next to a pill
-    // that says LISTENING is the panel contradicting itself.
-    if (proc_.isFrozen() || proc_.isCommitted()) {
+    // the seal, labelled in the row the plot leaves for it - and only once something has
+    // actually been stopped.  An empty window that says "STOPPED BY YOU" next to a pill
+    // that says LISTENING is the panel contradicting itself, and a decision the plugin
+    // made for itself is not one the user made either: the label follows the truth.
+    const char* stopLabel = nullptr;
+    if (proc_.isFrozen() || proc_.isCommitted())
+        stopLabel = stoppedByUser_ ? kStopMark : kStopAuto;
+    else if (hoverClamp_)
+        stopLabel = kStopHere;
+    if (stopLabel != nullptr) {
         const auto stopRow = heroRow (kStopTop, kStopBottom).toFloat();
-        const float stopW = aeq::ui::measure (aeq::ui::u8 (kStopMark), kMicro * sy) + 16.0f * sx;
+        const float stopW = aeq::ui::measure (aeq::ui::u8 (stopLabel), kMicro * sy) + 16.0f * sx;
         g.setColour (Colours::black.withAlpha (0.78f));
         g.fillRoundedRectangle ({ clamp.getCentreX() - stopW / 2, stopRow.getY(),
                                   stopW, stopRow.getHeight() }, 4.0f * sy);
-        arabic (g, kStopMark, { clamp.getCentreX() - stopW / 2, stopRow.getY(),
+        arabic (g, stopLabel, { clamp.getCentreX() - stopW / 2, stopRow.getY(),
                                 stopW, stopRow.getHeight() },
                 Palette::accentHi(), kMicro * sy, Justification::centred);
     }
@@ -464,8 +488,12 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // the caption row, inside the well: what was learnt (left) and the keys (right)
     const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
     const auto st = proc_.core().state();
-    const String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S   ·   "
-                         + String (int (bands_.size())) + " BANDS   ·   15 REFERENCE TAKES";
+    String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S   ·   "
+                   + String (int (bands_.size())) + " BANDS   ·   15 REFERENCE TAKES";
+    // the level match runs by itself, so it is a number on the panel rather than a fudge
+    // in the dark: how much gain it is holding to keep the take where it was
+    if (proc_.isFrozen() || proc_.isCommitted())
+        learned += "   ·   AUTO GAIN " + String (proc_.core().levelMatchDb(), 1) + " DB";
     trackedText (g, learned, caption, Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();
@@ -533,12 +561,19 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         trackedText (g, String (index).paddedLeft ('0', 2),
                      { r.getX() + 12.0f * sy, r.getY() + 7.0f * sy, 46.0f * sy, 15.0f * sy },
                      hot ? Palette::accentHi() : Palette::dim(), kMicro * sy, 1.3f);
-        const String mode = hot ? aeq::ui::u8 (kTracked) : aeq::ui::u8 (kStatic);
+        const bool vetoed = ! hot && chip.band >= 0 && chip.band < int (bands_.size())
+                            && std::abs (bands_[size_t (chip.band)].gainDb) > 0.5
+                            && chip.band < int (trims_.size())
+                            && std::abs (bands_[size_t (chip.band)].gainDb
+                                         + trims_[size_t (chip.band)]) < 0.05;
+        const String mode = hot ? aeq::ui::u8 (kTracked)
+                                : aeq::ui::u8 (vetoed ? kOff : kStatic);
         const float mw = aeq::ui::measure (mode, kCap * sy);
         aeq::ui::draw (g, mode, { r.getRight() - 12.0f * sy - mw, r.getY() + 5.0f * sy, mw,
                                   18.0f * sy },
                        Justification::centredRight, kCap * sy,
-                       hot ? Palette::accentHi() : Palette::muted());
+                       hot ? Palette::accentHi()
+                           : (vetoed ? Palette::dim().withAlpha (0.75f) : Palette::muted()));
 
         // the number: the band's cut, or how far the layer is moving the harmonic now
         // A tracked layer has no fixed frequency - it sits on a harmonic of the note
@@ -631,7 +666,7 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     // the look and feel, so this only writes their two labels and their two numbers
     const Point<float> k2 (float (area.getRight()) - 30.0f * sx, cy);
     const Point<float> k1 (float (area.getRight()) - 158.0f * sx, cy);
-    const float knobSize = 42.0f * sy;
+    const float knobSize = 42.0f * sy;          // the body; the box below adds the ring
 
     auto labelFor = [&] (const char* s, Point<float> c, float dx) {
         const String t2 = aeq::ui::u8 (s);
@@ -640,7 +675,7 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
                        Justification::centredRight, kMicro * sy, Palette::muted());
     };
     labelFor (kStrength, k1, knobSize * 0.62f + 8.0f * sy);
-    labelFor (kListenFor, k2, knobSize * 0.62f + 8.0f * sy);
+    labelFor (kAutoStop, k2, knobSize * 0.62f + 8.0f * sy);
 
     g.setFont (aeq::ui::font (kBody * sy, Face::SemiBold));
     g.setColour (Palette::text());
@@ -684,9 +719,8 @@ void AeqAudioProcessorEditor::resized() {
     curve_.setBounds (well());
 
     const float sx = float (getWidth()) / kDesignW;
-    const float knobSize = 42.0f * sy;
     const int cy = b.footer.getCentreY();
-    const int box = roundToInt (knobSize);
+    const int box = roundToInt (54.0f * sy);    // body (42) + ring + seat
     const int c1 = b.footer.getRight() - roundToInt (158.0f * sx);
     const int c2 = b.footer.getRight() - roundToInt (30.0f * sx);
     amountKnob_.setBounds (c1 - box / 2, cy - box / 2, box, box);
@@ -716,10 +750,18 @@ void AeqAudioProcessorEditor::mouseExit (const MouseEvent&) {
 void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
     const auto p = e.getPosition();
 
-    // the clamp: stop when listening, learn again when sealed
+    // The clamp: stop when it is listening, open the take again when it is sealed.  It
+    // used to call relearn() when sealed, i.e. one accidental click after a good take
+    // threw the whole pass away.  Reopening keeps every sample and every band; the reset
+    // icon is the one that forgets.
     if (clampHit().contains (p)) {
-        if (proc_.isCommitted() || proc_.isFrozen()) proc_.relearn();
-        else                                          proc_.stopLearning();
+        if (proc_.isCommitted() || proc_.isFrozen()) {
+            proc_.core().reopen();
+            stoppedByUser_ = false;
+        } else {
+            proc_.stopLearning();
+            stoppedByUser_ = true;
+        }
         lastVersion_ = -1;
         repaint();
         return;
@@ -749,6 +791,22 @@ void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
 
     // a chip is a band: dragging it is a trim, the same edit the curve handle makes
     const int chip = chipAt (p);
+    if (e.mods.isPopupMenu()) {
+        // right click: hand this band back, or take it away again.  The trim is the
+        // user's own offset, so "off" is an offset of -gain - no second mechanism, and
+        // double click still returns it to the solver's answer.
+        if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].band >= 0) {
+            const int band = chips_[size_t (chip)].band;
+            if (band < int (bands_.size())) {
+                const double spec = bands_[size_t (band)].gainDb;
+                const double trim = band < int (trims_.size()) ? trims_[size_t (band)] : 0.0;
+                const bool off = std::abs (spec + trim) < 0.05 && std::abs (spec) > 0.5;
+                proc_.core().setBandTrim (band, off ? 0.0 : -spec);
+                repaint();
+            }
+        }
+        return;
+    }
     if (chip >= 0 && chip < int (chips_.size()) && chips_[size_t (chip)].band >= 0) {
         draggedChip_ = chips_[size_t (chip)].band;
         dragStartTrim_ = chip < int (trims_.size()) ? trims_[size_t (chip)] : 0.0;

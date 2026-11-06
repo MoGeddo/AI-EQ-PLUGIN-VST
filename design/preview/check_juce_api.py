@@ -137,6 +137,31 @@ with tempfile.TemporaryDirectory() as td:
             notes.append(f"the editor ({EDITOR}) syntax-check clean"
                          + (f" with {len(w2)} warnings" if w2 else " with -Wall -Wextra"))
 
+    # The dial rule, as a gate rather than as a good intention.  A knob's angle is a
+    # *proportion*; a parameter value is not.  In 1.2.12 drawRotarySlider was handed
+    # s.getValue() directly, so 100 % of "strength" became 26 865 degrees and both knobs
+    # span like a slot machine on the way to their value.  Two checks, both cheap:
+    # (1) the value must go through valueToProportionOfLength;
+    # (2) the box the child is given must be big enough for a ring drawn at 1.19 x the
+    #     body - at 42 px the outer arc was clipped by the child's own bounds.
+    if editor.exists():
+        src = editor.read_text()
+        call = re.search(r"void drawRotarySlider.*?override\s*\{(.*?)\n    \}", src, re.S)
+        # comments out: this gate reads code, and a comment that names the fix is not the fix
+        body = "\n".join(ln.split("//")[0] for ln in (call.group(1) if call else "").splitlines())
+        if not body.strip():
+            problems.append("there is no drawRotarySlider to check - the dial rule cannot "
+                            "be verified without it")
+        elif (re.search(r"\.getValue\s*\(\s*\)", body)
+              and not re.search(r"valueToProportionOfLength\s*\(", body)):
+            problems.append("drawRotarySlider hands the dial a parameter value instead of "
+                            "a proportion (valueToProportionOfLength): the needle spins")
+        box = re.search(r"const int box = roundToInt \(([0-9.]+)f \* sy\)", src)
+        if box and float(box.group(1)) < 50.0:
+            problems.append(f"the knob box is {box.group(1)} px - the value ring is drawn "
+                            "at 1.19 x the body and gets clipped by the child's bounds")
+        notes.append("the dials take proportions, not values, and their boxes hold the ring")
+
     shot = SRC.parent / "Tests" / "ui_shot.cpp"
     if shot.exists():
         # JUCE_MODAL_LOOPS_PERMITTED: the shot runs the message loop while it analyses,

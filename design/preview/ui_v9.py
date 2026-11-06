@@ -162,7 +162,7 @@ BAND_MODES = ("STATIC", "STATIC", "DYNAMIC", "TRACKED")
 MODE_SEGMENTS = ("RESTORE", "MATCH")
 FOOTER_SEAL = "nothing moves on its own"
 FOOTER_REPORT = "4 bands - 1 dynamic - 1 tracked"
-KNOB_LABELS = ("strength", "listen")
+KNOB_LABELS = ("strength", "auto-stop")
 CHIP_UNIT = "dB"
 CHIP_HZ = "Hz"
 FOLLOWING = "TRACKED 600 Hz"
@@ -707,8 +707,8 @@ def draw_take(canvas):
     # one strip under the ribbon: learned (left), the stop (centre), the keys (right).
     # Nothing is stacked, and nothing sits over the clamp itself.
     # under the band: what was learnt (left, Arabic) and the keys (right).
-    caps(d, (x0, y1 + 12), "HEARD 24.9 S  ·  96 BANDS  ·  15 REFERENCE TAKES", T_MICRO,
-         DIM, 1.1)
+    caps(d, (x0, y1 + 12), "HEARD 24.9 S  ·  96 BANDS  ·  15 REFERENCE TAKES"
+                          "  ·  AUTO GAIN -1.8 DB", T_MICRO, DIM, 1.1)
     # the seal itself is labelled: above the band, where nothing else lives
     mark_w = ar_w(STOP_MARK, T_MICRO)
     over(canvas, lambda dd: dd.rounded_rectangle(
@@ -791,12 +791,16 @@ def draw_footer(canvas):
     ar_text(d, (sx + total + 28, cy - 7), FOOTER_REPORT, T_BODY, SOFT)
 
     # two knobs: the only values the operator turns by hand
-    for i, (val, label) in enumerate(((0.62, KNOB_LABELS[0]), (0.5, KNOB_LABELS[1]))):
+    # the plugin puts "strength" on the left dial and "auto-stop" on the right one, so the
+    # render does too: the row reads in the order the chain works
+    for i, (val, label) in enumerate(((0.0, KNOB_LABELS[1]), (0.62, KNOB_LABELS[0]))):
         cx = x1 - 30 - i * 128
         knob_small(canvas, cx, cy, 42, val, brass=(_W.get("knob", "brass") == "brass"))
         d = ImageDraw.Draw(canvas)
         ar_text(d, (cx - 34, cy - 19), label, T_MICRO, DIM, anchor="ra")
-        num(canvas, cx - 34, cy + 1, f"{val * 100:.0f}%", T_BODY, TEXT, anchor="ra")
+        readout = ("OFF" if val < 0.01 else "45 s") if label == KNOB_LABELS[1] \
+            else f"{val * 100:.0f}%"
+        num(canvas, cx - 34, cy + 1, readout, T_BODY, TEXT, anchor="ra")
 
 
 # ------------------------------------------------------------------ build

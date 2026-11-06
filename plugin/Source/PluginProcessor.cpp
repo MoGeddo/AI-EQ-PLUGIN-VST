@@ -11,6 +11,7 @@ constexpr const char* kAxis1  = "axis_warm_presence";
 constexpr const char* kAxis2  = "axis_body_air";
 constexpr const char* kAir    = "air_db";
 constexpr const char* kSettle = "settle_s";
+constexpr const char* kAutoStop = "auto_stop";
 
 // RestoreSettings is a plain struct; comparing it is cheaper than rebuilding the
 // whole biquad cascade, and rebuild means an allocation - which must not happen
@@ -20,7 +21,8 @@ bool sameSettings(const aeq::RestoreSettings& a, const aeq::RestoreSettings& b) 
         && a.correctionAmount == b.correctionAmount && a.hpfHz == b.hpfHz
         && a.deEssAmount == b.deEssAmount && a.airTrimDb == b.airTrimDb
         && a.bypass == b.bypass && a.axis1 == b.axis1 && a.axis2 == b.axis2
-        && a.learn == b.learn && a.settleSeconds == b.settleSeconds;
+        && a.learn == b.learn && a.settleSeconds == b.settleSeconds
+        && a.autoStopSeconds == b.autoStopSeconds;
 }
 } // namespace
 
@@ -55,6 +57,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout AeqAudioProcessor::createLay
     // 30 s was the first guess and it was wrong for the way the tool is used: with a
     // verse in front of it, half a minute of "nothing happened" reads as "it does not
     // work".  Eight seconds is a phrase; the correction keeps refining afterwards.
+    // The knob on the panel.  0 = the pass ends when the person ends it, which is the
+    // promise on the header; anything else is the user asking the plugin to stop for
+    // them, and then the seal says so.
+    l.add(std::make_unique<AudioParameterFloat>(kAutoStop, "Auto-stop after",
+              NormalisableRange<float>(0.f, 300.f, 1.f), 0.f,
+              AudioParameterFloatAttributes().withLabel("s")
+                .withStringFromValueFunction([](float v, int) {
+                    return v < 1.f ? juce::String("OFF") : juce::String((int)v) + " s";
+                })));
     l.add(std::make_unique<AudioParameterFloat>(kSettle, "Analyze first",
               NormalisableRange<float>(0.f, 300.f, 1.f), 45.f,
               AudioParameterFloatAttributes().withLabel("s")
@@ -122,6 +133,7 @@ void AeqAudioProcessor::settingsFromParams() {
     settings_.axis2            = apvts_.getRawParameterValue(kAxis2)->load();
     settings_.airTrimDb        = apvts_.getRawParameterValue(kAir)->load();
     settings_.settleSeconds    = apvts_.getRawParameterValue(kSettle)->load();
+    settings_.autoStopSeconds  = apvts_.getRawParameterValue(kAutoStop)->load();
     settings_.bypass           = apvts_.getRawParameterValue(kBypass)->load() > 0.5f;
     settings_.learn            = learning_.load();
 }

@@ -92,6 +92,7 @@ static RunResult playAuto(const std::vector<float>& take, double settleSeconds) 
     aeq::RestoreSettings s;               // the plugin's defaults, minus the UI
     s.learn = true;
     s.settleSeconds = settleSeconds;
+    s.autoStopSeconds = settleSeconds;   // the gate has no hand to press the clamp
     core.prepare(kSr, 512);
     core.setSettings(s);
 
@@ -174,6 +175,37 @@ int main() {
                   "a 150 Hz voice and a 260 Hz voice get different low cuts");
         std::printf("       150 Hz voice: HPF %.0f, %zu bands | 260 Hz voice: HPF %.0f, %zu bands\n",
                     a.state.hpfHz, a.bands, b.state.hpfHz, b.bands);
+    }
+
+    // ---- 3b. nobody stops it: it waits, and it does not freeze itself ---------
+    {
+        std::printf("\n[3b] the plugin's own setting: the person stops it\n");
+        auto coreOwner = std::make_unique<aeq::RestoreCore>();
+        aeq::RestoreCore& core = *coreOwner;
+        aeq::RestoreSettings s;               // exactly the plugin's defaults
+        s.learn = true;
+        s.settleSeconds = 8.0;                // trusted after 8 s of voice
+        s.autoStopSeconds = 0.0;              // and it never stops itself
+        core.prepare(kSr, 512);
+        core.setSettings(s);
+        const auto take = dryVocal(196.0, 60.0, 120.0, 230.0);
+        std::vector<float> l(512), r(512);
+        double worst = 0.0;
+        for (size_t off = 0; off + 512 <= take.size(); off += 512) {
+            for (int i = 0; i < 512; ++i) { l[size_t(i)] = take[off + i]; r[size_t(i)] = l[size_t(i)]; }
+            core.processBlock(l.data(), r.data(), 512);
+            for (int i = 0; i < 512; ++i)
+                worst = std::max(worst, std::abs(double(l[size_t(i)]) - double(take[off + i])));
+            if ((off / 512) % 12 == 0) core.refresh();
+        }
+        core.refresh();
+        const auto st = core.state();
+        checkTrue(! core.frozen() && ! core.committed(),
+                  "3b. after 60 s of voice it is still listening - it does not stop itself");
+        checkTrue(st.settled, "3b. ... but it says the measurement is trusted");
+        checkF(worst == 0.0, "3b. and nothing has been applied (worst |diff| %.1e)", worst);
+        std::printf("       %.1f s heard, %zu bands waiting, auto-stop %.0f s\n",
+                    st.analyzedSeconds, st.corrective.size(), s.autoStopSeconds);
     }
 
     // ---- 4. bypass still bypasses ---------------------------------------------

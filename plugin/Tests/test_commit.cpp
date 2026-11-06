@@ -182,6 +182,26 @@ int main() {
         checkF(after.analyzedSeconds > before.analyzedSeconds,
                "3. but the meter keeps counting (%.1f s heard)", after.analyzedSeconds);
 
+        // ---- 3b. reopen: a stop made a phrase early costs one click ----------
+        const auto beforeReopen = c.core->state();
+        c.core->reopen();
+        checkTrue(c.core->committed() && ! c.core->frozen(),
+                  "3b. reopen unfreezes the pass and keeps the decision");
+        checkTrue(c.core->appliedBandCount() > 0,
+                  "3b. the correction keeps playing while it listens again");
+        size_t pos3 = 0;                    // the 40 s take is used up by now: play it again
+        for (int b = 0; b < int(4.0 * kSr / 512); ++b) {
+            c.play(take, pos3);
+            if (b % 6 == 0) c.core->refresh();
+        }
+        c.core->commit();
+        const auto afterSecond = c.core->state();
+        std::printf("  reopen -> second stop: %.1f s heard, then %.1f s, %d bands\n",
+                    beforeReopen.analyzedSeconds, afterSecond.analyzedSeconds,
+                    c.core->appliedBandCount());
+        checkTrue(afterSecond.analyzedSeconds > beforeReopen.analyzedSeconds,
+                  "3b. the second stop solves from a longer take");
+
         // ---- 4. relearn resets ---------------------------------------------
         c.core->relearn();
         checkTrue(c.core->phase() == aeq::RestoreCore::Phase::Learning, "4. relearn goes back to learning");
