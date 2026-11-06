@@ -570,11 +570,34 @@ at any vocal stem first; the other gates need nothing but the source tree.
   carries `AUTO GAIN -1.8 DB` when a decision is in the path.
   Measured, not asserted: `check_knobs.py` reads the shipped screenshot and asks how much
   of each value ring is lit.  On the 1.2.12 window it said `strength 47 % of the ring
-  (expected 100 %)` and `auto-stop 47 % (expected 0 %)` - both bugs, from one number.  On
-  1.2.13 it reads 100 % and 0 %, and the full ring is lit at both ends of the travel,
-  which is the clipping check.  `check_juce_api.py` also refuses `getValue()` in
+  (expected 100 %)` - the bug, from one number.  What that run did *not* prove is that the
+  gate was reading the dial: see G61, where the ring was found 22 px from where the layout
+  puts it and the gate was passing its own mistake along.  `check_juce_api.py` also refuses `getValue()` in
   `drawRotarySlider` and a knob box under 50 px, and the rule was falsified before it was
   trusted: putting the old line back turns it red.
   CHECK: /tmp/venv/bin/python design/preview/check_knobs.py && /tmp/venv/bin/python design/preview/check_juce_api.py
   EXPECT: knobs ok: strength 100% of the ring
 
+- [x] G61: the ring was drawn backwards, and the second dial was driving the wrong
+  parameter.
+  *The arc.*  `addCentredArc (..., a, 0.0f)` runs from the value to 12 o'clock - the wrong
+  way round and with a length that has nothing to do with the number.  The lit part is
+  `-135` to `a = -135 + 270 p` now.  The specular cap sat at `1.12 pi .. 1.88 pi`, which is
+  the *bottom* of every knob; it is centred on `+-0.34 pi`, the side the light is on.
+  *The binding.*  The dial labelled "auto-stop" was still attached to `settle_s`, so the
+  shot read `45 s` under a knob whose label says `auto-stop`, and its arc measured 17 % of
+  the travel where the parameter says 0.  The attachment is `auto_stop`.
+  *The gate.*  `check_knobs.py` was measuring `W - 158` - the design width without the
+  22 px margin - so on a correct 100 % ring it read 47 % and called it a drawing bug.  It
+  now reads the two centres from the editor's own layout numbers (`footer.right - 158` and
+  `- 30`, the footer row), and when a ring is missing it searches +-16 px and reports where
+  the ring actually is instead of guessing at a cause.  It also self-tests first: it draws
+  rings at 0 %, 25 % and 100 % and refuses to judge a screenshot until it can read its own
+  drawing.  The 25 % case is the one that catches an angle-convention error - at 0 % and
+  100 % a 90 degree offset still reads correctly, which is exactly how the first version of
+  this gate passed while the bug was in the build.  Falsified twice: drawn from PIL's 225
+  (the end of the travel) it reads `58 %`, and on the 1.2.15 shot it reads
+  `auto-stop 17 %` and names the binding.
+  CHECK: /tmp/venv/bin/python design/preview/check_knobs.py
+  EXPECT: knobs ok: strength 100% of the ring (expected 100%); auto-stop 0% of the ring
+  (expected 0%)

@@ -208,8 +208,11 @@ void AeqAudioProcessorEditor::buildControls() {
     // both attachments live for the editor's lifetime; the parameters are the model
     aAmount_ = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (
         proc_.apvts(), "amount", amountKnob_);
+    // The second dial is "auto-stop", and it has to be attached to the parameter it is
+    // labelled with.  In 1.2.15 it was still bound to "settle_s" (the trust threshold),
+    // so the knob that says OFF at 0 was showing 45 s and was driving something else.
     aSettle_ = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (
-        proc_.apvts(), "settle_s", settleKnob_);
+        proc_.apvts(), "auto_stop", settleKnob_);
 }
 
 AeqAudioProcessorEditor::~AeqAudioProcessorEditor() {
