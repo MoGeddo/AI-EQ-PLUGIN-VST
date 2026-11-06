@@ -31,7 +31,7 @@ row), so a dial that moves has to move in both places at once.
 Before it judges anything it reads rings it drew itself at 0 %, 25 % and 100 %.
 
     /tmp/venv/bin/python design/preview/check_knobs.py
-    /tmp/venv/bin/python design/preview/check_knobs.py --shot docs/ui-1.2.15-window.png
+    /tmp/venv/bin/python design/preview/check_knobs.py --shot docs/ui-1.2.16-window.png
 """
 
 from __future__ import annotations
@@ -163,7 +163,7 @@ def selftest() -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.15-window.png"))
+    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.16-window.png"))
     args = ap.parse_args()
 
     problems = selftest()

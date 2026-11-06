@@ -155,7 +155,9 @@ jobs:
           $prev = (git describe --tags --abbrev=0 2>$null)
           if ($prev) {
             Write-Host "changes since $prev"
-            $changes = (git log --pretty=format:"- %s" "$prev..HEAD") -join "`n"
+            # a commit that only parks a screenshot on the ci/ui branch is not a feature
+            $changes = (git log --pretty=format:"- %s" "$prev..HEAD" |
+                        Where-Object { $_ -notmatch "screenshot for run|setup for run" }) -join "`n"
           } else {
             $changes = (git log --pretty=format:"- %s" -15) -join "`n"
           }
