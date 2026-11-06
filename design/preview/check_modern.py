@@ -52,8 +52,15 @@ problems: list[str] = []
 notes: list[str] = []
 
 # the bare margins of the panel: no text, no control, nothing but the field
+# The four bare strips of the field, chosen where the design leaves them bare:
+#   * left/right: the 20 px margin, from under the header to the chips row;
+#   * top: the 5 px strip above the well;
+#   * bottom: the 8 px between the chips row and the footer - NOT the last few rows of the
+#     window, which are the panel's own vignette (a smooth gradient eight grey levels deep)
+#     and, at the right-hand end, the two dials' seats.  Measuring there measured the fade,
+#     not the field, and it failed the moment the footer moved 6 px down.
 MARGINS = {"left": (4, 120, 20, 600), "right": (1160, 120, 1176, 600),
-           "top": (300, 5, 1100, 13), "bottom": (300, 688, 1100, 696)}
+           "top": (300, 5, 1100, 13), "bottom": (300, 633, 900, 639)}
 # The real measure of texture is high-frequency energy: v9's margins sit at 0.06-0.36
 # and v7's fabric plate at 1.9-3.2, a 6x gap.  Colour count is a sanity bound only -
 # a saturated gradient legitimately holds more distinct colours than a warm grey one,
@@ -143,7 +150,7 @@ def hue_of(rgb):
     return 60 * ((r - g) / d) + 240
 
 
-knob_box = dict(ui.TARGETS)["knob-curve"]
+knob_box = dict(ui.TARGETS)["knob-strength"]
 face = img.crop((knob_box[0] + 14, knob_box[1] + 14, knob_box[2] - 14, knob_box[3] - 14))
 sample = [p for p in list(face.get_flattened_data())
           if max(p) - min(p) > 26 and max(p) > 90]

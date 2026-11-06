@@ -143,10 +143,10 @@ HEADER = (X0, 14, X1, 54)
 # it.  The old footer was 36 px tall and a 24 px knob value hung out of the bottom of the
 # window - the render said so before the window did.  The graph gives up 44 px of height
 # (67 %, still the instrument) and both rows below it gain room.
-GRAPH = (X0, 70, X1, 540)                # 470 px = 67 % of the window
-TAKE_RIBBON = (X0 + 18, 486, X1 - 18, 512)
-CHIPS = (X0, 548, X1, 628)
-FOOTER = (X0, 634, X1, 680)
+GRAPH = (X0, 70, X1, 536)                # 466 px = 67 % of the window
+TAKE_RIBBON = (X0 + 18, 482, X1 - 18, 508)
+CHIPS = (X0, 552, X1, 632)
+FOOTER = (X0, 640, X1, 686)
 
 PANEL_R, GRAPH_R, CHIP_R, PILL_R, SMALL_R = 16, 14, 12, 11, 4
 RADII = (PANEL_R, GRAPH_R, CHIP_R, PILL_R, SMALL_R, 2)
@@ -207,9 +207,13 @@ GROUND_PROBE = (500, 14, 880, 46)
 BLOCKS = {"header": HEADER, "hero": GRAPH, "chips": CHIPS, "footer": FOOTER}
 KNOB_SEAT = 1.08
 _KNOB_CY = (FOOTER[1] + FOOTER[3]) // 2
+# The two dials, and how far apart they sit.  128 px cannot hold a 15 px label beside a 54 px
+# dial, which is why the labels collided with the numbers.
+KNOB_X = (X1 - 202, X1 - 34)
+KNOB_PITCH = KNOB_X[1] - KNOB_X[0]
 TARGETS = [
-    ("knob-curve", (X1 - 60, _KNOB_CY - 26, X1, _KNOB_CY + 26)),
-    ("knob-output", (X1 - 164, _KNOB_CY - 26, X1 - 104, _KNOB_CY + 26)),
+    ("knob-auto-stop", (KNOB_X[1] - 30, _KNOB_CY - 30, KNOB_X[1] + 30, _KNOB_CY + 30)),
+    ("knob-strength", (KNOB_X[0] - 30, _KNOB_CY - 30, KNOB_X[0] + 30, _KNOB_CY + 30)),
     ("seal-clamp", (SEAL_X - 26, TAKE_RIBBON[1] - 10, SEAL_X + 26, TAKE_RIBBON[3] + 10)),
 ]
 for _i in range(len(BANDS)):
@@ -219,8 +223,8 @@ for _i in range(len(BANDS)):
     TARGETS.append((f"band-row-{_i + 1}", (_cx0, CHIPS[1], _cx0 + _cw, CHIPS[3])))
 
 PART_STATES = {
-    "knob-curve": ("idle", "hover", "press", "disabled"),
-    "knob-output": ("idle", "hover", "press", "disabled"),
+    "knob-strength": ("idle", "hover", "press", "disabled"),
+    "knob-auto-stop": ("idle", "hover", "press", "disabled"),
     "seal-clamp": ("idle", "hover", "press", "disabled"),
     "band-row-1": ("idle", "hover", "press", "disabled"),
     "band-row-2": ("idle", "hover", "press", "disabled"),
@@ -804,7 +808,7 @@ def draw_footer(canvas):
     # the plugin puts "strength" on the left dial and "auto-stop" on the right one, so the
     # render does too: the row reads in the order the chain works
     for i, (val, label) in enumerate(((0.0, KNOB_LABELS[1]), (0.62, KNOB_LABELS[0]))):
-        cx = x1 - 34 - i * 168
+        cx = KNOB_X[1] - i * KNOB_PITCH
         knob_small(canvas, cx, cy, 42, val, brass=(_W.get("knob", "brass") == "brass"))
         d = ImageDraw.Draw(canvas)
         ar_text(d, (cx - 40, cy - 20), label, T_CAP, DIM, anchor="ra")

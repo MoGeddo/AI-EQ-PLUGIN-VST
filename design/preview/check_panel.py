@@ -154,7 +154,7 @@ def claim_material() -> str:
         problems.append(f"{ui.OUT.name} missing - run design/preview/ui_v9.py")
     else:
         panel = Image.open(ui.OUT).convert("RGB")
-        kx0, ky0, kx1, ky1 = dict(ui.TARGETS)["knob-curve"]
+        kx0, ky0, kx1, ky1 = dict(ui.TARGETS)["knob-strength"]
         knob_levels = len(panel.crop((kx0 + 2, ky0 + 2, kx1 - 2, ky1 - 2))
                           .getcolors(maxcolors=1 << 20))
         if knob_levels < 300:

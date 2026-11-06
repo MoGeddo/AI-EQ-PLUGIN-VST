@@ -30,11 +30,11 @@ constexpr float kMicro = 13.0f, kCap = 15.0f, kBody = 18.0f, kValue = 24.0f;
 // 1.2.18: the type went up a step, so the hero gives 16 px of height back to the two rows
 // under it (the graph is still 67 % of the window) and every row inside the hero moved up
 // with it.  These are the same numbers as design/preview/ui_v9.py.
-constexpr float kHeroTop = 70.0f, kHeroBottom = 540.0f;
-constexpr float kPlotBottom = 458.0f;      // the plot stops here; the strip has its own band
-constexpr float kStopTop = 464.0f, kStopBottom = 480.0f;   // "stopped here", above the clamp
-constexpr float kRibbonTop = 486.0f, kRibbonBottom = 512.0f;
-constexpr float kCaptionTop = 518.0f, kCaptionBottom = 536.0f;
+constexpr float kHeroTop = 70.0f, kHeroBottom = 536.0f;
+constexpr float kPlotBottom = 454.0f;      // the plot stops here; the strip has its own band
+constexpr float kStopTop = 460.0f, kStopBottom = 476.0f;   // the label above the clamp
+constexpr float kRibbonTop = 482.0f, kRibbonBottom = 508.0f;
+constexpr float kCaptionTop = 514.0f, kCaptionBottom = 532.0f;
 
 // The copy, in English.  Short enough to stay one line at the larger type, and it still
 // says what the instrument does rather than what it would like to be.
@@ -243,8 +243,8 @@ AeqAudioProcessorEditor::Blocks AeqAudioProcessorEditor::blocks() const {
     Blocks b;
     b.header = R (kMargin, 14, kDesignW - kMargin, 54);
     b.hero   = R (kMargin, kHeroTop, kDesignW - kMargin, kHeroBottom);
-    b.chips  = R (kMargin, 548, kDesignW - kMargin, 628);
-    b.footer = R (kMargin, 634, kDesignW - kMargin, 680);
+    b.chips  = R (kMargin, 552, kDesignW - kMargin, 632);
+    b.footer = R (kMargin, 640, kDesignW - kMargin, 686);
     return b;
 }
 

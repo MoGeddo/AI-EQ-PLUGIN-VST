@@ -53,12 +53,14 @@ import ui_v9 as ui  # noqa: E402
 # The two dials, in design px.  These are the editor's numbers, not the render's: the
 # footer runs kMargin..kDesignW-kMargin, the dials sit 158 and 30 px inside its right
 # edge, and they share its centre row.
-FOOTER = (22.0, 646.0, ui.W - 22.0, 682.0)
-CY = (FOOTER[1] + FOOTER[3]) / 2.0
+# Imported from the module that draws the panel.  This file used to keep its own copy of
+# the layout, and the copy drifted 22 px from the editor's on the very first change.
+CY = (ui.FOOTER[1] + ui.FOOTER[3]) / 2.0
 BOX = 54.0                                  # the child's bounds: body 42 + ring + seat
 RING = 0.39 * BOX * 1.19                    # where the value arc is drawn
-LEFT = (FOOTER[2] - 158.0, CY)              # strength
-RIGHT = (FOOTER[2] - 30.0, CY)              # auto-stop
+LEFT = (float(ui.KNOB_X[0]), CY)            # strength
+RIGHT = (float(ui.KNOB_X[1]), CY)           # auto-stop
+PITCH = float(ui.KNOB_PITCH)
 
 # The screenshot test leaves both parameters at their defaults.
 EXPECTED = (("strength", LEFT, 1.00), ("auto-stop", RIGHT, 0.00))
