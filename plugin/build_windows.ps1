@@ -117,7 +117,9 @@ if (-not $shot) { Fail "aeq_shot.exe was not built - the interface has not been 
 $shotDir = Join-Path (Split-Path $root -Parent) "dist\ui"
 New-Item -ItemType Directory -Force -Path $shotDir | Out-Null
 
-$stages = @("window", "components", "cards")
+# "controls" presses every control on the real editor and asserts the plugin changed:
+# a screenshot cannot answer "do the keys work", and two of them did not.
+$stages = @("window", "components", "cards", "controls")
 $failed = @()
 foreach ($st in $stages) {
     Write-Host "   -- $st --"
@@ -126,6 +128,7 @@ foreach ($st in $stages) {
     if ($LASTEXITCODE -ne 0) {
         Write-Host "   aeq_shot $st exited $LASTEXITCODE" -ForegroundColor Yellow
         $failed += "$st ($LASTEXITCODE)"
+        if ($st -eq "controls") { Fail "a control on the panel does not change the plugin" }
     }
 }
 

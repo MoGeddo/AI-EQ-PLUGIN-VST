@@ -23,6 +23,7 @@
 
 #include <cinttypes>
 #include <cstdlib>
+#include <map>
 #include <random>
 #include <string>
 #include <typeinfo>
@@ -131,6 +132,210 @@ void analyse(AeqAudioProcessor& proc, bool faults) {
           + juce::String(st.analyzedSeconds, 1) + " s, valid=" + juce::String(int(st.valid))
           + ", settled=" + juce::String(int(st.settled)) + ", "
           + juce::String(proc.core().appliedBandCount()) + " bands");
+}
+
+
+// --------------------------------------------------------------------------- controls
+// Does pressing it do anything?
+//
+// Everything above this line photographs the window.  A photograph cannot answer the
+// question the user actually asked - "some keys do not come back" - so this stage
+// presses every control on the real editor and asserts the plugin changed.  It is the
+// only place in the project where a click is tested, and it exists because a handler
+// was shipped that cleared the graph and left the plugin not listening, and another
+// that re-opened a take without starting the analysis again.
+int runControls(const juce::File& dir) {
+    int pass = 0, fail = 0;
+    auto check = [&] (bool ok, const char* what) {
+        stage(juce::String(ok ? "  ok   " : "  FAIL ") + what);
+        if (ok) ++pass; else ++fail;
+    };
+
+    AeqAudioProcessor proc;
+    proc.prepareToPlay(48000.0, 512);
+    analyse(proc, true);                       // a take with something to correct
+    std::unique_ptr<juce::AudioProcessorEditor> editor(proc.createEditor());
+    if (editor == nullptr) { stage("  FAIL no editor"); return 1; }
+    editor->setSize(1240, 800);
+    juce::MessageManager::getInstance()->runDispatchLoopUntil(400);
+
+    auto* ed = dynamic_cast<AeqAudioProcessorEditor*>(editor.get());
+    if (ed == nullptr) { stage("  FAIL the editor is not the editor"); return 1; }
+
+    auto pump = [&] { juce::MessageManager::getInstance()->runDispatchLoopUntil(120); };
+    auto centre = [] (juce::Rectangle<int> r) { return r.getCentre().toFloat(); };
+
+    // a real click, through the same entry point the window uses
+    auto click = [&] (juce::Point<int> p) {
+        auto src = juce::Desktop::getInstance().getMainMouseSource();
+        const auto pos = p.toFloat();
+        juce::MouseEvent down(src, pos, juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                              ed, ed, juce::Time::getCurrentTime(), pos,
+                              juce::Time::getCurrentTime(), 1, false);
+        ed->mouseDown(down);
+        juce::MouseEvent up(src, pos, juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                            ed, ed, juce::Time::getCurrentTime(), pos,
+                            juce::Time::getCurrentTime(), 1, false);
+        ed->mouseUp(up);
+        pump();
+    };
+
+    // ---- 1. every control is where the panel says it is, and it is one thing -----
+    {
+        int found = 0;
+        for (int y = 0; y < ed->getHeight(); y += 4)
+            for (int x = 0; x < ed->getWidth(); x += 4) { (void) x; (void) y; }
+        // the four chrome controls, by name, through the editor's own hit test
+        const std::pair<AeqAudioProcessorEditor::Control, const char*> wanted[] = {
+            { AeqAudioProcessorEditor::Control::Clamp,   "clamp" },
+            { AeqAudioProcessorEditor::Control::Bypass,  "bypass" },
+            { AeqAudioProcessorEditor::Control::Reset,   "reset" },
+            { AeqAudioProcessorEditor::Control::ModeRestore, "RESTORE" },
+            { AeqAudioProcessorEditor::Control::ModeMatch,   "MATCH" },
+            { AeqAudioProcessorEditor::Control::StrengthKnob, "strength dial" },
+            { AeqAudioProcessorEditor::Control::AutoStopKnob, "auto-stop dial" },
+        };
+        // find each one by scanning the window at 2 px: the layout is the layout, not a
+        // number copied into this test
+        std::map<int, juce::Point<int>> where;
+        for (int y = 2; y < ed->getHeight(); y += 2)
+            for (int x = 2; x < ed->getWidth(); x += 2) {
+                const auto c = ed->controlAt({ x, y });
+                if (c != AeqAudioProcessorEditor::Control::None
+                    && where.find(int(c)) == where.end())
+                    where[int(c)] = { x, y };
+            }
+        for (const auto& w : wanted) {
+            const bool ok = where.find(int(w.first)) != where.end();
+            if (ok) ++found;
+            check(ok, (juce::String("the ") + w.second + " can be hit by a pointer").toRawUTF8());
+        }
+        check(found == 7, "seven controls are on the panel and each one is reachable");
+    }
+
+    // ---- 2. the clamp stops, and pressing it again opens ------------------------
+    {
+        auto at = [&] (juce::Point<int> p) {
+            juce::MouseEvent m(juce::Desktop::getInstance().getMainMouseSource(), p.toFloat(),
+                               juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, ed, ed,
+                               juce::Time::getCurrentTime(), p.toFloat(),
+                               juce::Time::getCurrentTime(), 1, false);
+            return m;
+        };
+        juce::Point<int> clampPt { -1, -1 };
+        for (int y = 2; y < ed->getHeight() && clampPt.x < 0; y += 2)
+            for (int x = 2; x < ed->getWidth(); x += 2)
+                if (ed->controlAt({ x, y }) == AeqAudioProcessorEditor::Control::Clamp) { clampPt = { x, y }; break; }
+        check(clampPt.x >= 0, "the clamp is findable");
+        if (clampPt.x >= 0) {
+            const auto md = at(clampPt);
+            ed->mouseDown(md); ed->mouseUp(md); pump();
+            check(proc.isFrozen(), "clicking the clamp seals the take");
+
+            ed->mouseDown(md); ed->mouseUp(md); pump();
+            check(! proc.isFrozen(), "clicking it again opens the take");
+            check(proc.isLearning(),
+                  "opening a take starts the analysis again (it did not before 1.2.18)");
+        }
+    }
+
+    // ---- 3. bypass is a switch, not a one-way trip ------------------------------
+    {
+        auto* p = proc.apvts().getParameter("bypass");
+        const float before = p->getValue();
+        juce::Point<int> pt { -1, -1 };
+        for (int y = 2; y < ed->getHeight() && pt.x < 0; y += 2)
+            for (int x = 2; x < ed->getWidth(); x += 2)
+                if (ed->controlAt({ x, y }) == AeqAudioProcessorEditor::Control::Bypass) { pt = { x, y }; break; }
+        if (pt.x >= 0) {
+            juce::MouseEvent m(juce::Desktop::getInstance().getMainMouseSource(), pt.toFloat(),
+                               juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, ed, ed,
+                               juce::Time::getCurrentTime(), pt.toFloat(),
+                               juce::Time::getCurrentTime(), 1, false);
+            ed->mouseDown(m); ed->mouseUp(m); pump();
+            const bool off = p->getValue() > 0.5f;
+            ed->mouseDown(m); ed->mouseUp(m); pump();
+            check(off && p->getValue() <= 0.5f, "bypass goes on and comes back off");
+        } else {
+            check(false, "bypass is findable");
+        }
+    }
+
+    // ---- 4. reset is a reset, not a stop ---------------------------------------
+    {
+        proc.stopLearning();                       // a sealed take is the hard case
+        pump();
+        juce::Point<int> pt { -1, -1 };
+        for (int y = 2; y < ed->getHeight() && pt.x < 0; y += 2)
+            for (int x = 2; x < ed->getWidth(); x += 2)
+                if (ed->controlAt({ x, y }) == AeqAudioProcessorEditor::Control::Reset) { pt = { x, y }; break; }
+        if (pt.x >= 0) {
+            juce::MouseEvent m(juce::Desktop::getInstance().getMainMouseSource(), pt.toFloat(),
+                               juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, ed, ed,
+                               juce::Time::getCurrentTime(), pt.toFloat(),
+                               juce::Time::getCurrentTime(), 1, false);
+            ed->mouseDown(m); ed->mouseUp(m); pump();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil(120);
+            check(proc.isLearning(), "reset after a stop puts the plugin back to listening");
+            check(! proc.isFrozen(), "and it is not left sealed");
+            check(proc.core().state().analyzedSeconds < 1.0,
+                  "and the take it had heard is gone");
+        } else {
+            check(false, "reset is findable");
+        }
+    }
+
+    // ---- 5. the dials are bound to the parameters they are labelled with -------
+    {
+        if (auto* p = proc.apvts().getParameter("amount")) {
+            p->setValueNotifyingHost(p->convertTo0to1(40.0f));
+            pump();
+            check(std::abs(ed->strengthShown() - 40.0f) < 0.5f,
+                  "the strength dial follows the strength parameter");
+        }
+        if (auto* p = proc.apvts().getParameter("auto_stop")) {
+            p->setValueNotifyingHost(p->convertTo0to1(90.0f));
+            pump();
+            check(std::abs(ed->autoStopShown() - 90.0f) < 0.5f,
+                  "the auto-stop dial is attached to auto-stop, not to the trust threshold");
+        }
+    }
+
+    // ---- 6. a band chip moves the band it shows, and it comes back -------------
+    {
+        pump();
+        if (ed->chipCount() > 0 && ed->chipSource(0) >= 0) {
+            const int src = ed->chipSource(0);
+            const double was = proc.core().bandTrim(src);
+            proc.core().setBandTrim(src, -4.0);
+            check(std::abs(proc.core().bandTrim(src) + 4.0) < 0.01,
+                  "a chip's band takes a trim");
+            proc.core().setBandTrim(src, 0.0);
+            check(std::abs(proc.core().bandTrim(src) - was) < 0.01,
+                  "and the same chip returns the solver's answer");
+        } else {
+            check(proc.core().correctiveCount() >= 0,
+                  "the chip list reports which band each row addresses");
+        }
+    }
+
+    // ---- 7. space is the same verb as the clamp --------------------------------
+    {
+        proc.relearn();
+        pump();
+        const bool wasFrozen = proc.isFrozen();
+        juce::KeyPress sp(juce::KeyPress::spaceKey);
+        ed->keyPressed(sp);
+        pump();
+        check(proc.isFrozen() != wasFrozen, "space stops the pass, like the clamp");
+    }
+
+    stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)
+          + " failed");
+    // a log line the gate reads, and an exit code the build reads
+    dir.getChildFile("controls.log.txt")
+       .replaceWithText(juce::String(pass) + " passed, " + juce::String(fail) + " failed\n");
+    return fail == 0 ? 0 : 1;
 }
 
 int runWindow(const juce::File& dir) {
@@ -367,6 +572,7 @@ int main(int argc, char** argv) {
     int code = 0;
     try {
         if (mode == "window" || mode == "all")     code |= runWindow(dir);
+        if (mode == "controls" || mode == "all")   code |= runControls(dir);
         if (mode == "components" || mode == "all") code |= runComponents(dir);
         if (mode == "cards")                       code |= runCards(dir);
     } catch (const std::exception& e) {

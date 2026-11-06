@@ -313,6 +313,18 @@ int AeqAudioProcessorEditor::chipAt (Point<int> p) const {
     return -1;
 }
 
+AeqAudioProcessorEditor::Control AeqAudioProcessorEditor::controlAt (Point<int> p) const {
+    if (clampHit().contains (p))         return Control::Clamp;
+    if (bypassHit().contains (p))        return Control::Bypass;
+    if (resetHit().contains (p))         return Control::Reset;
+    if (modeSeg (0).contains (p))        return Control::ModeRestore;
+    if (modeSeg (1).contains (p))        return Control::ModeMatch;
+    if (amountKnob_.getBounds().contains (p))  return Control::StrengthKnob;
+    if (settleKnob_.getBounds().contains (p))  return Control::AutoStopKnob;
+    if (chipAt (p) >= 0)                 return Control::Chip;
+    return Control::None;
+}
+
 bool AeqAudioProcessorEditor::chipDraggable (size_t index) const {
     return index < chips_.size() && chips_[index].src >= 0;
 }

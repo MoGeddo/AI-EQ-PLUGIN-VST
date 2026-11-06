@@ -47,6 +47,21 @@ public:
     bool keyPressed (const juce::KeyPress&) override;
     juce::String getTooltip() override { return tooltip_; }
 
+    // ---- the control test (Tests/ui_shot.cpp) -----------------------------------
+    // "Are the keys working" cannot be answered by a screenshot, so the gate presses
+    // them: it asks the editor what is at a point, clicks it, and checks that the
+    // plugin changed.  That needs the hit rectangles to be answerable from outside
+    // paint(), which is all this is.
+    enum class Control { None, Clamp, Bypass, Reset, ModeRestore, ModeMatch,
+                         Chip, StrengthKnob, AutoStopKnob };
+    Control controlAt (juce::Point<int>) const;
+    float strengthShown() const { return float (amountKnob_.getValue()); }
+    float autoStopShown() const { return float (settleKnob_.getValue()); }
+    int   chipCount() const { return int (chips_.size()); }
+    int   chipSource (int i) const {
+        return (i >= 0 && i < int (chips_.size())) ? chips_[size_t (i)].src : -1;
+    }
+
 private:
     // ---- the four blocks, as fractions of the window so a resize is proportional
     struct Blocks {

@@ -10,7 +10,7 @@
 #        winget install JRSoftware.InnoSetup
 
 param(
-    [string]$Version = "1.2.19",
+    [string]$Version = "1.2.20",
     [switch]$SkipBuild,
     [switch]$Sign
 )
