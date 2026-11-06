@@ -1,0 +1,167 @@
+[shot] start, mode window, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+[shot] probe embedded font
+[shot] editor constructed, before analysis
+[shot] window 1240x800 -> ui-empty-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 439
+[shot]   child 1 class juce::Slider 974 726 62 62
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1150 726 62 62
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+[shot] window 1024x700 -> ui-empty-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 384
+[shot]   child 1 class juce::Slider 803 636 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 948 636 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+[shot] analysis for the sealed shot
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] stopped; the seal should be where the user left it
+[shot] window 1240x800 -> ui-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 439
+[shot]   child 1 class juce::Slider 974 726 62 62
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1150 726 62 62
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+[shot] window 1024x700 -> ui-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 384
+[shot]   child 1 class juce::Slider 803 636 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 948 636 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+[shot] done
+[shot] start, mode components, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+[shot] probe embedded font
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] curve view
+[shot] problem list
+[shot] done
+[shot] start, mode cards, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+[shot] probe embedded font
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] card 0 ترددات تحت صوت الغناء action=1 f=0 sev=1.00
+[shot]   text title (21 chars) 062a..
+[shot]   text title-noparen (21 chars) 062a..
+[shot]   text detail (38 chars) 0637..
+[shot]   text detail-noparen (38 chars) 0637..
+[shot] card 1 إزاحة DC action=1 f=0 sev=0.47
+[shot]   text title (8 chars) 0625..
+[shot]   text title-noparen (8 chars) 0625..
+[shot]   text detail (36 chars) 0645..
+[shot]   text detail-noparen (34 chars) 0645..
+[shot] card 2 تخنة (Boom) action=2 f=285 sev=1.00
+[shot] card 2, detail removed
+[shot] card 2, title removed
+[shot] card 2, both removed
+[shot]   text title (11 chars) 062a..
+[shot]   text title-noparen (9 chars) 062a..
+[shot]   text detail (77 chars) 0627..
+[shot]   text detail-noparen (75 chars) 0627..
+[shot] card 3 عكارة (Mud) action=2 f=367.696 sev=1.00
+[shot]   text title (11 chars) 0639..
+[shot]   text title-noparen (9 chars) 0639..
+[shot]   text detail (45 chars) 0632..
+[shot]   text detail-noparen (43 chars) 0632..
+[shot] card 4 صندوقية (Box) action=2 f=664.831 sev=1.00
+[shot]   text title (13 chars) 0635..
+[shot]   text title-noparen (11 chars) 0635..
+[shot]   text detail (44 chars) 0632..
+[shot]   text detail-noparen (42 chars) 0632..
+[shot] card 5 رنين ثابت (غرفة/مايك) action=3 f=1208.16 sev=1.00
+[shot]   text title (21 chars) 0631..
+[shot]   text title-noparen (19 chars) 0631..
+[shot]   text detail (58 chars) 0031..
+[shot]   text detail-noparen (56 chars) 0031..
+[shot] card 6 نقص في الأعلى action=5 f=9000 sev=0.38
+[shot]   text title (13 chars) 0646..
+[shot]   text title-noparen (13 chars) 0646..
+[shot]   text detail (36 chars) 0627..
+[shot]   text detail-noparen (36 chars) 0627..
+[shot] card 7 قصّ (Clipping) action=6 f=0 sev=1.00
+[shot]   text title (14 chars) 0642..
+[shot]   text title-noparen (12 chars) 0642..
+[shot]   text detail (51 chars) 0039..
+[shot]   text detail-noparen (51 chars) 0039..
+[shot] card 8 أرضية تشويش عالية action=6 f=0 sev=1.00
+[shot]   text title (17 chars) 0623..
+[shot]   text title-noparen (17 chars) 0623..
+[shot]   text detail (59 chars) 0623..
+[shot]   text detail-noparen (57 chars) 0623..
+[shot] done
+[shot] start, mode controls, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+[shot] probe embedded font
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   the clamp can be hit by a pointer
+[shot]   ok   the bypass can be hit by a pointer
+[shot]   ok   the reset can be hit by a pointer
+[shot]   ok   the RESTORE can be hit by a pointer
+[shot]   ok   the MATCH can be hit by a pointer
+[shot]   ok   the strength dial can be hit by a pointer
+[shot]   ok   the auto-stop dial can be hit by a pointer
+[shot]   ok   seven controls are on the panel and each one is reachable
+[shot]   ok   the clamp is findable
+[shot]   ok   clicking the clamp seals the take
+[shot]   ok   clicking it again opens the take
+[shot]   ok   opening a take starts the analysis again (it did not before 1.2.18)
+[shot]   ok   bypass goes on and comes back off
+[shot]   ok   reset after a stop puts the plugin back to listening
+[shot]   ok   and it is not left sealed
+[shot]   ok   and the take it had heard is gone, on the counter the panel reads
+[shot]   ok   the strength dial follows the strength parameter
+[shot]   ok   the auto-stop dial is attached to auto-stop, not to the trust threshold
+[shot]   ok   a chip's band takes a trim
+[shot]   ok   and the same chip returns the solver's answer
+[shot]   ok   space stops the pass, like the clamp
+[shot]   ok   and the panel says what the key just did
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   a relearn really does empty the take
+[shot]   ok   reopening the project restores the sealed decision
+[shot]   ok   and the same number of bands comes back with it
+[shot]   ok   on the same frequencies, to the hertz
+[shot]   ok   the take that was saved had been sealed in the first place
+[shot] analysis: 9 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   there is a sealed take to escape from
+[shot]   ok   escape is handled, not swallowed
+[shot]   ok   escape opens the sealed take
+[shot]   ok   and the plugin is listening again, not idle
+[shot]   ok   and the panel says so, so the key does not look like it did nothing
+[shot]   ok   pressing it again does not seal anything behind your back
+[shot]   ok   and an unclaimed key is passed on, not eaten
+[shot]   ok   the strength parameter is reachable by name
+[shot]   ok   the strength dial reports where it is
+[shot]   ok   the wheel moves the strength dial
+[shot]   ok   and upward is more, not less
+[shot]   ok   and the same wheel over the bare field changes nothing
+[shot] controls: 39 passed, 0 failed
+[shot] done
