@@ -16,6 +16,7 @@
 #include "../Source/dsp/Profile.h"
 #include "../Source/dsp/EqSolver.h"
 #include "../Source/dsp/RestoreCore.h"
+#include "../Source/dsp/Biquad.h"
 
 #include <cmath>
 #include <cstdio>
@@ -96,6 +97,25 @@ static std::vector<float> voice(double f0, double seconds, int tiltDbPerOct) {
         x[size_t(i)] = float(0.10 * ((cyc < 1.25) ? 1.0 : 0.0) * s);
     }
     return x;
+}
+
+// A "record" shape: the same voice with a gentle low shelf down and a broad lift in the
+// part of the spectrum a sung note actually occupies, which is what the difference between
+// two engineers' vocals looks like - a few dB of tilt, not 24 dB/octave.  (The first
+// version of this test used a 24 dB/octave tilt and its numbers were about the fixture,
+// not the plugin: 31.7 dB apart, and no bounded EQ can or should close that.)
+//
+// The lift moved from 4 kHz to 900 Hz when Match gained its occupancy mask: a voice at
+// 196 Hz carries almost nothing up there, so the 4 kHz shelf sat outside the bands the
+// mask allows, and the measured distance collapsed to 1.36 dB - the fixture had stopped
+// being far from the target, and the "closes a quarter of the gap" assertion would have
+// been testing a gap of under 2 dB however the solver behaved.
+static std::vector<float> withShape(const std::vector<float>& dry) {
+    auto low  = aeq::Biquad::lowShelf(220.0, 0.71, -3.5, kSr);
+    auto peak = aeq::Biquad::peaking(900.0, 0.8, +4.0, kSr);
+    std::vector<float> y = dry;
+    for (auto& v : y) v = float(peak.process(low.process(double(v))));
+    return y;
 }
 
 int main() {
@@ -221,14 +241,14 @@ int main() {
     // ---- 6. the plugin solves toward the reference, not the corpus ----------
     {
         // two takes of the same voice: one dull, one bright
-        const auto dull   = voice(196.0, 20.0, -12);
-        const auto bright = voice(196.0, 20.0, +12);
-        const auto ref = capturedFrom(bright, "bright-take");
+        const auto dull   = voice(196.0, 20.0, 0);
+        const auto bright = withShape(dull);          // the record's shape, same voice
+        const auto ref = capturedFrom(bright, "record");
         checkF(ref.valid() && ref.db.size() > 50,
                "6. a reference was measured by the plugin's own analyser (%.0f bands)",
                double(ref.db.size()));
 
-        auto run = [&](bool withRef) {
+        auto run = [&](bool withRef, double* gapBefore = nullptr, double* gapAfter = nullptr) {
             aeq::RestoreCore core;
             core.prepare(kSr, 256);
             aeq::RestoreSettings s;
@@ -251,24 +271,81 @@ int main() {
             }
             core.refresh();
             core.commit();
+            if (gapBefore) *gapBefore = core.state().gapBeforeDb;
+            if (gapAfter)  *gapAfter  = core.state().gapAfterDb;
             return core.state().corrective;
         };
 
-        const auto bandRef = run(true);
+        double before = 0.0, after = 0.0;
+        const auto bandRef = run(true, &before, &after);
         const auto bandCorpus = run(false);
 
-        auto topGain = [](const std::vector<aeq::BandSpec>& v) {
-            double g = 0.0;
-            for (const auto& b : v) if (b.f0 > 2500.0) g += b.gainDb;
-            return g;
-        };
-        const double gRef = topGain(bandRef), gCorpus = topGain(bandCorpus);
-        std::printf("  top end: %+.2f dB with the reference, %+.2f dB against the corpus\n", gRef, gCorpus);
+        std::printf("  the dull take against the bright reference: %.2f dB RMS before the "
+                    "curve, %.2f dB after it (%.0f%% closer)\n",
+                    before, after, before > 0.0 ? 100.0 * (1.0 - after / before) : 0.0);
+
         checkF(bandRef.size() > 0 && bandCorpus.size() > 0,
-               "6. both runs produced a curve (%.0f bands, %.0f bands)",
+               "6. both runs produced a curve (%.0f bands with the reference, %.0f against the corpus)",
                double(bandRef.size()), double(bandCorpus.size()));
-        checkF(gRef > gCorpus + 1.0,
-               "6. the reference lifts the dull take toward the bright one (%.2f dB more)", gRef - gCorpus);
+        checkF(before > 2.0, "6. the take really is far from the reference to begin with (%.2f dB)", before);
+        checkF(after < before * 0.75,
+               "6. the matched curve closes at least a quarter of the gap (%.2f -> %.2f dB)", before, after);
+        checkF(after < 2.0, "6. and what is left is small enough to hear as 'the same voice' (%.2f dB)", after);
+
+        // the curve is not the corpus answer wearing a different label
+        bool sameAsCorpus = bandRef.size() == bandCorpus.size();
+        if (sameAsCorpus)
+            for (size_t i = 0; i < bandRef.size(); ++i)
+                if (std::abs(bandRef[i].f0 - bandCorpus[i].f0) > 1.0
+                    || std::abs(bandRef[i].gainDb - bandCorpus[i].gainDb) > 0.05)
+                    sameAsCorpus = false;
+        checkF(! sameAsCorpus, "6. the reference curve is its own answer, not the corpus one (%.0f)", 0.0);
+    }
+
+    // ---- 7. Match with nothing loaded aims at Amir's own curve -------------
+    {
+        const auto take = voice(196.0, 20.0, -6);      // a take that is a little dull
+        auto runMatch = [&](int mode, double* before, double* after, std::string* name) {
+            aeq::RestoreCore core;
+            core.prepare(kSr, 256);
+            aeq::RestoreSettings s;
+            s.learn = true;
+            s.settleSeconds = 3600.0;
+            s.mode = mode;
+            core.setSettings(s);
+            std::vector<float> l(256), r(256);
+            size_t pos = 0; int blk = 0;
+            while (pos < take.size()) {
+                for (int i = 0; i < 256; ++i) {
+                    l[size_t(i)] = (pos + size_t(i) < take.size()) ? take[pos + size_t(i)] : 0.0f;
+                    r[size_t(i)] = l[size_t(i)];
+                }
+                core.processBlock(l.data(), r.data(), 256);
+                pos += 256;
+                if (++blk % 38 == 0) core.refresh();
+            }
+            core.refresh();
+            core.commit();
+            *before = core.state().gapBeforeDb;
+            *after  = core.state().gapAfterDb;
+            *name   = core.targetName();
+            return core.state().corrective;
+        };
+
+        double b = 0.0, a = 0.0; std::string name;
+        const auto bands = runMatch(1, &b, &a, &name);
+        std::printf("  Match on this take: target '%s', %.2f dB -> %.2f dB\n",
+                    name.c_str(), b, a);
+        checkF(name == "AMIR 15", "7. Match with nothing loaded names Amir's curve (%.0f)", 0.0);
+        checkF(b > 0.5, "7. the take is measurably off his curve to begin with (%.2f dB)", b);
+        checkF(a < b, "7. the matched curve moves it toward his curve (%.2f -> %.2f dB)", b, a);
+        checkF(bands.size() > 0, "7. and produced a curve (%.0f bands)", double(bands.size()));
+
+        // Restore must NOT start chasing his curve: a restore pass is not a match
+        double rb = 0.0, ra = 0.0; std::string rname;
+        runMatch(0, &rb, &ra, &rname);
+        checkF(rname == "13-TAKE CONSENSUS",
+               "7. Restore still aims at the family average, unnamed by the panel (%.0f)", 0.0);
     }
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);

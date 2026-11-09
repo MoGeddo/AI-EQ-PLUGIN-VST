@@ -686,10 +686,12 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // "· " in a literal is at the mercy of the build's source encoding, and the shipped
     // 1.2.26 window reads "AMIR 15 + 13-TAKE CONSENSUS Â· AUTO GAIN" because of it.
     const String dot = String::fromUTF8 ("  \xc2\xb7  ");
-    // What the curve is aiming at.  With a reference profile loaded it says so by name -
-    // the corpus is the default, not the only answer, and a panel that keeps claiming
-    // "13-take consensus" while chasing a record the user chose is lying about its target.
-    String target = "AMIR 15 + 13-TAKE CONSENSUS";
+    // What the curve is aiming at, named by the thing that decided it - not formatted
+    // here from three guesses.  Match aims at Amir's own curve unless a reference is
+    // loaded; Restore keeps the family average.  A panel that claims "13-take consensus"
+    // while the engine chases a record is lying about its target, and this line is the
+    // one place the user can catch it doing that.
+    String target = String (proc_.core().targetName());
     if (proc_.core().hasReference()) {
         const String n = String (proc_.core().referenceName());
         target = n.isNotEmpty() ? ("REFERENCE " + n.toUpperCase()) : String ("REFERENCE");
@@ -700,6 +702,15 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // in the dark: how much gain it is holding to keep the take where it was
     if (proc_.isFrozen() || proc_.isCommitted())
         learned += dot + "AUTO GAIN " + aeq::ui::num (proc_.core().levelMatchDb(), 1, 4) + " DB";
+    // The distance to the target, before and after the curve: the only honest answer to
+    // "does it sound like the thing I asked for yet".  One decimal, fixed width, and it
+    // only appears when there is a target to be far from.
+    {
+        const auto s2 = proc_.core().state();
+        if (s2.gapValid)
+            learned += dot + "MATCH " + aeq::ui::num (s2.gapBeforeDb, 1, 4) + ">"
+                     + aeq::ui::num (s2.gapAfterDb, 1, 4) + " DB";
+    }
     trackedText (g, learned, caption, Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();

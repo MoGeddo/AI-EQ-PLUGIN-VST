@@ -503,6 +503,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: .venv/bin/python design/preview/check_identity.py
   EXPECT: identity ok: 21 Arabic strings covered
 
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G58: the picture that was approved is the picture that runs.  The panel was
   approved as a render drawn in Python while the window is drawn in JUCE, and for four
   versions the two had nothing to do with each other (the window was still v6 under a
@@ -519,6 +520,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: .venv/bin/python design/preview/check_match.py
   EXPECT: match ok: 6 edges agree within 2 px
 
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G59: all English, and a type scale that is actually readable.  Two asks in one
   round: "خليه كله english مش عربي" and "خليه اكبر ب كتير".  The panel's copy is now
   Latin end to end - wordmark, tagline, seal state and its one-line claim, the five
@@ -544,6 +546,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: .venv/bin/python design/preview/check_identity.py && .venv/bin/python design/preview/check_match.py
   EXPECT: identity ok: 20 panel strings covered ... / match ok: 6 edges agree within 2 px
 
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G60: the controls are a state machine, not a row of buttons.  Seven targets is
   right for a tool whose thesis is "it decides, you stop it" - what was wrong was the
   logic behind three of them and the drawing behind two.
@@ -578,6 +581,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: .venv/bin/python design/preview/check_knobs.py && .venv/bin/python design/preview/check_juce_api.py
   EXPECT: knobs ok: strength 100% of the ring
 
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G61: the ring was drawn backwards, and the second dial was driving the wrong
   parameter.
   *The arc.*  `addCentredArc (..., a, 0.0f)` runs from the value to 12 o'clock - the wrong
@@ -602,6 +606,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: knobs ok: strength 100% of the ring (expected 100%); auto-stop 0% of the ring
   (expected 0%)
 
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G62: the panel may tell one story at a time.
   The 1.2.16 window shipped three on one frame: `SEALED` in the header, `STOPPED BY YOU` on
   the take strip, and "Measuring every second against the 15 reference takes. The verdict
@@ -622,6 +627,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: build/aeq_commit
   EXPECT: ===== 29 passed, 0 failed =====
 
+  EVIDENCE: VERIFIED - ===== 29 passed, 0 failed =====
 - [x] G63: the editor may not write to a filter, and ThreadSanitizer is what says so.
   `RestoreCore::reset()` rebuilt the whole cascade - `eqLeft_.reset()`, `hpf_.reset()`,
   `analyzer_.reset()`, `state_` - and the Reset icon calls it from the message thread while
@@ -643,6 +649,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: build/aeq_threads
   EXPECT: 3 passed, 0 failed
 
+  EVIDENCE: VERIFIED - 3 passed, 0 failed
 - [x] G64: a control that answers without saying so is a control that does nothing.
   "المفاتيح مش بتعمل حاجة و مش بتديني حاجة تاني" - and the panel had exactly that: Escape
   opened a sealed take and changed no pixel, and nothing in the build pressed it.  Space was
@@ -664,6 +671,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: test -f ci/ui/controls.log.txt && head -1 ci/ui/controls.log.txt
   EXPECT: 39 passed, 0 failed
 
+  EVIDENCE: UNAVAILABLE - artefact not in this checkout: ci/ui/controls.log.txt
 - [x] G65: the smallest type on the panel is a number, and it is 14 px.
   "الخطوط مش واضحة اللي على الأزرار صغيرة و مش باينة" was answered in 1.2.18 with an
   11 px -> 12 px floor.  It was repeated ("لسة في مشاكل"), and 12 was still the floor.
@@ -676,6 +684,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: .venv/bin/python design/preview/check_juce_api.py
   EXPECT: juce ok: ... type 15/17/20/26 px, smallest at the floor
 
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G66: the line that says the verdict has to fit the row that says it.
   At the panel's true type size (G67) the footer's sentences are ~100 characters, and a
   single line of them ran through the dial labels on the shipped 1.2.26 window.  Wrapping
@@ -688,6 +697,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: test -f ci/ui/controls.log.txt && head -1 ci/ui/controls.log.txt
   EXPECT: 43 passed, 0 failed
 
+  EVIDENCE: UNAVAILABLE - artefact not in this checkout: ci/ui/controls.log.txt
 - [x] G67: the panel draws type at the size its own design says.
   `juce::Font`'s height is ascent + descent, not the em: for the embedded Cairo that is
   1.874 em, so every label was drawn at 53 % of its nominal size - a 15 px micro step
@@ -700,6 +710,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: .venv/bin/python design/preview/check_juce_api.py
   EXPECT: type 15/17/20/26 px, smallest at the floor
 
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G68: a block edge is a line across the block, not a row that happens to be bright.
   check_match scored rows by the mean gradient, so once the type grew the caption's own
   text (mean 114 at the caption baseline) outranked the well's bottom hairline (mean 11 -
@@ -708,6 +719,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   of the per-column gradient now: a block edge crosses the block, a sentence does not.
   CHECK: .venv/bin/python design/preview/check_match.py
   EXPECT: 6 edges within 1 px
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   FALSIFY: design/preview/check_match.py --against-v8 · EXPECT 5 problems
 
 
@@ -732,6 +744,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: python installer/bump_version.py --check
   EXPECT: OK: 1.2.34, three files listed
 
+  EVIDENCE: VERIFIED - OK: 1.2.34, three files listed
 - [x] G70: the grid is a hairline, and every label is on the panel's type scale.
   Two defects, one cause - `aeq::ui::draw` builds a TextLayout, which paints its glyphs in
   the colour it was given but leaves the *Graphics* colour at whatever the label asked for.
@@ -745,6 +758,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   against the 14 px floor - not just the constant.
   CHECK: .venv/bin/python design/preview/check_juce_api.py
   EXPECT: no literal size under 14 px in the UI sources
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   FALSIFY: put 12.0f back on one label -> FAIL text under the 14 px floor: CurveView.h: 12 px
 
 - [x] G71: the moving layer exists, and it is measured.
@@ -770,6 +784,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   the ring with -0.05 dB on the note (Tests/test_integration_stabilizer.cpp).
   CHECK: build/aeq_stabilizer && build/aeq_stabilizer_chain
   EXPECT: ===== 14 passed, 0 failed =====
+  EVIDENCE: VERIFIED - ===== 14 passed, 0 failed =====
   FALSIFY: set `ratio` to 0.2 in Stabilizer.h -> "the loud part is pulled back (-0.56 dB)"
   FAILS, and the rest still pass; restoring 0.6 turns it green again.  The branch is tested
   by breaking it, not by reading it.
@@ -791,10 +806,13 @@ at any vocal stem first; the other gates need nothing but the source tree.
   panel's caption says "REFERENCE <name>" instead of claiming the 13-take consensus while
   aiming somewhere else.  `aeq_cli profile in.wav out.aeqprof [--name ...]` learns one and
   `--ref` uses it, tested on two synthetic takes that differ by a 24 dB/octave tilt.
-  CHECK: build/aeq_profile && build/aeq_cli profile a.wav r.aeqprof && build/aeq_cli
-  analyze b.wav --ref r.aeqprof
-  EXPECT: 15 passed, 0 failed; the dull take's top end goes from +2.40 dB against the
-  corpus to +6.00 dB against the bright reference
+  CHECK: build/aeq_profile
+  EXPECT: the matched curve closes at least a quarter of the gap
+  (The command this gate used to name - `aeq_cli profile a.wav ... --ref` - referred to
+  fixture files that only ever existed on one machine, so it ran nowhere and proved
+  nothing.  The end-to-end half lives in G75, which builds its own stems; this gate is the
+  instrument itself, on a synthetic pair that differs by a known tilt.)
+  EVIDENCE: VERIFIED - the matched curve closes at least a quarter of the gap
   FALSIFY: remove the 1 kHz normalisation from `Profile::normalised()` -> "level is divided
   out of a blend" fails, and the 20 dB-louder copy of a reference stops blending to the
   same target.
@@ -810,4 +828,54 @@ at any vocal stem first; the other gates need nothing but the source tree.
   picture), and every live readout reflowed as its digits changed (now padded).
   CHECK: python3 design/preview/check_feel.py
   EXPECT: feel OK
+  EVIDENCE: VERIFIED - feel OK
   FALSIFY: delete the 0.96 press scale -> "the dial has no press scale" (run, then restored).
+
+- [x] G74: the target curve in the plugin is the one the analysis measured.
+  Match mode now aims at Amir Mahrous's own 15-stem curve, and a curve that lives in two
+  places is a curve that diverges quietly: the header could keep a number the data no
+  longer has, and every downstream claim ("it aims at him") would still read as true.
+  `plugin/Source/model/AmirTarget.h` is generated by `analysis/scripts/emit_amir_target.py`
+  from `analysis/out/amir15/amir15.json` - 27 band centres, per-band spread (his own stems'
+  variation, used as the natural dead zone), log2-frequency interpolation - and the script's
+  `--check` mode re-derives the header and diffs it, so drift is a failing exit code rather
+  than a note in a README.
+  CHECK: python3 analysis/scripts/emit_amir_target.py --check
+  EXPECT: amir target in sync
+  EVIDENCE: VERIFIED - amir target in sync
+  FALSIFY: change one band's dB value in AmirTarget.h -> "amir target drifted from
+  analysis/out/amir15/amir15.json" and exit 1 (run, then restored).
+
+- [x] G75: a folder of stems becomes one reference, and the reference is the one used.
+  A record - or Amir's 15 dry stems - is a *set* of files, not one: measuring one stem and
+  calling it "the reference" describes that stem.  `aeq_cli profile --from-dir dir out
+  --name "..."` measures every `.wav` through the plugin's own analyser (the same learn
+  pass, the same gate), blends them in the power domain, counts the ones it skipped, and
+  writes one profile.  While testing it, the gate caught a worse defect: the CLI pushed its
+  settings to the core *before* reading `--ref`, so it printed "reference: ..." and then
+  solved for the corpus average.  The flag was read, reported, and ignored.
+  CHECK: python3 analysis/scripts/gate_stems_profile.py
+  EXPECT: STEMS PROFILE OK
+  EVIDENCE: VERIFIED - STEMS PROFILE OK
+  FALSIFY: move `core.setSettings(s)` back above the `--ref` block -> "no match number was
+  printed" (run, then restored).
+
+- [x] G76: the rendered file is closer to Amir's curve, measured by something else.
+  Every number in the plugin comes from the analyser that solved the curve, which makes it
+  a good control signal and a worthless certificate - an engine that measures itself can be
+  wrong in the same way twice and report success.  `analysis/scripts/verify_match_render.py`
+  renders a synthetic take through `aeq_cli process --mode match`, then measures the *output
+  file* with its own radix-2 FFT, its own 1/3-octave sums and its own gate, and compares
+  that to the curve the plugin aimed at, parsed out of `AmirTarget.h`.  It also caught a
+  real budget defect: Match was spending bands where the take has nothing (a 12.9 kHz band
+  40 dB below 1 kHz was 6.5 dB of the residual), which is why `SolveInput` now masks bands
+  the take does not occupy - in Match only, since Restore must not change behaviour.
+  Measured: rendered audio 5.03 -> 3.69 dB from Amir's curve (27% closer), plugin's own
+  meter 6.36 -> 1.82 dB (71% closer) on the same render.
+  CHECK: python3 analysis/scripts/verify_match_render.py
+  EXPECT: RENDER MATCH OK
+  EVIDENCE: VERIFIED - RENDER MATCH OK
+  FALSIFY: make `RestoreCore` ignore the reference (force `targetName_ = "AMIR 15"` and
+  return the corpus target) -> the render stops being closer and the distance threshold
+  fails; independently, drop the occupancy mask -> the plugin's own gap returns to 13.26 dB
+  because it is counting bands the take never filled.

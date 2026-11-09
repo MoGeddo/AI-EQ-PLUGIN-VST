@@ -47,6 +47,17 @@ struct SolverConfig {
     // singer sound like themselves - so anything inside it is left alone.
     double deadZoneDb   = 2.5;
     double maxTotalDb  = 12.0;       // sum of |gain| sanity cap
+
+    // Match is a different job from Restore, and it gets a different envelope: the user
+    // has named a target (a record, a stem, a reference they like) and asked to be moved
+    // onto it.  Restore's limits - 6 bands, +-3.5 dB, Q <= 1.2, a 2.5 dB dead zone - are
+    // there so the plugin cannot "fix" a voice into someone else; used against a named
+    // target they simply refuse to arrive, which is why matching a 24 dB/octave tilt
+    // moved the take by 0.2 dB.  These are still bounded, just to the job.
+    bool   useShelves  = false;      // mop up the residual tilt the peaks cannot
+    double shelfLowHz  = 220.0;
+    double shelfHighHz = 4000.0;
+    double shelfS      = 0.71;
 };
 
 struct SolveInput {
@@ -62,6 +73,17 @@ struct SolveInput {
     // With a profile loaded, target and measurement come from the same analyser.
     std::vector<double> targetDb;
     bool hasTarget() const { return targetDb.size() == freqs.size(); }
+
+    // Bandwidth of the target.  Both the corpus table and Amir's stems were measured as
+    // **1/3-octave** band levels; this analyser measures 1/12 octave.  A wider band sums
+    // more power, so a 1/3-octave level sits about 6 dB above a 1/12-octave level at the
+    // same centre - and that offset is not constant across a curved spectrum, which is why
+    // it cannot simply be subtracted.  Comparing one against the other is comparing two
+    // instruments, the mistake G72 fixed at the profile boundary.  So the *measurement* is
+    // smoothed to the target's own width before the subtraction: both sides then describe
+    // the same band, and the constant cancels at the 1 kHz normalisation.
+    // 0 disables it (a reference profile measured by this analyser needs no smoothing).
+    double targetWidthOct = 1.0 / 3.0;
 
     double targetAt(double f) const {
         if (! hasTarget()) return TargetCurve::at(f);
@@ -115,6 +137,31 @@ inline void smoothLog(std::vector<double>& y, double octaves, double pointsPerOc
 
 class EqSolver {
 public:
+    // The measurement as the comparison sees it: smoothed to the target's bandwidth.
+    // Every metric in this file goes through here, so the solver's objective and the
+    // number on the panel cannot be two different quantities (the mistake G71 found in
+    // the stabiliser, one layer down).
+    static std::vector<double> asMeasured(const SolveInput& in) {
+        std::vector<double> m = in.levelDb;
+        if (in.targetWidthOct > 0.0) smoothLog(m, in.targetWidthOct, 12.0);
+        return m;
+    }
+
+    // A curve's value at one frequency, on the analyser's own log grid.  Public because
+    // RestoreCore needs the take's level at 1 kHz to decide which bands it occupies.
+    static double interpAt(const std::vector<double>& xs, const std::vector<double>& ys, double x) {
+        if (xs.empty()) return 0.0;
+        if (x <= xs.front()) return ys.front();
+        if (x >= xs.back()) return ys.back();
+        for (size_t i = 1; i < xs.size(); ++i) {
+            if (xs[i] >= x) {
+                const double t = std::log(x / xs[i - 1]) / std::log(xs[i] / xs[i - 1]);
+                return ys[i - 1] * (1 - t) + ys[i] * t;
+            }
+        }
+        return ys.back();
+    }
+
     // target vs measured -> corrective bands
     std::vector<BandSpec> solve(const SolveInput& in, const SolverConfig& cfg, double fs) const {
         std::vector<BandSpec> bands;
@@ -125,7 +172,9 @@ public:
         // normalise both at 1 kHz so only the *shape* matters
         std::vector<double> want(n, 0.0);
         std::vector<double> mask(n, 0.0);
-        double refMeas = interpAt(in.freqs, in.levelDb, 1000.0);
+        // the measurement, expressed in the target's own bandwidth
+        const std::vector<double> measured = asMeasured(in);
+        double refMeas = interpAt(in.freqs, measured, 1000.0);
         for (int i = 0; i < n; ++i) {
             const double f = in.freqs[i];
             const bool usable = in.valid[i] > 0.5 && f >= cfg.minFreq && f <= cfg.maxFreq;
@@ -134,7 +183,7 @@ public:
                 const double t = (cfg.mode == MatchMode::Match)
                                    ? in.targetAt(f)
                                    : in.targetSmoothAt(f, cfg.restoreSmoothingOct);
-                const double m = in.levelDb[i] - refMeas;            // re 1 kHz
+                const double m = measured[i] - refMeas;             // re 1 kHz
                 double d = t - m;
                 // soft dead-zone: subtract the family's own natural spread
                 const double mag = std::abs(d);
@@ -183,6 +232,33 @@ public:
             BandSpec b{BandType::Peak, f0, q, gain};
             bands.push_back(b);
             for (int i = 0; i < n; ++i) resid[i] -= bandMagDb(b, in.freqs[i], fs);
+        }
+
+        // ---- the tilt, which peaks cannot do -----------------------------
+        // A vocal's difference from another vocal's curve is mostly a *tilt*, not a set
+        // of lobes: peaks chase lobes well and a slope badly, so six peaks fighting a
+        // 6 dB/octave difference leave most of it in place.  One low shelf and one high
+        // shelf, each set to the mean residual on its side of a corner, remove the slope
+        // in two filters instead of six approximations of it.
+        if (cfg.useShelves) {
+            const auto fitShelf = [&](bool low) {
+                const double corner = low ? cfg.shelfLowHz : cfg.shelfHighHz;
+                double acc = 0.0; int m = 0;
+                for (int i = 0; i < n; ++i) {
+                    if (mask[i] < 0.5) continue;
+                    const double f = in.freqs[i];
+                    if (low ? (f <= corner) : (f >= corner)) { acc += resid[i]; ++m; }
+                }
+                if (m < 3) return;
+                const double g = std::clamp(acc / double(m), -cfg.maxGainDb, cfg.maxGainDb);
+                if (std::abs(g) < cfg.minMoveDb) return;
+                const BandSpec b{low ? BandType::LowShelf : BandType::HighShelf,
+                                 corner, cfg.shelfS, g};
+                bands.push_back(b);
+                for (int i = 0; i < n; ++i) resid[i] -= bandMagDb(b, in.freqs[i], fs);
+            };
+            fitShelf(true);
+            fitShelf(false);
         }
 
         // ---- bounded refinement -------------------------------------------
@@ -250,11 +326,12 @@ public:
     static double distanceOnActive(const SolveInput& in, const std::vector<BandSpec>& bands,
                                    double fs, double deadZoneDb) {
         double acc = 0.0; int n = 0;
-        const double refMeas = interpAt(in.freqs, in.levelDb, 1000.0);
+        const std::vector<double> meas = asMeasured(in);
+        const double refMeas = interpAt(in.freqs, meas, 1000.0);
         for (size_t i = 0; i < in.freqs.size(); ++i) {
             const double f = in.freqs[i];
             if (f < 200.0 || f > 13000.0 || in.valid[i] < 0.5) continue;
-            const double dev = in.targetSmoothAt(f, 0.5) - (in.levelDb[i] - refMeas);
+            const double dev = in.targetSmoothAt(f, 0.5) - (meas[i] - refMeas);
             if (std::abs(dev) <= deadZoneDb) continue;
             double mod = 0.0;
             for (const auto& b : bands) mod += bandMagDb(b, f, fs);
@@ -268,13 +345,14 @@ public:
     static double distanceToTarget(const SolveInput& in, const std::vector<BandSpec>& bands,
                                    double fs, double f1 = 200.0, double f2 = 12000.0) {
         double acc = 0.0; int n = 0;
-        const double refMeas = interpAt(in.freqs, in.levelDb, 1000.0);
+        const std::vector<double> meas = asMeasured(in);
+        const double refMeas = interpAt(in.freqs, meas, 1000.0);
         for (size_t i = 0; i < in.freqs.size(); ++i) {
             const double f = in.freqs[i];
             if (f < f1 || f > f2 || in.valid[i] < 0.5) continue;
             double mod = 0.0;
             for (const auto& b : bands) mod += bandMagDb(b, f, fs);
-            const double corrected = in.levelDb[i] - refMeas + mod;
+            const double corrected = meas[i] - refMeas + mod;
             const double e = in.targetAt(f) - corrected;
             acc += e * e; ++n;
         }
@@ -282,18 +360,6 @@ public:
     }
 
 private:
-    static double interpAt(const std::vector<double>& xs, const std::vector<double>& ys, double x) {
-        if (xs.empty()) return 0.0;
-        if (x <= xs.front()) return ys.front();
-        if (x >= xs.back()) return ys.back();
-        for (size_t i = 1; i < xs.size(); ++i) {
-            if (xs[i] >= x) {
-                const double t = std::log(x / xs[i - 1]) / std::log(xs[i] / xs[i - 1]);
-                return ys[i - 1] * (1 - t) + ys[i] * t;
-            }
-        }
-        return ys.back();
-    }
 };
 
 } // namespace aeq

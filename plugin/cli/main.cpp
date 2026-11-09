@@ -16,6 +16,7 @@
 #include "../Source/dsp/Profile.h"
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 #include "../Source/model/TargetCurve.h"
 
 // ---- minimal WAV I/O (PCM 16/24/32 and float32) ----
@@ -198,7 +199,84 @@ static void printReport(aeq::RestoreCore& core) {
     std::printf("distance to family target: %.2f -> %.2f dB RMS (informational; restore\n"
                 "  mode deliberately refuses to chase natural variation)\n",
                 st.distBeforeDb, st.distAfterDb);
+    // The honest number the panel shows, printed by the same code path that produced it:
+    // how far the take was from the target, and how far the curve took it.  Before this,
+    // the offline tool could describe the curve but not whether it helped, so a claim like
+    // "this sounds like Amir now" had no number behind it outside the plugin window.
+    if (st.gapValid)
+        std::printf("match to target  : %s, %.2f -> %.2f dB RMS  (%.0f%% closer)\n",
+                    core.targetName().empty() ? "unnamed" : core.targetName().c_str(),
+                    st.gapBeforeDb, st.gapAfterDb,
+                    100.0 * (1.0 - st.gapAfterDb / std::max(st.gapBeforeDb, 1e-6)));
     std::printf("=====================================================\n");
+}
+
+
+// ---- a folder of stems -> one reference profile --------------------------------
+// Each file is measured by the plugin's own analyser (learn pass, gated frames - exactly
+// what the plugin will do to the take), then the profiles are blended in the power domain
+// with equal weights.  Files that are too short to gate, or that are silent, are skipped
+// and *counted*, because silently averaging in a dead file is how a reference ends up
+// describing the room instead of the voice.
+struct DirResult { aeq::Profile prof; int used = 0, skipped = 0; };
+
+static aeq::Profile measureFile(const char* path, const std::string& name, bool* ok) {
+    *ok = false;
+    Wav w;
+    if (!loadWav(path, w)) return {};
+    aeq::RestoreCore core;
+    core.prepare(w.sr, 512);
+    aeq::RestoreSettings s;
+    s.learn = true;
+    s.settleSeconds = 0.0;
+    core.setSettings(s);
+    std::vector<float> L(512), R(512);
+    int blocks = 0;
+    for (size_t off = 0; off < w.L.size(); off += 512) {
+        const int n = (int)std::min<size_t>(512, w.L.size() - off);
+        for (int i = 0; i < n; ++i) {
+            L[i] = w.L[off + i];
+            R[i] = w.R.empty() ? w.L[off + i] : w.R[off + i];
+        }
+        core.processBlock(L.data(), R.data(), n);
+        if (++blocks % 40 == 0) core.refresh();
+    }
+    core.refresh();
+    auto p = core.captureProfile(name);
+    *ok = p.valid();
+    return p;
+}
+
+static std::string refNameOf(int argc, char** argv) {
+    for (int i = 3; i < argc - 1; ++i)
+        if (std::string(argv[i]) == "--name") return argv[i + 1];
+    return "reference";
+}
+
+static int profileFromDir(const char* dir, const char* out, const std::string& name) {
+    std::vector<aeq::Profile> profiles;
+    int skipped = 0;
+    for (const auto& entry : std::filesystem::directory_iterator(dir)) {
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension() != ".wav") continue;
+        bool ok = false;
+        auto p = measureFile(entry.path().c_str(), entry.path().stem().string(), &ok);
+        if (!ok) { ++skipped; std::printf("  skip %s (nothing measurable)\n",
+                                          entry.path().filename().c_str()); continue; }
+        profiles.push_back(p);
+        std::printf("  %-40s %zu bands, %ld frames\n",
+                    entry.path().filename().c_str(), p.db.size(), p.frames);
+    }
+    if (profiles.empty()) { std::printf("no measurable wav files in %s\n", dir); return 4; }
+    std::vector<const aeq::Profile*> ptr;
+    for (const auto& p : profiles) ptr.push_back(&p);
+    const std::vector<double> weights(profiles.size(), 1.0);
+    const auto blended = aeq::blend(ptr, weights, name.c_str());
+    std::ofstream f(out, std::ios::binary);
+    f << aeq::toText(blended);
+    std::printf("wrote %s: %zu bands blended from %zu stems (%d skipped), name \"%s\"\n",
+                out, blended.db.size(), profiles.size(), skipped, name.c_str());
+    return 0;
 }
 
 int main(int argc, char** argv) {
@@ -206,10 +284,18 @@ int main(int argc, char** argv) {
         std::printf("usage: aeq_cli analyze in.wav [--ref profile.aeqprof]\n"
                     "       aeq_cli process in.wav out.wav [--amount 1.0] [--maxgain 6] [--bands 8]\n"
                     "                        [--ref profile.aeqprof] [--mode match]\n"
-                    "       aeq_cli profile in.wav out.aeqprof [--name \"who it sounds like\"]\n");
+                    "       aeq_cli profile in.wav out.aeqprof [--name \"who it sounds like\"]\n"
+                    "       aeq_cli profile --from-dir stems/ out.aeqprof [--name \"Amir 15\"]\n");
         return 1;
     }
     const std::string mode = argv[1];
+    // `profile --from-dir <dir> <out>`: a *set* of stems becomes one reference, measured by
+    // this plugin's own analyser (the same instrument as the take) and blended in the power
+    // domain.  This is how a record - or Amir's 15 dry stems - becomes a target without
+    // anyone re-implementing the analyser in Python and hoping the two agree.
+    if (mode == "profile" && argc >= 6 && std::string(argv[2]) == "--from-dir")
+        return profileFromDir(argv[3], argv[4], refNameOf(argc, argv));
+
     Wav w;
     if (!loadWav(argv[2], w)) return 2;
 
@@ -228,11 +314,16 @@ int main(int argc, char** argv) {
 
     aeq::RestoreCore core;
     core.prepare(w.sr, 512);
-    core.setSettings(s);
 
     // A reference profile, if one was named: read from the text file the `profile`
     // command writes.  Match then aims at *this* record instead of the corpus average,
     // measured on the same grid as the take.
+    //
+    // Order matters, and it was wrong: the settings were pushed to the core *before* this
+    // block, so `--ref` set `s.mode = 1` on a local copy the core had already ignored -
+    // the run printed "reference: ..." and then solved for the corpus average.  A tool that
+    // ignores the flag it reports reading is worse than one that rejects it, so the
+    // settings are pushed after the reference is known.
     if (! refPath.empty()) {
         std::ifstream f(refPath);
         std::stringstream ss; ss << f.rdbuf();
@@ -243,6 +334,7 @@ int main(int argc, char** argv) {
         std::printf("reference: %s (%zu bands, %ld frames)\n",
                     prof.name.c_str(), prof.db.size(), prof.frames);
     }
+    core.setSettings(s);
 
     // pass 1: learn over the whole take
     const int blk = 512;

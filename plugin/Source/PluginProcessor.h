@@ -49,6 +49,9 @@ public:
     // too - it did not in 1.2.16, so after one stop a reset left the plugin with nothing
     // analysing and no way back short of reopening the project.
     void relearn();
+
+    // Point Match at a profile file.  Returns false if it is not a profile.
+    bool loadReferenceProfile (const juce::File& file);
     bool isFrozen() const { return core_.frozen(); }
     bool isCommitted() const { return core_.committed(); }
     bool isLearning() const { return learning_; }
@@ -76,6 +79,10 @@ private:
     aeq::RestoreSettings settings_, lastPushed_;
     juce::AudioProcessorValueTreeState apvts_;
     std::atomic<bool> learning_{true}, resetRequested_{false};
+    // The reference profile as text, so it can be written into the project state and read
+    // back; the curve itself lives in the core.
+    mutable std::mutex refMx_;
+    juce::String referenceText_, referenceFile_;
     // A control that changes the rule was moved while the pass is sealed: re-solve it on
     // the message thread (see timerCallback), never on the audio thread.
     std::atomic<bool> needsResolve_{false};

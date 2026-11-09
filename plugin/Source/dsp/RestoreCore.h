@@ -20,6 +20,7 @@
 #include "TrackedBand.h"
 #include "Stabilizer.h"
 #include "Profile.h"
+#include "../model/AmirTarget.h"
 #include "DynamicProfile.h"
 #include "EqSolver.h"
 #include "ProblemDetector.h"
@@ -113,6 +114,14 @@ struct RestoreState {
     std::vector<Problem> problems;
     double distBeforeDb = 0.0, distAfterDb = 0.0;
     double fixBeforeDb = 0.0, fixAfterDb = 0.0;   // over the regions we acted on
+    // Distance from the take's shape to the *reference profile* the user loaded, before
+    // the curve and after it, in dB RMS over 120 Hz - 13 kHz.  This is the number that
+    // answers "is it like the record I chose yet", and it is the only honest one: a
+    // curve that looks close on a graph and leaves the gap at 4 dB is not close.
+    double gapBeforeDb = 0.0;
+    double gapAfterDb  = 0.0;
+    bool   gapValid    = false;
+
     double measuredF0 = 0.0;
     int    trackedLayers = 0;       // bands in the path that follow the pitch
     double analyzedSeconds = 0.0;   // sung audio analysed so far
@@ -681,17 +690,52 @@ public:
         in.valid.assign(m.freqs.size(), 0.0);
         for (size_t i = 0; i < m.freqs.size(); ++i)
             in.valid[i] = (m.freqs[i] >= 100.0 && TargetCurve::inMeasuredRange(m.freqs[i])) ? 1.0 : 0.0;
+        // In Match mode a band only counts if the take actually occupies it.  Otherwise the
+        // solver spends a band - and the user's headroom - on a region where the voice has
+        // nothing to move: an independent measurement of the rendered file (verify_match_
+        // render.py) put a whole 6.5 dB of the residual on one band at 12.9 kHz that the
+        // take never filled, while the low-mid sat 5 dB off the target untouched.  The mask
+        // is relative to the take's own 1 kHz, so it is register-independent.
+        if (settings_.mode == 1) {
+            const double ref1k = EqSolver::interpAt(m.freqs, m.bandDb, 1000.0);
+            for (size_t i = 0; i < m.freqs.size(); ++i)
+                if (in.valid[i] > 0.5 && m.bandDb[i] - ref1k < -40.0) in.valid[i] = 0.0;
+        }
 
-        // A loaded reference replaces the corpus table as the thing to aim at, and it is
-        // sampled on the analyser's own grid so the subtraction happens in one frame.
+        // What the curve is aiming at, in order of specificity:
+        //
+        //   1. a reference profile the user loaded - the thing they actually chose;
+        //   2. in Match mode with nothing loaded, **Amir Mahrous's own 15-stem curve**.
+        //      The user's requirement from the first message was that the result sounds
+        //      like him; the family average is not him, and the validation against him was
+        //      never significant (p = 0.0876).  Match is the mode that says "move me onto
+        //      this", so it moves onto his curve rather than onto 11 engineers' mean.
+        //   3. Restore mode: the smoothed corpus target (a restore pass must not chase one
+        //      engineer's taste) - unchanged.
         {
             std::lock_guard<std::mutex> lk(refMx_);
             in.targetDb.clear();
+            // Restore already compares against a *smoothed* target
+            // (`targetSmoothAt(restoreSmoothingOct)`), so smoothing the measurement too
+            // would widen the comparison twice and loosen the control - measured as a
+            // restore pass taking 2.98 dB off the air above 6 kHz, which is exactly the
+            // "eaten" sound this mode exists to avoid.  Width matching belongs to the
+            // Match path, where the table is the reference and nothing else smooths it.
+            in.targetWidthOct = (settings_.mode == 1) ? 1.0 / 3.0 : 0.0;
             if (reference_.valid()) {
+                in.targetWidthOct = 0.0;        // a profile: measured by this analyser
                 in.targetDb.resize(m.freqs.size(), 0.0);
                 const double r1k = reference_.at(1000.0);
                 for (size_t i = 0; i < m.freqs.size(); ++i)
                     in.targetDb[i] = reference_.at(m.freqs[i]) - r1k;
+                targetName_ = referenceName_;
+            } else if (settings_.mode == 1) {
+                in.targetDb.resize(m.freqs.size(), 0.0);
+                for (size_t i = 0; i < m.freqs.size(); ++i)
+                    in.targetDb[i] = AmirTarget::shapeAt(m.freqs[i]);
+                targetName_ = "AMIR 15";
+            } else {
+                targetName_ = "13-TAKE CONSENSUS";
             }
         }
         // the take as a profile too: this is what `referenceGapDb` compares against, and
@@ -705,7 +749,26 @@ public:
         sc.mode = (settings_.mode == 1 || in.hasTarget()) ? MatchMode::Match : MatchMode::Restore;
         sc.maxBands = settings_.maxBands;
         sc.maxGainDb = settings_.maxGainDb;
-        if (sc.mode == MatchMode::Restore) { sc.maxQ = 1.2; sc.deadZoneDb = 2.5; }
+        if (sc.mode == MatchMode::Restore) {
+            sc.maxQ = 1.2;
+            sc.deadZoneDb = 2.5;
+        } else {
+            // Match: the user named a target, so the engine is allowed to reach it.  Still
+            // bounded - 10 bands, 9 dB per band, 18 dB in total, Q <= 2.2 - but bounded to
+            // the job instead of to "do no harm".  Two shelves are added because most of
+            // the difference between two voices' curves is a tilt, and six peaks chase a
+            // tilt badly (measured: 0.2 dB of movement on a 24 dB/octave difference).
+            sc.maxBands    = std::max(10, settings_.maxBands);
+            sc.maxGainDb   = std::max(9.0, settings_.maxGainDb);
+            sc.maxQ        = 2.2;
+            sc.deadZoneDb  = 1.0;
+            sc.smoothOct   = 1.0 / 6.0;
+            sc.minMoveDb   = 1.0;
+            sc.maxTotalDb  = 18.0;
+            sc.useShelves  = true;
+            sc.shelfLowHz  = 220.0;
+            sc.shelfHighHz = 4000.0;
+        }
         auto corr = solver_.solve(in, sc, fs_);
         const auto probs = detector_.detect(m);
         // the Standard % macro scales the *solved* correction (never the manual
@@ -773,7 +836,11 @@ public:
         // exact thing the user described as the plugin eating the vocal.  So the low
         // end gets a single budget, shared proportionally by the bands that ask.
         {
-            constexpr double kBodyBudgetDb = 2.5;
+            // 2.5 dB below 600 Hz is the Restore budget: it is what stops the plugin
+            // "fixing" the body of a voice out of existence.  Match is a different
+            // promise - the user named the curve - so the budget is wider there, but it is
+            // still a budget: 6 dB of shared cut under 600 Hz cannot hollow a note out.
+            const double kBodyBudgetDb = (sc.mode == MatchMode::Match) ? 6.0 : 2.5;
             constexpr double kBodyTopHz = 600.0;
             double asked = 0.0;
             for (const auto& b : corr) if (b.f0 < kBodyTopHz && b.gainDb < 0.0) asked += -b.gainDb;
@@ -844,6 +911,14 @@ public:
             state_.fixBeforeDb = fixBefore;
             state_.fixAfterDb = fixAfter;
             state_.measuredF0 = m.medianF0;
+            // how far the take is from the reference, and how far the curve gets it.  The
+            // "after" number is the same solver input with the solved bands applied, so it
+            // is the distance the user will actually hear - not an estimate from a drawing.
+            state_.gapValid = in.hasTarget();
+            if (state_.gapValid) {
+                state_.gapBeforeDb = EqSolver::distanceToTarget(in, {}, fs_, 200.0, 13000.0);
+                state_.gapAfterDb  = EqSolver::distanceToTarget(in, corr, fs_, 200.0, 13000.0);
+            }
             state_.analyzedSeconds = analyzer_.activeSeconds();
             state_.settled = state_.analyzedSeconds >= settings_.settleSeconds;
             state_.valid = true;
@@ -1075,6 +1150,10 @@ public:
         ++referenceVersion_;
     }
     bool        hasReference()    const { std::lock_guard<std::mutex> lk(refMx_); return reference_.valid(); }
+    // What the solver is aiming at right now: a loaded reference's name, "AMIR 15" in
+    // Match mode, or the family average in Restore.  One string, produced where the
+    // decision is made, so the panel cannot tell a different story than the engine.
+    std::string targetName()      const { std::lock_guard<std::mutex> lk(refMx_); return targetName_; }
     std::string referenceName()   const { std::lock_guard<std::mutex> lk(refMx_); return referenceName_; }
     Profile     reference()       const { std::lock_guard<std::mutex> lk(refMx_); return reference_; }
     // How much the solved curve has to do to make the take's shape equal the reference's:
@@ -1343,6 +1422,7 @@ private:
     mutable std::mutex refMx_;
     Profile reference_;
     std::string referenceName_;
+    std::string targetName_ = "13-TAKE CONSENSUS";
     unsigned long long referenceVersion_ = 0;
     Profile measuredProfile_;                 // analysis thread only
     bool measuredProfileValid_ = false;

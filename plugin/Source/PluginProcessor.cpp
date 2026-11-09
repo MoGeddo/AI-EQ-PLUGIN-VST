@@ -213,6 +213,24 @@ void AeqAudioProcessor::stopLearning() {
     learning_ = false;
 }
 
+// Load a reference profile from a file: the half of Match EQ that lets you point the
+// plugin at a record, a stem, or a curve somebody measured for you.  A file that is not a
+// profile is refused where it is read (Profile::fromText is a trust boundary), and the
+// call returns false so the panel can say so instead of silently aiming at nothing.
+bool AeqAudioProcessor::loadReferenceProfile(const juce::File& file) {
+    if (! file.existsAsFile()) return false;
+    const auto text = file.loadFileAsString();
+    const auto prof = aeq::fromText(text.toStdString());
+    if (! prof.valid()) return false;
+    core_.setReferences({prof}, {1.0});
+    std::lock_guard<std::mutex> lk(refMx_);
+    referenceText_ = text;
+    referenceFile_ = file.getFullPathName();
+    // the take has already been measured; a new target is a rule change, so re-solve
+    needsResolve_.store(true, std::memory_order_release);
+    return true;
+}
+
 void AeqAudioProcessor::relearn() {
     core_.relearn();
     learning_ = true;
@@ -287,6 +305,15 @@ void AeqAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
         layers.appendChild(v, nullptr);
     }
     state.appendChild(layers, nullptr);
+    // The reference profile travels with the project.  A session that was saved pointing
+    // at a record must reopen pointing at the same record - not silently fall back to the
+    // default target and sound different, which is the one thing a mixer must be able to
+    // trust (the same rule the curves and the layers already follow).
+    {
+        std::lock_guard<std::mutex> lk(refMx_);
+        if (referenceText_.isNotEmpty())
+            state.setProperty("referenceProfile", referenceText_, nullptr);
+    }
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destData);
 }
 
@@ -295,6 +322,16 @@ void AeqAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
         auto tree = juce::ValueTree::fromXml(*xml);
         if (! tree.isValid()) return;
         apvts_.replaceState(tree);
+
+        const auto refText = tree.getProperty("referenceProfile").toString();
+        if (refText.isNotEmpty()) {
+            const auto prof = aeq::fromText(refText.toStdString());
+            if (prof.valid()) {
+                core_.setReferences({prof}, {1.0});
+                std::lock_guard<std::mutex> lk(refMx_);
+                referenceText_ = refText;
+            }
+        }
 
         if (tree.getProperty("committed")) {
             aeq::RestoreState st;
