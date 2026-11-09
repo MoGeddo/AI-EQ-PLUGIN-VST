@@ -66,6 +66,11 @@ struct RestoreSettings {
     // made.  Readiness and stopping are different questions and now they are different
     // numbers.
     double autoStopSeconds = 0.0;
+
+    // The pass cannot run forever.  Five minutes of sung audio is several songs or one
+    // very long take; past that the decision is frozen where it stands rather than the
+    // plugin listening into the next session with nothing applied.
+    static constexpr double kHardCapSeconds = 300.0;
 };
 
 // The display spectrum: a 120 ms moving average plus its peak hold, published as
@@ -920,8 +925,16 @@ public:
         // zero - the pass ends when the person ends it - because a tool that freezes its
         // own decision 45 s into a take is a tool that says "stopped by you" about
         // something you did not stop.
-        if (settings_.autoStopSeconds > 0.0
-            && state_.analyzedSeconds >= settings_.autoStopSeconds) {
+        //
+        // There is a floor under that promise, though: a pass that nobody ever stops
+        // leaves the plugin listening forever and never applying anything, which is the
+        // worst of both worlds - the audio is untouched and the meter says "listening".
+        // So after five minutes the pass ends itself, and it says so.  This is a ceiling,
+        // not a default: it cannot be set to "never", and the panel prints it.
+        const double cap = (settings_.autoStopSeconds > 0.0)
+                             ? std::min(settings_.autoStopSeconds, RestoreSettings::kHardCapSeconds)
+                             : RestoreSettings::kHardCapSeconds;
+        if (state_.analyzedSeconds >= cap) {
             phase_.store(int(Phase::Committed), std::memory_order_release);
             frozen_.store(true, std::memory_order_release);
         }

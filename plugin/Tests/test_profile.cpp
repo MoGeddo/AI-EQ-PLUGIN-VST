@@ -157,6 +157,35 @@ int main() {
                "4. a profile written and read back is identical (%.0f points)", double(back.db.size()));
         checkF(aeq::fromText("not a profile\n").valid() == false,
                "4. and a file that is not one is refused (%.0f)", 0.0);
+
+        // The parser is a trust boundary: these are the ways a hostile or broken file
+        // gets in, and every one of them has to be refused whole rather than half-read.
+        auto header = [] (int points) {
+            return std::string("AEQPROFILE 1\nname t\nloud 0\nframes 1\npoints ")
+                 + std::to_string(points) + "\n";
+        };
+        auto line = [] (const char* a, const char* b) {
+            return std::string(a) + " " + std::string(b) + "\n";
+        };
+        checkF(! aeq::fromText(header(2) + line("100", "-30") + line("nan", "-30")).valid(),
+               "4. a NaN frequency is refused (%.0f)", 0.0);
+        checkF(! aeq::fromText(header(2) + line("100", "-30") + line("inf", "-30")).valid(),
+               "4. an infinite frequency is refused (%.0f)", 0.0);
+        checkF(! aeq::fromText(header(2) + line("900", "-30") + line("100", "-30")).valid(),
+               "4. descending frequencies are refused (%.0f)", 0.0);
+        checkF(! aeq::fromText(header(1) + line("0", "-30")).valid(),
+               "4. a zero frequency is refused (%.0f)", 0.0);
+        checkF(! aeq::fromText(header(1) + line("100", "1e9")).valid(),
+               "4. an absurd level is refused (%.0f)", 0.0);
+        {
+            std::string huge = header(20000);
+            for (int i = 0; i < 20000; ++i)
+                huge += line(std::to_string(20.0 + i).c_str(), "-30");
+            checkF(! aeq::fromText(huge).valid(),
+                   "4. a file with more points than the cap is refused (%.0f)", 0.0);
+        }
+        checkF(aeq::fromText(std::string(aeq::kMaxProfileBytes + 1, 'x')).valid() == false,
+               "4. a file over the size cap is refused (%.0f)", 0.0);
     }
 
     // ---- 5. the solver aims at the supplied target -------------------------

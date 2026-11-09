@@ -99,7 +99,8 @@ private:
     // panel is a shape; a shape with no words is a puzzle.
     juce::String tooltipAt (juce::Point<int>) const;
     std::vector<juce::Rectangle<int>> chipRects() const;
-    juce::Rectangle<int> modeSeg (int i) const;
+    juce::Rectangle<int> modeSeg (int i) const;      // hit: >= 40 px tall
+    juce::Rectangle<int> modeSegDraw (int i) const;   // what is painted
     juce::Rectangle<int> bypassHit() const;
     juce::Rectangle<int> resetHit() const;
     int chipAt (juce::Point<int>) const;

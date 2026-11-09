@@ -1,0 +1,172 @@
+{
+ "files": [
+  "PluginEditor.cpp",
+  "PluginEditor.h",
+  "PluginProcessor.cpp",
+  "PluginProcessor.h",
+  "dsp/Analyzer.h",
+  "dsp/Biquad.h",
+  "dsp/DeEsser.h",
+  "dsp/DynamicProfile.h",
+  "dsp/EqSolver.h",
+  "dsp/ProblemDetector.h",
+  "dsp/Profile.h",
+  "dsp/RestoreCore.h",
+  "dsp/Stabilizer.h",
+  "dsp/TrackedBand.h",
+  "model/EnvTargetCurve.h",
+  "model/EnvThresholds.h",
+  "model/TargetCurve.h",
+  "ui/ArabicText.cpp",
+  "ui/ArabicText.h",
+  "ui/BandRow.h",
+  "ui/CurveView.h",
+  "ui/MotionSpec.h",
+  "ui/PanelCopy.h",
+  "ui/ProblemList.h",
+  "ui/Theme.h"
+ ],
+ "includes": [
+  {
+   "from": "PluginEditor.cpp",
+   "to": "PluginEditor.h"
+  },
+  {
+   "from": "PluginEditor.cpp",
+   "to": "ui/BandRow.h"
+  },
+  {
+   "from": "PluginEditor.cpp",
+   "to": "ui/PanelCopy.h"
+  },
+  {
+   "from": "PluginEditor.h",
+   "to": "PluginProcessor.h"
+  },
+  {
+   "from": "PluginEditor.h",
+   "to": "ui/CurveView.h"
+  },
+  {
+   "from": "PluginEditor.h",
+   "to": "ui/PanelCopy.h"
+  },
+  {
+   "from": "PluginEditor.h",
+   "to": "ui/Theme.h"
+  },
+  {
+   "from": "PluginProcessor.cpp",
+   "to": "PluginProcessor.h"
+  },
+  {
+   "from": "PluginProcessor.cpp",
+   "to": "PluginEditor.h"
+  },
+  {
+   "from": "PluginProcessor.h",
+   "to": "dsp/RestoreCore.h"
+  },
+  {
+   "from": "dsp/DeEsser.h",
+   "to": "dsp/Biquad.h"
+  },
+  {
+   "from": "dsp/EqSolver.h",
+   "to": "dsp/Biquad.h"
+  },
+  {
+   "from": "dsp/EqSolver.h",
+   "to": "model/TargetCurve.h"
+  },
+  {
+   "from": "dsp/ProblemDetector.h",
+   "to": "dsp/Analyzer.h"
+  },
+  {
+   "from": "dsp/ProblemDetector.h",
+   "to": "model/TargetCurve.h"
+  },
+  {
+   "from": "dsp/ProblemDetector.h",
+   "to": "model/EnvTargetCurve.h"
+  },
+  {
+   "from": "dsp/ProblemDetector.h",
+   "to": "model/EnvThresholds.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/Analyzer.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/Biquad.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/DeEsser.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/TrackedBand.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/Stabilizer.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/Profile.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/DynamicProfile.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/EqSolver.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "dsp/ProblemDetector.h"
+  },
+  {
+   "from": "dsp/RestoreCore.h",
+   "to": "model/TargetCurve.h"
+  },
+  {
+   "from": "ui/ArabicText.cpp",
+   "to": "ui/ArabicText.h"
+  },
+  {
+   "from": "ui/CurveView.h",
+   "to": "ui/Theme.h"
+  },
+  {
+   "from": "ui/CurveView.h",
+   "to": "dsp/RestoreCore.h"
+  },
+  {
+   "from": "ui/ProblemList.h",
+   "to": "ui/Theme.h"
+  },
+  {
+   "from": "ui/ProblemList.h",
+   "to": "dsp/ProblemDetector.h"
+  },
+  {
+   "from": "ui/Theme.h",
+   "to": "ui/ArabicText.h"
+  }
+ ],
+ "layers": {
+  "PluginEditor": 2,
+  "PluginProcessor": 2,
+  "dsp": 10,
+  "model": 3,
+  "ui": 8
+ },
+ "upward": [],
+ "cycles": []
+}

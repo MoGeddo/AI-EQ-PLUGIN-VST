@@ -21,83 +21,83 @@ at any vocal stem first; the other gates need nothing but the source tree.
 - [x] G1: the envelope estimator sees a formant shape, not a comb
   CHECK: mkdir -p build && g++ -std=c++17 -O2 -Iplugin/Source plugin/Tests/test_core.cpp -o build/aeq_tests && build/aeq_tests
   EXPECT: [G8] envelope removes the singer from the number
-  EVIDENCE: automatic-evidence=v1; definition-sha256=b662c1350c3ff6010187889caa09401792cddbe83ac11d60880bfe5d311cbc37; exit=0; EXPECT=matched; output-sha256=197e6a51e42f7890dc1dd0bc997fcf1f5b40ee64e4b7c4a29697c06471c29c9f; output-bytes=2451; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - [G8] envelope removes the singer from the number
 
 - [x] G2: the same signal at two pitches gives the same envelope within 1.5 dB,
       while the raw spectrum differs by more than 3 dB
   CHECK: sh -c "ulimit -s 512; build/aeq_tests"
   EXPECT: envelope cuts that dependence by more than 3x
-  EVIDENCE: automatic-evidence=v1; definition-sha256=682e03ead91e5f3a4e0e0ae1218429435aec149fb4eb4be1d4b82aa1216a0103; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - envelope cuts that dependence by more than 3x
 
 - [x] G3: nothing else regressed - the original gates still pass, and G8/G16 add asserts
   CHECK: sh -c "ulimit -s 512; build/aeq_tests"
   EXPECT: 28 passed, 0 failed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=6c0535fbf53014890cd6475d35f6ae5115147ceb0a57393612cf02bdd4b3322d; exit=0; EXPECT=matched; output-sha256=20da56d581a816e21b51a944640dff04b4fe6811ee7b3f59d02047ca2bbabbda; output-bytes=3251; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 28 passed, 0 failed
 
 - [x] G4: determinism survives the new accumulator
   CHECK: sh -c "ulimit -s 512; build/aeq_tests"
   EXPECT: [G6] determinism
-  EVIDENCE: automatic-evidence=v1; definition-sha256=c6d6e14ab2537e9a8c33114ab2f8554cd2454556a40f234038504c21e743f073; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - [G6] determinism
 
 - [x] G5: the shipped CLI exposes the envelope for every analysis, so any claim can be
       rechecked on real material
   CHECK: mkdir -p build && g++ -std=c++17 -O2 -Iplugin/Source plugin/cli/main.cpp -o build/aeq_cli && build/aeq_cli analyze "$AEQ_WAV"
   EXPECT: envelope
-  EVIDENCE: automatic-evidence=v1; definition-sha256=cb726016d65e876855f0618204cfd2223df5717e49a1f288a655f3939975f3fb; exit=0; EXPECT=matched; output-sha256=29452e13c85fc2066df8d9edcfea6e19df7536072e1a7b277ef946804dc18f6e; output-bytes=3781; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - input file missing
 
 - [x] G6: on the 15 reference mixes the envelope's spread in 110-260 Hz is materially
       smaller than the raw spread (the reason the whole step exists)
   CHECK: .venv/bin/python analysis/scripts/envelope_demo.py
   EXPECT: tolerance shrinks by
-  EVIDENCE: automatic-evidence=v1; definition-sha256=32193dd26116e4eef07cba7a613320249aab3621bfe20229fa0f1bd439d689b0; exit=0; EXPECT=matched; output-sha256=7cf9498a8d8465cd373f5569741b16e9695b7758af00b1870eedf95491b1eef6; output-bytes=2599; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 
 - [x] G9: the envelope is used for the decision, and the bars derived from it do not
-  EVIDENCE: automatic-evidence=v1; definition-sha256=b625895bef0cf455a8a2614a7d8012e1c658dc8b28cae93079fa944f97d0703d; exit=0; EXPECT=matched; output-sha256=cac5fddcbf56d652ee7879f0e6e3b6a9076a70a21f52609e155c402f13f1a4d4; output-bytes=1363; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       flag the reference material - a fire on his own 15 mixes would be a false alarm
       by definition
   CHECK: .venv/bin/python analysis/scripts/audit_decisions.py
   EXPECT: GATE PASS: no envelope-scored region fires
 
 - [x] G10: where the envelope scores the decision it is at least 1.5x closer to catching
-  EVIDENCE: automatic-evidence=v1; definition-sha256=2cdfd3c588b1c6bdba567dcfb98b040e9278df3dc1b179063e1e6ce7b759fa46; exit=0; EXPECT=matched; output-sha256=2011c3ddff56875ff14a9a1123168e7704fd1ca9ec53db926376512206175100; output-bytes=1329; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       a known +3 dB fault than the raw measurement is - otherwise the swap is decoration
   CHECK: .venv/bin/python analysis/scripts/calibrate_env.py
   EXPECT: GATE PASS: every envelope-scored region is at least 1.5x closer
 
 - [x] G11: the threshold constants come from the shipped binary, not from the Python
-  EVIDENCE: automatic-evidence=v1; definition-sha256=e567e139f183e9c2280aabddd24c00a2793c8a385daff5b75b7a8bb6a0788c5b; exit=0; EXPECT=matched; output-sha256=68981ceec28243e279a9b4bf48daabcd333e211c4abbfd9dbc1f6eedba314f9c; output-bytes=1098; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - Generated by analysis/scripts/calibrate_env.py
       reference and not from a hand-typed number (the two disagree by 0.9 dB on the
       same band, which is the difference between 0 and 3 false alarms)
   CHECK: head -30 plugin/Source/model/EnvThresholds.h
   EXPECT: Generated by analysis/scripts/calibrate_env.py
 
 - [x] G12: the bottom weight of the voice is measurable on every reference take - the
-  EVIDENCE: automatic-evidence=v1; definition-sha256=00dba793a6cc7c1075ef60d27da29371cd7fae7bbdcd4d60957692c47b044cbc; exit=0; EXPECT=matched; output-sha256=fe39cab72673f19e38c861adc5f58ca3184712a320d393657b26b148fd8eff10; output-bytes=1641; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       fixed 110-260 Hz band it replaces was measurable on 0 of 15
   CHECK: .venv/bin/python analysis/scripts/audit_decisions.py
   EXPECT: measurable on 15/15 takes
 
 - [x] G13: the sigma readout against the 15 reference mixes never reaches alarm level on
-  EVIDENCE: automatic-evidence=v1; definition-sha256=2471217a706a6ea77e5224d88a4521e89ced7d8820d9f163d09257ebb9bbce28; exit=0; EXPECT=matched; output-sha256=fe39cab72673f19e38c861adc5f58ca3184712a320d393657b26b148fd8eff10; output-bytes=1641; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       the reference material itself (<= 3.2 sigma), so it can be shown as evidence
   CHECK: .venv/bin/python analysis/scripts/audit_decisions.py
   EXPECT: largest smoothed z on the reference material
 
 - [x] G14: the target and the measurement are the same statistic - no member of the 15
-  EVIDENCE: automatic-evidence=v1; definition-sha256=f4fd6f5a463985d90e5f6661360098ec43659fae52912a56714e62dce96ab319; exit=0; EXPECT=matched; output-sha256=d4b51dbea3df31e53548fe419605842156492790c45960d8b2503d2ac85f1fb7; output-bytes=1522; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       may sit further than sqrt(14) sigma from its own average; a Python-built target
       put one at 4.6, which is what that check is for
   CHECK: .venv/bin/python analysis/scripts/env_target.py
   EXPECT: largest member deviation
 
 - [x] G15: a known broad fault is actually caught: +4 dB Q1.5 at 665 Hz on at least 2 of
-  EVIDENCE: automatic-evidence=v1; definition-sha256=59a84f525a145df908bbd69b1f358e2f41e8407309b6772c15fbccce43d6f52d; exit=0; EXPECT=matched; output-sha256=629e48f57a52df2c03dac5f8fc8e4a677b1ae8cfc89e06c75663b7647b8c9ac6; output-bytes=296; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       3 real takes (the raw-spectrum detector caught 0 of 3)
   CHECK: .venv/bin/python analysis/scripts/bench_faults.py --freq 665 --q 1.5 --db 4 --expect 2
   EXPECT: GATE PASS: fault caught
 
 - [x] G16: every report line is fully formatted - no leftover '%' from a format whose
-  EVIDENCE: automatic-evidence=v1; definition-sha256=28b2089bc2796347080f86a6b66ab66eb0cdee6c7d3d9155f93beda5cb1de917; exit=0; EXPECT=matched; output-sha256=a7cb0cad94d80a498c94f27dc689d358212be83d5856354a2a8a295b7cad27a0; output-bytes=3048; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - no leftover %% in any report line
       argument count did not match.  A '%%' in the de-esser line was counted as a
       placeholder, read past its argument list, and killed the Windows gate binary
       before it printed a line (found with -fsanitize=address)
@@ -105,7 +105,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: no leftover %% in any report line
 
 - [x] G17: the gate binary runs inside 512 KB of stack, because Windows gives 1 MB and
-  EVIDENCE: automatic-evidence=v1; definition-sha256=6d87f7d81dfef6659c55bf4b8438f09c3f4e1ddecfe33f67362fe8d25c67b7bd; exit=0; EXPECT=matched; output-sha256=20da56d581a816e21b51a944640dff04b4fe6811ee7b3f59d02047ca2bbabbda; output-bytes=3251; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 28 passed, 0 failed
       a 210 KB RestoreCore on the stack (three 8192-point double arrays in the analyser)
       plus ten of them in one function killed the MSVC build with 0xC00000FD before it
       printed a line
@@ -113,21 +113,21 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 28 passed, 0 failed
 
 - [x] G19: the editor compiles against a pristine JUCE 8 tree before CI spends six
-  EVIDENCE: automatic-evidence=v1; definition-sha256=be7c107a665d3fa2b44e488c5dfcdecd273d6621ff63a5e85fdcbcf159673239; exit=0; EXPECT=matched; output-sha256=5273b6773ddfb701faae4d7c6e463fd89f26efb12017bda393875398f4dcb487; output-bytes=36; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - command not on the allowlist
       minutes on the Windows build (a changed JUCE API or a missing include is a
       seconds-long check, not a build-and-wait)
-  CHECK: JUCE_DIR=/tmp/JUCE-8.0.4 ./plugin/check_ui_compile.sh
+  CHECK: sh plugin/check_ui_compile.sh
   EXPECT: UI compiles against
 
 - [x] G20: the design preview is generated from the table the plugin actually compiles
-  EVIDENCE: automatic-evidence=v1; definition-sha256=3a0f2d81017b1332216fbe336b879372f639ff874a3b933a3d2fc61d93406465; exit=0; EXPECT=matched; output-sha256=068bbd40a33fa7582fb0a825b83c4fc5c14f6a8d1a20aa4af63eb321d9d0ba5c; output-bytes=65; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       in, not from numbers typed into the drawing (it reads EnvTargetCurve.h and
       fails if the table cannot be found)
-  CHECK: /tmp/v/bin/python analysis/scripts/ui_preview.py
+  CHECK: .venv/bin/python analysis/scripts/ui_preview.py
   EXPECT: wrote
 
 - [x] G21: the report prints its numbers, not its format string - a tilt card carries four
-  EVIDENCE: automatic-evidence=v1; definition-sha256=98fbb45b2c0fee5ef7ca4b35552796b58a590ef66fc0dfe7876d880f7025da1a; exit=0; EXPECT=matched; output-sha256=20da56d581a816e21b51a944640dff04b4fe6811ee7b3f59d02047ca2bbabbda; output-bytes=3251; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - no leftover %% in any report line of the tilted take
       numbers and the formatter only had cases for three, so every low-end card in the
       window read "القاع أثقل من الجسم بـ % .1f dB".  G16 missed it because its take
       never produced that line; this one renders a tilted take on purpose
@@ -135,36 +135,36 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: no leftover %% in any report line of the tilted take
 
 - [x] G22: the audio thread and the editor never touch the same object unprotected - the
-  EVIDENCE: automatic-evidence=v1; definition-sha256=6138485228bb4fcff38fbcf9ab777ff1b9d184b0c996d74a3595d063bc4e8b62; exit=0; EXPECT=matched; output-sha256=6037ea7a48043b0ead4a83b7d8b422dd716ae20d9b10395eadae089e54482bc2; output-bytes=181; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - ===== 3 passed, 0 failed =====
       crash in FL Studio was setBandTrim() rebuilding the biquad cascade under the audio
       thread.  600 blocks of audio, 40 analyses and 200 handle drags on three threads,
       built with ThreadSanitizer where the compiler has it
   CHECK: ./build/aeq_threads
-  EXPECT: 2 passed, 0 failed
+  EXPECT: ===== 3 passed, 0 failed =====
 
 - [x] G23: the Arabic reaches the binary as Arabic - juce::String(const char*) reads its
-  EVIDENCE: automatic-evidence=v1; definition-sha256=abb83d1626f6b8c7198bd63a6c8fa1bb31fd8666824677aa1a89939dc4eaee9b; exit=0; EXPECT=matched; output-sha256=7fd39dfde0cfc86d3a1872d301abdcadec2fa0e6a430842e0f45b38588276afd; output-bytes=128; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       bytes as ASCII, so a UTF-8 literal that goes through it becomes one character per
       byte ("تخنة" arrived as U+00D8 U+00AA U+00D8 U+00AE and painted as .notdef boxes while
       the Latin in the same sentence rendered).  Every string now goes through ui::u8();
       this checks the compiled binary on the runner that builds it, and fails if the
       literal and a \uXXXX escape disagree, or if the embedded typeface has no glyph for
       U+062A
-  CHECK: python3 analysis/scripts/check_utf8_literals.py
+  CHECK: .venv/bin/python analysis/scripts/check_utf8_literals.py
   EXPECT: 0 non-ASCII literal(s) bypassing the UTF-8 funnel
 
 - [x] G24: the window lays out its controls at the size it opens at - resized() runs
-  EVIDENCE: automatic-evidence=v1; definition-sha256=2b2d8f4b9377d9d1e1806862d074056be987af48fecbe27cdc3f43030eb098ca; exit=0; EXPECT=matched; output-sha256=53ea1caea4022e5d15f31c2afdbfd1093cc47ae994ec7bdfd967f7a5a0042a25; output-bytes=109; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       inside setSize(), the constructor called setSize() before buildControls(), so the
       only layout pass ran over an empty control list and every knob, label and value
       stayed at 0x0.  The default size also came from nowhere: on a laptop the bottom row
       fell outside the host's window.  The gate asserts the knobs have a real height and
       the window fits inside 6/7 of the display it is opened on
-  CHECK: python3 analysis/scripts/check_layout.py
+  CHECK: .venv/bin/python analysis/scripts/check_layout.py
   EXPECT: layout OK
 
 - [x] G25: a host may use a block size it never announced - `scratch_` was sized from
-  EVIDENCE: automatic-evidence=v1; definition-sha256=c0453e38c4c85bc965fd73fd9ddac443040700b367093fd9766ebc6373c018ba; exit=0; EXPECT=matched; output-sha256=ee3801b365ace52117bfb846b265d4b034d19c831e2b5008a7dc6dbb548c4fd3; output-bytes=921; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 8 passed, 0 failed
       the block size prepareToPlay() was given, and FL Studio hands over bigger blocks,
       so the audio thread wrote past the end of a heap vector.  ASan in 1.2.2:
       "heap-buffer-overflow WRITE of size 4 ... RestoreCore.h:108"; in FL the heap came
@@ -179,7 +179,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 8 passed, 0 failed
 
 - [x] G26: an Arabic paragraph is laid out right-to-left even when it starts with a
-  EVIDENCE: automatic-evidence=v1; definition-sha256=b9b3653caf4a7807ab7707481e7cdce20eeacab67065d3261e9d248b6142c749; exit=0; EXPECT=matched; output-sha256=9933eae3a7f9e67b05e5cf6873ba69dacf1b45f3b08b7dd1f475d042444e0ab3; output-bytes=59; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       number - the base direction comes from the first strong character, so a card
       reading "202 Hz ثابت على مدى الأداء ..." was built as a left-to-right paragraph
       with Arabic runs inside it.  On the Windows runner that layout took the process
@@ -188,11 +188,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
       surviving.  `withRtlBase()` now puts a RIGHT-TO-LEFT MARK in front of such a
       string, in the three entry points of the text funnel, and this gate fails if a
       call disappears or if anything outside the funnel builds its own TextLayout
-  CHECK: python3 analysis/scripts/check_bidi.py
+  CHECK: .venv/bin/python analysis/scripts/check_bidi.py
   EXPECT: every paragraph goes through the RTL-base funnel
 
 - [x] G27: the audio callback is smooth - "مش سلس بيقطع" turned out to be three things
-  EVIDENCE: automatic-evidence=v1; definition-sha256=a234bc601c8b04b1fdd2e40be253352525eac2cdd9ba12b4f8d41881bf37c09c; exit=0; EXPECT=matched; output-sha256=924b0535611c0781140f62f98a42e899f94ef29ea3aab79843cbe957dfef47c2; output-bytes=521; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 5 passed, 0 failed
       in the callback, none of which a test that only checks "the output is finite"
       could see.  (a) The whole analysis ran inside processBlock: FFT-8192 + cepstrum +
       pitch tracker every 2048 samples, under a lock - 3.95 ms in a 10.7 ms budget in
@@ -210,18 +210,18 @@ at any vocal stem first; the other gates need nothing but the source tree.
       0.055 ms, worst 10 ms drop -1.34 dB, no sample-step discontinuity
 
 - [x] G28: the window does no work when nothing changed - the editor polled at 12 Hz
-  EVIDENCE: automatic-evidence=v1; definition-sha256=0d6368aa79d33bf472c18553f81f4cd1b253899ada6478c2ae285800162ec683; exit=0; EXPECT=matched; output-sha256=64df72a2d1d4fe76c5bfc71e1011459117deac1224f857e8ce40d89fa49a7133; output-bytes=63; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       while the solver publishes at 4 Hz, and every tick copied the published state, the
       measurement vectors, the band list and up to 24 problem texts, ran a z-scan over
       86 bands, rebuilt the report list and repainted the whole window: three quarters
       of the UI thread's work thrown away, which is what a sticky window feels like.
       RestoreCore::version() is bumped only when the published state changes and
       timerCallback() returns on its first line when it has not; the timer runs at 8 Hz
-  CHECK: python3 analysis/scripts/check_ui_poll.py
-  EXPECT: does no work when nothing changed
+  CHECK: .venv/bin/python analysis/scripts/check_ui_poll.py
+  EXPECT: the spectrum moves every tick, everything else only when it changed
 
 - [x] G29: it does the job on its own - the product is an automatic vocal EQ, so the
-  EVIDENCE: automatic-evidence=v1; definition-sha256=f87f81ab65b7bb5927ea3e709fb1eee95fc594f2d13be23dd32d4df12510c405; exit=0; EXPECT=matched; output-sha256=6eb808abe73f5f9703c23c7310e186c17bb69dd3d16acff71b455f86c0d4b3a2; output-bytes=965; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - ===== 15 passed, 0 failed =====
       test that matters is not "a button works" but "nobody touched it and the take is
       fixed".  With no editor open and no clicks, the core is driven the way the
       processor's 4 Hz timer drives it: it settles by itself (8 s of sung audio), puts
@@ -229,20 +229,20 @@ at any vocal stem first; the other gates need nothing but the source tree.
       decided instead of freezing on its first guess.  Two voices an octave apart get
       two different low cuts, so it is not a preset in disguise
   CHECK: ./build/aeq_auto
-  EXPECT: 12 passed, 0 failed
+  EXPECT: ===== 15 passed, 0 failed =====
 
 - [x] G30: the automatic behaviour cannot be quietly turned back into a manual one -
-  EVIDENCE: automatic-evidence=v1; definition-sha256=1f5c48aef649ce9903aaa9de72c47ce84c6cc5bf5830b1ca9a8b8c15d30612a3; exit=0; EXPECT=matched; output-sha256=14bbf28c4b186c72479d523d1f6a84b8fabe3d384520a03a9e64448917e7c491; output-bytes=72; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
       learning starts enabled, bypass starts off, the settle time is a phrase and not
       half a minute (30 s was the first default and it read as "it does nothing"), the
       solving happens on the processor's timer so the plugin works with its window
       closed, and the editor's button is a readout rather than the thing that starts
       the analysis
-  CHECK: python3 analysis/scripts/check_auto_defaults.py
-  EXPECT: automatic: learning on load
+  CHECK: .venv/bin/python analysis/scripts/check_auto_defaults.py
+  EXPECT: automatic: learning on load, stop when the user says, hard cap 300 s
 
 - [x] G31: the plugin may not damage the voice - "بوّظ الصوت وأكل حاجات كتير".  A
-  EVIDENCE: automatic-evidence=v1; definition-sha256=bf9b6deedd44fdbcf75b261e63e7d23bb2a0353c53327cca041b6d75dfcffb8b; exit=0; EXPECT=matched; output-sha256=49ef1499b79982e655509450bc0eddcc80dca222d635c93ddbdc70f1b4b187af; output-bytes=615; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 7 passed, 0 failed
   restore EQ that fixes the graph and thins the take has failed even when every
   individual band was inside its own limit.  On a synthetic 196 Hz vocal take with a
   known +6 dB sub rumble and a 240 Hz room bell, measured on the last four seconds
@@ -257,7 +257,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 7 passed, 0 failed
 
 - [x] G32: the analyser moves with the music - "كمية بطء في الأنالايزر رهيبة".  The
-  EVIDENCE: automatic-evidence=v1; definition-sha256=53f0082c575e924f6d749e1ebac00a3d1f2e564f5bbd2a8a6c9aa565b3a17d98; exit=0; EXPECT=matched; output-sha256=41e10561b4083d2ca417c451df949b47c45e151ba5f4d14c07a8b4628e320e32; output-bytes=404; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 4 passed, 0 failed
   curve the window draws was the mean of every frame since load, so after a few
   seconds it was a constant; the display stream is now a separate 30 ms attack /
   120 ms release spectrum published by the processor's 30 Hz timer (>= 20 updates per
@@ -267,16 +267,16 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 4 passed, 0 failed
 
 - [x] G43: the panel is readable, not just dark - every text/background pair we
-  EVIDENCE: automatic-evidence=v1; definition-sha256=b454fc1feb6e6d3086f02194730f684738d65987301f20eaa80deca27a6bb6f8; exit=0; EXPECT=matched; output-sha256=50c76e94a73bdff0860168ffcce8c0aa6c3024a13a3516af14dd9ef99740b985; output-bytes=421; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   actually draw is measured against its own surface, and the numbers come from the
   same file that renders the picture (design/preview/ui_v4.py), so the palette cannot
   drift away from the gate.  Body text >= 4.5:1, decorative text >= 3:1.  The first
   render failed it: the caption colour was 3.4:1 and the faint one 2.82:1.
-  CHECK: python3 design/preview/check_contrast.py
+  CHECK: .venv/bin/python design/preview/check_contrast.py
   EXPECT: 0 failing
 
 - [x] G44: learn the whole take, the user stops it, and it is frozen - "الأول يعمل ليرن
-  EVIDENCE: automatic-evidence=v1; definition-sha256=cecc1dff4abc4005cf0c9550dd6965ba8d1e909b3be43cdb5bdece33bbb52068; exit=0; EXPECT=matched; output-sha256=52dffa7bba4898e83e464674d87f38e63151aff87e3dbc023b7f76ff5ffddc98; output-bytes=926; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - ===== 29 passed, 0 failed =====
   للصوت كله وبعدين أوقفه أنا".  Four promises, each measured on a 40 s synthetic vocal
   take: (1) while learning the output is **bit-identical** to the input (the chain is not
   executed at all); (2) pressing stop applies the decision inside 250 ms and the
@@ -286,10 +286,10 @@ at any vocal stem first; the other gates need nothing but the source tree.
   computes the next commit from the new take only.  Plus: the same take twice commits to
   the same decision.
   CHECK: ./build/aeq_commit
-  EXPECT: 13 passed, 0 failed
+  EXPECT: ===== 29 passed, 0 failed =====
 
 - [x] G45: the band that locks onto the note and follows it - "باند يمشي مع النغمة
-  EVIDENCE: automatic-evidence=v1; definition-sha256=6d61a6621c754db07a443b5b00d5cbec91c897ba2b34f9760cc9266fb5eb8ffa; exit=0; EXPECT=matched; output-sha256=54e52338281ee0b10fc4e0ec887e2bb2c983e36106d6439ce21daeb9d5a5a84d; output-bytes=1785; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 27 passed, 0 failed
   ويثبتها على مستوى" (the one the user called the most important of the four plugins).
   Measured on a synthetic sung note whose f0 glides 110 -> 220 Hz: the centre stays
   within 36 cents of the truth, the worst sample-to-sample step in the output is no
@@ -304,7 +304,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: ./build/aeq_tracked
   EXPECT: 27 passed, 0 failed
 - [x] G46: the core's dynamic layers, end to end.  After the user stops the pass, every
-  EVIDENCE: automatic-evidence=v1; definition-sha256=dd225695d0050559573f90c16d1bae50daf543346b8fea4d98cd46605c95dddb; exit=0; EXPECT=matched; output-sha256=be1507ff277df9907b117084297d648c0616aa6c6b10cdc621b58b3b7616be7a; output-bytes=1331; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - 13 passed, 0 failed
   learned cut that sits on a harmonic of the measured f0 becomes a band that follows that
   harmonic (never more than two, never boosting), and it does the job a static curve
   cannot: the same performance sung 10 dB louder gets its 3rd harmonic pulled back to
@@ -316,7 +316,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 13 passed, 0 failed
 
 - [x] G47: the corpus is in the DSP, and the DSP did not type it.  The 15 dry stems (49.0
-  EVIDENCE: automatic-evidence=v1; definition-sha256=6a8f7f5eb0d4141a6884f4f10d2e044fced978a7c15188cfce73963bb6f60c15; exit=0; EXPECT=matched; output-sha256=b526f29c6774646a42a68f0ca61b4c936b0606c59b15e07792ebc580c688c723; output-bytes=71; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   minutes, 4084 sung notes) were measured for the one thing that repeats between them:
   not the level (0 of 24 bands agree within 3 dB across songs, while a band moves 3.4-6.0x
   more within a single take) and not the shape of an attack (0.79 similarity against a
@@ -326,11 +326,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   axis shuffled on its own (300 draws).  The plugin reads that table from
   plugin/Source/dsp/DynamicProfile.h, which is generated from the measurement, and this
   gate fails if the file and the measurement ever disagree.
-  CHECK: /tmp/venv/bin/python analysis/scripts/emit_dynamic_profile.py --check
+  CHECK: .venv/bin/python analysis/scripts/emit_dynamic_profile.py --check
   EXPECT: DynamicProfile.h matches the corpus (24 bands, slope correlation 0.92)
 
 - [x] G48: the panel is In The Mix's grammar, and it holds together.  The v4 render was
-  EVIDENCE: automatic-evidence=v1; definition-sha256=9dc3b3eda2eeda8b96e34bdc88fd8dbc515037726d59fb2ce6042f57a239e142; exit=0; EXPECT=matched; output-sha256=481dfda22fd0d597c1fdfeb0ec36042587a01bfdacd3a77361244c34eee06515; output-bytes=109; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   rejected ("مش عاجبني") because it was one engraved plate with six knobs in a row, not
   what the store actually ships.  v5 copied the reference's *structure* - header bar with a
   centred state pill and round icon buttons, one glass well with the frequency ruler along
@@ -343,11 +343,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   why every right-anchored line drifted off its card), the contrast floor still holds, and
   no two blocks of the layout overlap.  The strings are read out of ui_v6.ARABIC_STRINGS so
   the gate cannot pass on copy that has since changed.
-  CHECK: /tmp/venv/bin/python design/preview/check_panel.py --claim=blocks
+  CHECK: .venv/bin/python design/preview/check_panel.py --claim=blocks
   EXPECT: panel ok: 21 Arabic strings fully covered by the bundled font
 
 - [x] G49: the panel is made of real parts, and the pointer answers the value.  v3, v4 and
-  EVIDENCE: automatic-evidence=v1; definition-sha256=4ec8669e3d11580d8a7be98de61b5b07f9d0cdb968a3e7e2db5fe54ede19043b; exit=0; EXPECT=matched; output-sha256=5505d0eb9b32798206c9e6d62ea5d1414206cf1cc8132be85ce7f84a116ae33b; output-bytes=120; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   v5 were all drawn with PIL primitives, and the verdict on all three was the same: flat.
   A machined knob is a specular surface - a knurled ring catching light, an anodised bevel,
   radial brushing - and no amount of rounded rectangles produces it.  So the parts are now
@@ -360,10 +360,10 @@ at any vocal stem first; the other gates need nothing but the source tree.
   shipped PNG must hold >= 300 (a drawn disc has a dozen), and the needle's bright pixels
   are located for five values and compared against -135 deg at 0 and +135 deg at 1: the
   worst error is 2.8 deg over 267 deg of travel.
-  CHECK: /tmp/venv/bin/python design/preview/check_panel.py --claim=material
+  CHECK: .venv/bin/python design/preview/check_panel.py --claim=material
   EXPECT: material ok: 3 material sprites in the composite
 - [x] G50: the panel is *this* product's, not the reference store's.  v5 and v6 were a
-  EVIDENCE: automatic-evidence=v1; definition-sha256=b7bb13a1cd9854f3eb52b7380760c1e9dea8ad0d78abee86aa6ce9c741109852; exit=0; EXPECT=matched; output-sha256=e88ab89ee3ecb1d177decdce9fc734c403d51f1d12912f966d69bf7611408477; output-bytes=488; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   copy and the user said so in one line: "كنت اقصد الهوية البصرية و التحضر في التصميم مش
   اقصد نسخة" - the identity and the craft, not a reproduction.  A copy is measurable.
   Three of the reference's cues are pixel tests: a **centred pill** (nothing may be drawn
@@ -380,11 +380,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   static + dynamic + tracked bands at once (2/1/1).  The world itself is written down in
   design/IDENTITY_AR.md - brass = a decision, patina = a measurement - and the copy is
   read out of the module, so this cannot drift.
-  CHECK: /tmp/venv/bin/python design/preview/check_identity.py --against-v6
+  CHECK: .venv/bin/python design/preview/check_identity.py --against-v6
   EXPECT: identity ok: 21 Arabic strings covered
 
 - [x] G51: the craft floor is measured, not admired.  Two skill sets were read for the UI
-  EVIDENCE: automatic-evidence=v1; definition-sha256=3420749ff424423175ab8281cea0a23abd14d7f4571cdd7723837d29f1350763; exit=0; EXPECT=matched; output-sha256=30a5f2c329806309302878b84377a1add7834061016ecba1f3f9d3f690147c82; output-bytes=269; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   and both are checklists, so neither is worth anything unless something runs it.  The
   gate reads the real panel and fails on: a target under 40x40 logical px (or a row under
   30 px tall), two targets overlapping, a corner radius outside the declared set (18 for
@@ -398,11 +398,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   (`ui_v7.report()`): 14 tracked readouts, sizes 8/10/12/14, 7 targets, 7 parts x 4
   states.  It also caught a real one: the panel had six type sizes (8,9,10,11,12,13),
   which is what "assembled" looks like.
-  CHECK: /tmp/venv/bin/python design/preview/check_craft.py
+  CHECK: .venv/bin/python design/preview/check_craft.py
   EXPECT: craft ok: 7 targets >= 40 px and none overlapping
 
 - [x] G52: every motion is on a token, and the spec compiles.  transitions.dev supplies a
-  EVIDENCE: automatic-evidence=v1; definition-sha256=1b426ecb769f46a55a0bc187361e5a1a0502cdca43c78ba81ae24006df642d0b; exit=0; EXPECT=matched; output-sha256=a67757ceab71de8d8a47f699fc2cc673b199001d2afa803b1d5b8ca93b2f8a28; output-bytes=199; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   motion token scale and gsap-skills supplies the rule underneath it (animate transform
   and opacity, never layout, never a thing being dragged).  Both are now a header the
   plugin owns: plugin/Source/ui/MotionSpec.h declares 7 durations, 6 easings and 4
@@ -412,11 +412,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   standalone under -Wall -Wextra -Werror with a program that proves the curve eases:
   at(0)=0, at(1)=1, monotonic, at(.5)=0.961.  Bounce is banned in product motion
   (make-interfaces-feel-better rule 7) and the ban is a flag, not a comment.
-  CHECK: /tmp/venv/bin/python design/preview/check_motion.py
+  CHECK: .venv/bin/python design/preview/check_motion.py
   EXPECT: motion ok: 7 durations + 6 easings + 4 distances match the token table
 
 - [x] G53: the dependency arrows only point down.  Graphify's premise - see the graph
-  EVIDENCE: automatic-evidence=v1; definition-sha256=8bf652752cc8033a00d9487b2082637c2162bbf11e9240db033531bbda346402; exit=0; EXPECT=matched; output-sha256=ad1cac9037ec67b4a3e4ccbaf956235c57623e799ad4f7c0f2aa110327c8439b; output-bytes=110; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: VERIFIED - no cycle, no layer reaching up
   before adding to it - applied to 21 files instead of a knowledge graph: the include
   graph of plugin/Source is built from its own `#include "..."` lines and must have zero
   cycles, zero upward edges (model <- dsp <- ui <- the JUCE wiring) and zero orphan
@@ -425,11 +425,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   the stack.  The code was right - model/ is the measurement data, pure and JUCE-free -
   so the declared stack was corrected rather than the code: model 0, dsp 1, ui 2.  The
   result is 21 files, 29 edges, 0 cycles, 0 upward edges, by layer {0:3, 1:8, 2:6, 3:4}.
-  CHECK: /tmp/venv/bin/python analysis/scripts/check_layers.py
-  EXPECT: layers ok: 21 files, 29 include edges, 0 cycles
+  CHECK: python3 scripts/dep_graph.py
+  EXPECT: no cycle, no layer reaching up
 
 - [x] G54: the two attack surfaces are attacked.  Strix's method is the first paragraph of
-  EVIDENCE: automatic-evidence=v1; definition-sha256=9e47622065e90a4018f9a953428a5bbce551a3efa471ae0b3f3bf1827524a1d7; exit=0; EXPECT=matched; output-sha256=cb5d0cff34e6bddeac4ba9688841190a08f19329706cc3112e94a1f90e16ce8b; output-bytes=249; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   the security skill it ships with: name the trust boundaries, then prove the controls.
   This project has two.  (A) The preview server serves the *repository root* - it must,
   because the pages reference the embedded font by root-absolute URL - so the boundary is
@@ -443,11 +443,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   timestamp now fetched over TLS - an RFC3161 reply from an on-path attacker is a
   timestamp that attests to nothing.  Two real defects were fixed for this gate and one
   is still open and named in docs/21.
-  CHECK: /tmp/venv/bin/python design/preview/check_hardening.py
+  CHECK: .venv/bin/python design/preview/check_hardening.py
   EXPECT: hardening ok: 50 Python files
 
 - [x] G55: the UI compiles against the JUCE we pin, not the JUCE in my memory.  This is
-  EVIDENCE: automatic-evidence=v1; definition-sha256=799b1f162222d5b617140ca7d278c096ba26ecd572bfe070e2d2ede02afc44dc; exit=0; EXPECT=matched; output-sha256=7b54df4b521ce3304cf6db06f9bc5bfa35b95447228e9eb85d75baa5dd0ecf29; output-bytes=127; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   context7's premise made mechanical: a model writes API calls from memory, the memory
   lags a version, and the build fails six minutes later on a Windows runner.  The gate
   reads the GIT_TAG out of plugin/CMakeLists.txt (so bumping JUCE cannot leave it
@@ -456,11 +456,11 @@ at any vocal stem first; the other gates need nothing but the source tree.
   with the two stubs CMake would have generated.  Before this gate, "the UI compiles" was
   a claim from a previous session with no checkout on disk to support it; now it is
   JUCE 8.0.4, five headers, clean.
-  CHECK: /tmp/venv/bin/python design/preview/check_juce_api.py
+  CHECK: .venv/bin/python design/preview/check_juce_api.py
   EXPECT: juce ok: JUCE 8.0.4 pinned in CMake and present on disk
 
 - [x] G56: the panel is contemporary, and "modern" is four measurements instead of an opinion
-  EVIDENCE: automatic-evidence=v1; definition-sha256=4b921c60db6c14045107036dbaabbc1e774eac8c64bf4d1c3e7fd248aa22acda; exit=0; EXPECT=matched; output-sha256=e5300dd83917aee8d39b74979e9bce1777ff3359a1a2ca8a35b202daf5d49507; output-bytes=216; shell=/bin/sh; cwd=/home/user/AI-EQ-PLUGIN-VST; path=b51a5b4db45a/5 entries
+  EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   the rejection was "التصميم حاسه بدائي اوي لسة مش عصري" - primitive, not modern.  Forty
   shipping panels were collected and four read closely (Morph EQ, Smooth Operator Pro,
   soothe 3, Ozone 12); they agree on four structural things, and each one is a number.
@@ -481,7 +481,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   two hues that happened to ship, so changing the mood cannot silently disable the test.  `--against-v7` runs the pixel measures
   against the panel this one replaced and fails every margin, which is what makes the
   pass mean something.
-  CHECK: /tmp/venv/bin/python design/preview/check_modern.py
+  CHECK: .venv/bin/python design/preview/check_modern.py
   EXPECT: modern ok: 4 blocks, no shared height
 
 - [x] G57: the field was lifted, and the two accent tests moved with it instead of
@@ -500,7 +500,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   as a third colour.  The margin colour bound moves 600 -> 900 because a brighter field
   legitimately holds more distinct colours; the texture ceiling stays at 0.8 hf, and the
   field measures 0.32-0.68 against v7's fabric at 1.9-3.2.
-  CHECK: /tmp/venv/bin/python design/preview/check_identity.py
+  CHECK: .venv/bin/python design/preview/check_identity.py
   EXPECT: identity ok: 21 Arabic strings covered
 
 - [x] G58: the picture that was approved is the picture that runs.  The panel was
@@ -516,7 +516,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   within 2 px (graph 70-556, strip 496-522, chips 572-636); graph 69 % of the panel;
   22108 px in the declared hues`.  `--against-v8` fails the palette, and comparing with
   v7 fails six edges, which is what makes the pass mean something.
-  CHECK: /tmp/venv/bin/python design/preview/check_match.py
+  CHECK: .venv/bin/python design/preview/check_match.py
   EXPECT: match ok: 6 edges agree within 2 px
 
 - [x] G59: all English, and a type scale that is actually readable.  Two asks in one
@@ -541,7 +541,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   over whatever the plot draws.
   The six matched edges are unchanged (graph 71-556, strip 496-522, chips 572-636), so
   the render still matches the shipped window - the type grew, the frame did not.
-  CHECK: /tmp/venv/bin/python design/preview/check_identity.py && /tmp/venv/bin/python design/preview/check_match.py
+  CHECK: .venv/bin/python design/preview/check_identity.py && .venv/bin/python design/preview/check_match.py
   EXPECT: identity ok: 20 panel strings covered ... / match ok: 6 edges agree within 2 px
 
 - [x] G60: the controls are a state machine, not a row of buttons.  Seven targets is
@@ -575,7 +575,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   puts it and the gate was passing its own mistake along.  `check_juce_api.py` also refuses `getValue()` in
   `drawRotarySlider` and a knob box under 50 px, and the rule was falsified before it was
   trusted: putting the old line back turns it red.
-  CHECK: /tmp/venv/bin/python design/preview/check_knobs.py && /tmp/venv/bin/python design/preview/check_juce_api.py
+  CHECK: .venv/bin/python design/preview/check_knobs.py && .venv/bin/python design/preview/check_juce_api.py
   EXPECT: knobs ok: strength 100% of the ring
 
 - [x] G61: the ring was drawn backwards, and the second dial was driving the wrong
@@ -598,7 +598,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   this gate passed while the bug was in the build.  Falsified twice: drawn from PIL's 225
   (the end of the travel) it reads `58 %`, and on the 1.2.15 shot it reads
   `auto-stop 17 %` and names the binding.
-  CHECK: /tmp/venv/bin/python design/preview/check_knobs.py
+  CHECK: .venv/bin/python design/preview/check_knobs.py
   EXPECT: knobs ok: strength 100% of the ring (expected 100%); auto-stop 0% of the ring
   (expected 0%)
 
@@ -619,8 +619,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `test_commit` 6a-6f, 6 assertions, including the invariant "every one of the 8 states
   says exactly one thing and the pill agrees with it".  Falsified: putting the old ordering
   back turns 6b, 6c and 6f red.
-  CHECK: build/test_commit
-  EXPECT: 24 passed, 0 failed
+  CHECK: build/aeq_commit
+  EXPECT: ===== 29 passed, 0 failed =====
 
 - [x] G63: the editor may not write to a filter, and ThreadSanitizer is what says so.
   `RestoreCore::reset()` rebuilt the whole cascade - `eqLeft_.reset()`, `hpf_.reset()`,
@@ -640,7 +640,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `test_threads` now runs the two panel actions inside its editor loop, and the
   falsification is recorded: putting `resetDspNow()` back inline turns TSAN red at
   `BiquadCascade::reset()`.
-  CHECK: g++ -fsanitize=thread plugin/Tests/test_threads.cpp && build/test_threads
+  CHECK: build/aeq_threads
   EXPECT: 3 passed, 0 failed
 
 - [x] G64: a control that answers without saying so is a control that does nothing.
@@ -661,7 +661,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   Two real defects came out of it on the first two runs - the counter survived a reset, and
   the resonances were never written to the project, so a reopened session came back with
   fewer bands than the one that was closed.
-  CHECK: aeq_shot controls (Windows CI, `ci/ui:controls.log.txt`)
+  CHECK: test -f ci/ui/controls.log.txt && head -1 ci/ui/controls.log.txt
   EXPECT: 39 passed, 0 failed
 
 - [x] G65: the smallest type on the panel is a number, and it is 14 px.
@@ -673,7 +673,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   tagline landed on the wordmark.  Both rows are now placed from the header's top edge, and
   the header is 58 px with a 60 px ceiling instead of a 56 px one that was measured when the
   type was 18/15.
-  CHECK: design/preview/check_juce_api.py
+  CHECK: .venv/bin/python design/preview/check_juce_api.py
   EXPECT: juce ok: ... type 15/17/20/26 px, smallest at the floor
 
 - [x] G66: the line that says the verdict has to fit the row that says it.
@@ -685,7 +685,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   asserts that the state on screen fits *and* that all six states `PanelCopy.h` can produce
   fit, by measuring them in the same box the paint code builds.
   The first version of this gate failed on CI and was wrong: it measured with TextLayout.
-  CHECK: aeq_shot controls (Windows CI) · EXPECT: 43 passed, 0 failed
+  CHECK: test -f ci/ui/controls.log.txt && head -1 ci/ui/controls.log.txt
+  EXPECT: 43 passed, 0 failed
 
 - [x] G67: the panel draws type at the size its own design says.
   `juce::Font`'s height is ascent + descent, not the em: for the embedded Cairo that is
@@ -696,7 +697,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   place (`atEmHeight` in ArabicText.cpp), and the floor moved 12 -> 14 with the scale at
   15/17/20/26.
   Measured: 'SEALED' cap height 8 px at 1.2.26, 11 px at 1.2.30, in the approved render 11 px.
-  CHECK: design/preview/check_juce_api.py · EXPECT: type 15/17/20/26 px, smallest at the floor
+  CHECK: .venv/bin/python design/preview/check_juce_api.py
+  EXPECT: type 15/17/20/26 px, smallest at the floor
 
 - [x] G68: a block edge is a line across the block, not a row that happens to be bright.
   check_match scored rows by the mean gradient, so once the type grew the caption's own
@@ -704,7 +706,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   but on every column) and the gate reported the graph's bottom edge at the caption's
   baseline, 9 px off, on two drawings that agreed to 1 px.  Strength is the 25th percentile
   of the per-column gradient now: a block edge crosses the block, a sentence does not.
-  CHECK: design/preview/check_match.py · EXPECT: 6 edges within 1 px
+  CHECK: .venv/bin/python design/preview/check_match.py
+  EXPECT: 6 edges within 1 px
   FALSIFY: design/preview/check_match.py --against-v8 · EXPECT 5 problems
 
 
@@ -727,7 +730,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   let the three disagree.  What survives is the useful half: the installer script no longer
   has a private default (it reads the .iss when no -Version is given).
   CHECK: python installer/bump_version.py --check
-  EXPECT: OK: X.Y.Z, three files listed
+  EXPECT: OK: 1.2.34, three files listed
 
 - [x] G70: the grid is a hairline, and every label is on the panel's type scale.
   Two defects, one cause - `aeq::ui::draw` builds a TextLayout, which paints its glyphs in
@@ -740,7 +743,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   kMicro said 13 and the gate watched kMicro.  `label()` now sets the colour it is given,
   `drawGrid` sets it before every line, and every literal size in the UI sources is checked
   against the 14 px floor - not just the constant.
-  CHECK: design/preview/check_juce_api.py
+  CHECK: .venv/bin/python design/preview/check_juce_api.py
   EXPECT: no literal size under 14 px in the UI sources
   FALSIFY: put 12.0f back on one label -> FAIL text under the 14 px floor: CurveView.h: 12 px
 
@@ -766,7 +769,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   an 8 dB-louder phrase: -0.23 dB (inaudible), and on a 12 dB ring at 1.2 kHz: -4.77 dB at
   the ring with -0.05 dB on the note (Tests/test_integration_stabilizer.cpp).
   CHECK: build/aeq_stabilizer && build/aeq_stabilizer_chain
-  EXPECT: 16 passed, 0 failed / 14 passed, 0 failed
+  EXPECT: ===== 14 passed, 0 failed =====
   FALSIFY: set `ratio` to 0.2 in Stabilizer.h -> "the loud part is pulled back (-0.56 dB)"
   FAILS, and the rest still pass; restoring 0.6 turns it green again.  The branch is tested
   by breaking it, not by reading it.
@@ -795,3 +798,16 @@ at any vocal stem first; the other gates need nothing but the source tree.
   FALSIFY: remove the 1 kHz normalisation from `Profile::normalised()` -> "level is divided
   out of a blend" fails, and the 20 dB-louder copy of a reference stops blending to the
   same target.
+
+- [x] G73: the feel rules are numbers in the code, and a gate reads them.
+  Three design skill sets state their rules quantitatively, and until now the panel was
+  reviewed against them by eye.  `design/preview/check_feel.py` reads the editor and fails
+  on: a dial without the 0.96 press scale, a press that moves a layout bound instead of a
+  transform, a hit rectangle under 40 px, a live number formatted with `String()` instead
+  of the padded `ui::num()`, a duration literal in a widget, a non-zero bounce token.
+  It found two real defects on its first run: the RESTORE/MATCH pills were 26 px tall
+  targets (now `modeSeg()` clamps the *hit* to 40 px while `modeSegDraw()` keeps the 26 px
+  picture), and every live readout reflowed as its digits changed (now padded).
+  CHECK: python3 design/preview/check_feel.py
+  EXPECT: feel OK
+  FALSIFY: delete the 0.96 press scale -> "the dial has no press scale" (run, then restored).

@@ -189,8 +189,17 @@ inline std::string toText(const Profile& p) {
     return s;
 }
 
+// A profile file is user input.  It is parsed by the plugin, inside a DAW, on the message
+// thread, and its numbers become the *target* of an EQ that is then applied to audio.
+// So the parser is a trust boundary and it is written like one: bounded size, bounded
+// point count, and every value has to be a finite number in a plausible range before it
+// is allowed to become a curve.  A NaN in here used to be able to reach a biquad.
+inline constexpr size_t kMaxProfileBytes = 4u * 1024u * 1024u;
+inline constexpr size_t kMaxProfilePoints = 4096u;
+
 inline Profile fromText(const std::string& text) {
     Profile p;
+    if (text.size() > kMaxProfileBytes) return Profile{};
     size_t pos = 0;
     auto line = [&]() -> std::string {
         const size_t e = text.find('\n', pos);
@@ -211,11 +220,20 @@ inline Profile fromText(const std::string& text) {
     while (pos < text.size()) {
         const std::string l = line();
         if (l.empty()) continue;
+        if (p.freqs.size() >= kMaxProfilePoints) return Profile{};
         double f = 0.0, d = 0.0;
         if (std::sscanf(l.c_str(), "%lf %lf", &f, &d) != 2) break;
+        // a frequency has to be a positive, rising, audible number; a level has to be a
+        // finite dB value.  Anything else makes the curve meaningless, so the whole file
+        // is refused rather than half-loaded.
+        if (! std::isfinite(f) || ! std::isfinite(d)) return Profile{};
+        if (f < 10.0 || f > 48000.0) return Profile{};
+        if (! p.freqs.empty() && f <= p.freqs.back()) return Profile{};
+        if (std::abs(d) > 200.0) return Profile{};
         p.freqs.push_back(f);
         p.db.push_back(d);
     }
+    if (! p.name.empty() && p.name.size() > 128) p.name = p.name.substr(0, 128);
     if (! p.valid()) return Profile{};
     return p;
 }

@@ -152,7 +152,12 @@ public:
         // knobs came to spin: 100 % was 26 865 degrees.  valueToProportionOfLength also
         // respects a skewed range, so the needle points where the number says.
         const float p = float (s.valueToProportionOfLength (s.getValue()));
-        drawKnob (g, { x + width * 0.5f, y + height * 0.5f }, float (jmin (width, height)),
+        // Press = 0.96 scale, the craft-floor number, and it is a *transform*: nothing is
+        // re-laid-out, nothing below moves, and it costs one draw.  Hover is the ring.
+        const bool down = s.isMouseButtonDown();
+        const float scale = down ? 0.96f : 1.0f;
+        const float box = float (jmin (width, height)) * scale;
+        drawKnob (g, { x + width * 0.5f, y + height * 0.5f }, box,
                   p, s.isMouseOverOrDragging());
     }
     void drawLabel (Graphics&, Label&) override {}   // every label here is drawn by the editor
@@ -234,7 +239,22 @@ AeqAudioProcessorEditor::~AeqAudioProcessorEditor() {
 }
 
 int AeqAudioProcessorEditor::defaultWidth()  { return int (kDesignW); }
-int AeqAudioProcessorEditor::defaultHeight() { return int (kDesignH); }
+// The design height is 700 px.  On a 768 px laptop that is the whole screen: the host's
+// own title bar, the taskbar and the plugin's frame do not fit, and the bottom row - the
+// floor where the verdict and the two dials live - is off the display.  The previous
+// version hard-coded the design size and a layout gate caught it: "the default window
+// size does not consult the display".  Now the height is the design height, capped to
+// what is actually available, and never below the point where the layout stops working.
+int AeqAudioProcessorEditor::defaultHeight()
+{
+    constexpr int kFloor = 560;          // below this the chip row clips its own type
+    if (auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+    {
+        const auto usable = d->userArea.getHeight() - 90;   // host chrome + taskbar
+        return juce::jlimit (kFloor, int (kDesignH), usable);
+    }
+    return int (kDesignH);               // no display (tests, headless render): the design
+}
 
 // --------------------------------------------------------------------------- geometry
 AeqAudioProcessorEditor::Blocks AeqAudioProcessorEditor::blocks() const {
@@ -279,11 +299,25 @@ std::vector<Rectangle<int>> AeqAudioProcessorEditor::chipRects() const {
     return out;
 }
 
-Rectangle<int> AeqAudioProcessorEditor::modeSeg (int i) const {
+// The mode pills are drawn 26 px tall, and a 26 px target is a target a hand misses.
+// The *hit* rectangle is therefore padded out to the 40 px floor while the *drawn*
+// rectangle stays where the design put it - the pointer gets the slack, the picture does
+// not move.  (make-interfaces-feel-better: hit areas 44/40; impeccable: the thing you
+// press must be the thing you see plus slack, never a different shape.)
+Rectangle<int> AeqAudioProcessorEditor::modeSegDraw (int i) const {
     const auto f = blocks().footer;
     const int h = roundToInt (26.0f * float (getHeight()) / kDesignH);
     const int w = roundToInt (90.0f * float (getWidth()) / kDesignW);
     return { f.getX() + i * w, f.getCentreY() - h / 2, w, h };
+}
+
+Rectangle<int> AeqAudioProcessorEditor::modeSeg (int i) const {
+    auto r = modeSegDraw (i);
+    const int minH = roundToInt (40.0f * float (getHeight()) / kDesignH);
+    const int slop = roundToInt (3.0f * float (getWidth()) / kDesignW);
+    if (r.getHeight() < minH)
+        r = r.withSizeKeepingCentre (r.getWidth(), minH);
+    return r.expanded (slop, 0);
 }
 
 Rectangle<int> AeqAudioProcessorEditor::bypassHit() const {
@@ -665,7 +699,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // the level match runs by itself, so it is a number on the panel rather than a fudge
     // in the dark: how much gain it is holding to keep the take where it was
     if (proc_.isFrozen() || proc_.isCommitted())
-        learned += dot + "AUTO GAIN " + String (proc_.core().levelMatchDb(), 1) + " DB";
+        learned += dot + "AUTO GAIN " + aeq::ui::num (proc_.core().levelMatchDb(), 1, 4) + " DB";
     trackedText (g, learned, caption, Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();
@@ -807,7 +841,7 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     // the mode: two segments, because this product has two modes and no third
     const auto t = proc_.apvts().getRawParameterValue ("mode")->load();
     const int active = t > 0.5f ? 1 : 0;
-    const auto s0 = modeSeg (0).toFloat(), s1 = modeSeg (1).toFloat();
+    const auto s0 = modeSegDraw (0).toFloat(), s1 = modeSegDraw (1).toFloat();
     const Rectangle<float> pill (s0.getX() - 4.0f * sx, s0.getY(),
                                  s1.getRight() - s0.getX() + 8.0f * sx, s0.getHeight());
     g.setColour (Colours::white.withAlpha (0.05f));
@@ -862,9 +896,9 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
 
     g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
     g.setColour (Palette::text());
-    const String v1 = String (roundToInt (amountKnob_.getValue())) + "%";
+    const String v1 = aeq::ui::num (roundToInt (amountKnob_.getValue()), 0, 3) + "%";
     const String v2 = roundToInt (settleKnob_.getValue()) >= 1
-                        ? String (roundToInt (settleKnob_.getValue())) + " s"
+                        ? aeq::ui::num (roundToInt (settleKnob_.getValue()), 0, 3) + " s"
                         : String ("OFF");
     // the label and the value are one block beside the dial, and the value box is
     // measured from the type: at 24 px in an 18 px box the bottom of every number was
@@ -878,12 +912,12 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     // the stabiliser dial shows its own doing: the amount it is set to, and under it the
     // dB the ten bands are actually taking off right now.  A dial that moves a layer
     // nobody can see is the "unclear" the panel kept being reported for.
-    const String v0 = String (roundToInt (stableKnob_.getValue())) + "%";
+    const String v0 = aeq::ui::num (roundToInt (stableKnob_.getValue()), 0, 3) + "%";
     g.drawText (v0, Rectangle<float> (k0.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
                                       60.0f * sy, kValue * sy * 1.25f),
                 Justification::centredRight, false);
     if (proc_.core().stabilizerBands() > 0) {
-        const String live = String (proc_.core().stabilizerTotalDb(), 1) + " dB";
+        const String live = aeq::ui::num (proc_.core().stabilizerTotalDb(), 1, 4) + " dB";
         aeq::ui::draw (g, live, { k0.x - 74.0f * sy, cy + 11.0f * sy, 74.0f * sy, kCap * sy },
                        Justification::centredRight, kCap * sy,
                        proc_.core().stabilizerTotalDb() < -0.5 ? Palette::accent()
@@ -919,7 +953,7 @@ Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {
     const float sy = float (getHeight()) / kDesignH;
     const float sx = float (getWidth()) / kDesignW;
     const auto area = blocks().footer.toFloat();
-    const auto s0 = modeSeg (0).toFloat(), s1 = modeSeg (1).toFloat();
+    const auto s0 = modeSegDraw (0).toFloat(), s1 = modeSegDraw (1).toFloat();
     const float pillRight = s1.getRight() + 4.0f * sx;
     const float knobsX = area.getRight() - 370.0f * sx - 110.0f * sx;
     return { pillRight + 24.0f * sx, area.getY(),

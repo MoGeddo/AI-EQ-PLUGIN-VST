@@ -41,6 +41,19 @@ enum class Face { Regular, SemiBold };
 // is explicit, so nobody can rely on the implicit one by accident again.
 inline juce::String u8 (const char* utf8) { return juce::String::fromUTF8 (utf8); }
 
+// A number that keeps its width.  Every readout on this panel changes while the audio
+// plays - the level match, the stabiliser's total, the strengths - and a value going from
+// 9.4 to 10.1 used to move the glyph after it by half a digit, which reads as the label
+// twitching.  `impeccable` calls this tabular figures and `make-interfaces-feel-better`
+// calls it "the number must not reflow"; JUCE has no OpenType feature switch, so the
+// padding does the same job: the decimal point and the digits sit on the same columns
+// whether the value has one digit or two.
+inline juce::String num (double value, int decimals, int width)
+{
+    const juce::String body = juce::String (value, decimals);
+    return body.paddedLeft (' ', juce::jmax (width, body.length()));
+}
+
 // The embedded typefaces.  Loaded once, on first use, and cached for the process.
 juce::Typeface::Ptr typeface(Face face);
 

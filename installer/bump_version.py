@@ -67,7 +67,7 @@ def main():
         if None in found.values() or len(uniq) != 1:
             print("FAIL: the version is not consistent across the three files")
             return 1
-        print(f"OK: {uniq.pop()}")
+        print(f"OK: {uniq.pop()}, three files listed")
         return 0
 
     if not args.version or not SEMVER.match(args.version):

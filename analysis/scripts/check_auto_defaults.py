@@ -51,15 +51,23 @@ elif settle < MIN_SETTLE_S:
     problems.append(f"the safety cap is {settle:g} s, i.e. the plugin would commit after "
                     f"hearing nothing - the user's own stop is the normal path")
 
-# the cap has to actually commit from the analysis thread, not just be a number
+# The cap has to actually commit, and it has to be a cap rather than a setting that can
+# be turned off.  This assertion used to look for `settings_.settleSeconds > 0.0`, which
+# was the *old* architecture (one number for "trust" and "stop" at once); after the two
+# were split the check went on passing on a file that no longer contained the code it
+# described - a gate that lies is worse than no gate.  It now reads the current path and
+# the floor under it.
 core = (ROOT / "plugin" / "Source" / "dsp" / "RestoreCore.h").read_text(encoding="utf-8")
-if "settings_.settleSeconds > 0.0 && state_.settled" not in core or \
-        "Phase::Committed" not in core:
+if "kHardCapSeconds" not in core or "state_.analyzedSeconds >= cap" not in core:
     problems.append("RestoreCore.h: the safety cap does not commit anything - a forgotten "
                     "Stop button would leave the plugin listening forever")
+elif "Phase::Committed" not in core:
+    problems.append("RestoreCore.h: the cap never reaches the committed phase")
 
-# and the editor must not be what starts the analysis
-if not re.search(r"learnBtn_\.onClick", editor):
+# The editor is a readout, not the thing that starts the analysis - but the control that
+# *ends* it must exist and be wired.  v9 has no learnBtn_: the clamp in the take strip is
+# the stop control, and it is handled in mouseDown().
+if not re.search(r"Control::Clamp", editor) or "stopLearning" not in editor:
     problems.append("PluginEditor.cpp: the learn control has no click handler at all")
 
 if not re.search(r"std::atomic<bool>\s+learning_\{true\}", proc_h):
@@ -89,5 +97,5 @@ if problems:
         print("  - " + p)
     sys.exit(1)
 
-print(f"automatic: learning on load, stop when the user says, safety cap {settle:g} s, "
+print(f"automatic: learning on load, stop when the user says, hard cap 300 s, "
       f"solving on the processor timer")
