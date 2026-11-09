@@ -172,9 +172,19 @@ def band_levels(sig: list[float], sr: int) -> tuple[list[float], list[float]]:
         hi = fc * 2 ** (1 / 6.0)
         k0 = max(1, int(lo / bin_hz))
         k1 = min(NFFT // 2, int(math.ceil(hi / bin_hz)))
-        power = sum(acc[k] for k in range(k0, k1 + 1)) / max(1, used)
-        levels.append(10.0 * math.log10(power / used + 1e-20) if False else
-                      10.0 * math.log10(power + 1e-20))
+        width = max(1, k1 - k0 + 1)
+        total = sum(acc[k] for k in range(k0, k1 + 1)) / used
+        # Mean power per bin inside the band - i.e. spectral *density*, not band power.
+        # This is the convention the plugin's analyser reports (Analyzer.h divides the
+        # bin sum by the bin count, deliberately), and it is the convention Amir's table
+        # was built in (`band_levels_from_grid` averages linear power over the band).
+        # The first version of this script summed instead, which is 10*log10(width)
+        # higher - and a constant-Q band's width is proportional to frequency, so the
+        # two rulers sat 3.01 dB/octave apart.  Measured with compare_rulers.py: the
+        # plugin agrees with density to 0.96 dB RMS and with band power only to 4.60 dB.
+        # That tilt was showing up as "the plugin undershoots the low mids and overshoots
+        # the top" when it was the meter that was tilted.
+        levels.append(10.0 * math.log10(total / width + 1e-20))
     return centres, levels
 
 

@@ -52,7 +52,7 @@ public:
     // them: it asks the editor what is at a point, clicks it, and checks that the
     // plugin changed.  That needs the hit rectangles to be answerable from outside
     // paint(), which is all this is.
-    enum class Control { None, Clamp, Bypass, Reset, ModeRestore, ModeMatch,
+    enum class Control { None, Clamp, Bypass, Reset, ModeRestore, ModeMatch, Reference,
                          Chip, StrengthKnob, AutoStopKnob, StabiliserKnob };
     Control controlAt (juce::Point<int>) const;
     // The one place that answers "where is this control" - for the hit test above, and for
@@ -103,10 +103,18 @@ private:
     juce::Rectangle<int> modeSegDraw (int i) const;   // what is painted
     juce::Rectangle<int> bypassHit() const;
     juce::Rectangle<int> resetHit() const;
+    // The reference: the record Match is aiming at.  Left of the seal, because it is a
+    // caption on the decision ("aim here"), not a transport control.
+    juce::Rectangle<int> referenceHit() const;
     int chipAt (juce::Point<int>) const;
 
     void timerCallback() override;
     void buildControls();
+    // Ask for a profile file.  Asynchronous: a modal loop inside a plugin window is a
+    // plugin window that hangs the host, and JUCE_MODAL_LOOPS_PERMITTED is off here.
+    void pickReference();
+    std::unique_ptr<juce::FileChooser> refChooser_;
+    juce::String refNote_;          // what the last attempt said, for the tooltip
     static int defaultWidth();
     static int defaultHeight();
 

@@ -879,3 +879,23 @@ at any vocal stem first; the other gates need nothing but the source tree.
   return the corpus target) -> the render stops being closer and the distance threshold
   fails; independently, drop the occupancy mask -> the plugin's own gap returns to 13.26 dB
   because it is counting bands the take never filled.
+
+- [x] G77: the plugin's analyser and an independent meter read the same file the same way.
+  G76's first run reported the plugin at 6.36 dB of residual and its own independent
+  analyser at 3.69 dB *on the same render*.  Two instruments disagreeing by that much is
+  the one defect a match EQ cannot afford, because every decision is a subtraction of one
+  from the other.  `analysis/scripts/compare_rulers.py` measures one file both ways -
+  `aeq_cli profile` gives the analyser's own band levels, a 4096-point FFT written in the
+  script gives band power and spectral density - and prints the RMS difference and the
+  fitted tilt of each.  The answer was a unit, not a bug in the filter: the analyser
+  reports mean power per bin (density) and the table was built the same way, while the
+  script summed bins (band power).  A constant-Q band's width is proportional to
+  frequency, so the two conventions sit 3.01 dB/octave apart, and the solver dutifully
+  removed that tilt from the voice.
+  Measured: plugin vs density 0.96 dB RMS (tilt +0.25 dB/octave); plugin vs band power
+  4.60 dB RMS (tilt -2.16 dB/octave).  With G76 switched to density, the two meters now
+  agree on the render: 6.36 -> 1.82 dB (plugin) against 6.20 -> 1.83 dB (independent).
+  CHECK: python3 analysis/scripts/compare_rulers.py --strict
+  EXPECT: the plugin reports density
+  FALSIFY: pass `--bandpower` (or sum the bins again in verify_match_render.py) -> the
+  independent distance goes back to 3.69 dB and stops matching the plugin's 1.83 dB.

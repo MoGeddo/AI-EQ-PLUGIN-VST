@@ -52,6 +52,12 @@ public:
 
     // Point Match at a profile file.  Returns false if it is not a profile.
     bool loadReferenceProfile (const juce::File& file);
+    // Hand the target back to the mode's default (Amir's curve in Match, the family
+    // average in Restore).  A reference you cannot remove is a reference you are stuck
+    // with, which is the same as not having been asked.
+    void clearReferenceProfile();
+    // What the panel should call the current reference: the file's name, or empty.
+    juce::String referenceLabel() const;
     bool isFrozen() const { return core_.frozen(); }
     bool isCommitted() const { return core_.committed(); }
     bool isLearning() const { return learning_; }

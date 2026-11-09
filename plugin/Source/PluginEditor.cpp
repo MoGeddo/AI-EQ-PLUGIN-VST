@@ -333,6 +333,23 @@ Rectangle<int> AeqAudioProcessorEditor::resetHit() const {
     return b;
 }
 
+// The reference pill: what Match is aiming at, and the way to change it.  It sits in the
+// header's empty middle, left of the seal cluster, and it is drawn 30 design px tall - so
+// its *hit* box is padded to the 40 px floor exactly like the mode pills, and the pointer
+// gets the slack while the picture stays where the grid put it.
+Rectangle<int> AeqAudioProcessorEditor::referenceHit() const {
+    const auto hd = blocks().header;
+    const float sx = float (getWidth()) / kDesignW;
+    const float sy = float (getHeight()) / kDesignH;
+    const int w = roundToInt (160.0f * sx);
+    const int h = roundToInt (30.0f * sy);
+    Rectangle<int> r (hd.getX() + roundToInt (620.0f * sx),
+                      hd.getCentreY() - h / 2 - roundToInt (6.0f * sy), w, h);
+    const int minH = roundToInt (40.0f * sy);
+    if (r.getHeight() < minH) r = r.withSizeKeepingCentre (r.getWidth(), minH);
+    return r;
+}
+
 // The clamp is the stop button.  It sits on the seal, and the hit area is the part
 // plus a thumb's worth of slack, so it is a 40 px target and not a hairline.
 Rectangle<int> AeqAudioProcessorEditor::clampHit() const {
@@ -356,6 +373,7 @@ Rectangle<int> AeqAudioProcessorEditor::controlBounds (Control c) const {
         case Control::Clamp:       return clampHit();
         case Control::Bypass:      return bypassHit();
         case Control::Reset:       return resetHit();
+        case Control::Reference:   return referenceHit();
         case Control::ModeRestore: return modeSeg (0);
         case Control::ModeMatch:   return modeSeg (1);
         case Control::Chip: {
@@ -377,6 +395,7 @@ AeqAudioProcessorEditor::Control AeqAudioProcessorEditor::controlAt (Point<int> 
     if (clampHit().contains (p))         return Control::Clamp;
     if (bypassHit().contains (p))        return Control::Bypass;
     if (resetHit().contains (p))         return Control::Reset;
+    if (referenceHit().contains (p))     return Control::Reference;
     if (modeSeg (0).contains (p))        return Control::ModeRestore;
     if (modeSeg (1).contains (p))        return Control::ModeMatch;
     if (amountKnob_.getBounds().contains (p))  return Control::StrengthKnob;
@@ -398,6 +417,13 @@ String AeqAudioProcessorEditor::tooltipAt (Point<int> p) const {
         return String ("Bypass: the same take, untouched");
     if (resetHit().contains (p))
         return String ("Forget this take and listen again");
+    if (referenceHit().contains (p)) {
+        const auto name = proc_.referenceLabel();
+        if (refNote_.isNotEmpty()) return refNote_ + " (right click to hand it back)";
+        return name.isNotEmpty()
+                 ? "Reference: " + name + " - Match aims here. Click to change, right click to clear"
+                 : String ("Load a reference profile (.aeqprof) for Match to aim at");
+    }
     for (int i = 0; i < 2; ++i)
         if (modeSeg (i).contains (p))
             return i == 0 ? String ("Restore: fix what is wrong, keep the singer")
@@ -513,6 +539,32 @@ void AeqAudioProcessorEditor::drawTooltip (Graphics& g) {
                    kMicro * sy, Palette::text());
 }
 
+void AeqAudioProcessorEditor::pickReference() {
+    // Two starting points: the project folder if the host gave one, else the last folder a
+    // profile came from.  A file dialog that opens at "/" is a dialog that makes the user
+    // find their own project again.
+    juce::File start = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+    refChooser_ = std::make_unique<juce::FileChooser> ("Reference profile", start, "*.aeqprof");
+    refChooser_->launchAsync (juce::FileBrowserComponent::openMode
+                              | juce::FileBrowserComponent::canSelectFiles,
+                              [this] (const juce::FileChooser& fc) {
+        const auto f = fc.getResult();
+        if (f == juce::File{}) return;                 // cancelled is not a failure
+        const bool ok = proc_.loadReferenceProfile (f);
+        if (ok) {
+            // A reference is a Match instruction: aim at this.  Leaving the panel in
+            // Restore while a record is loaded would look like the file did nothing.
+            if (auto* param = proc_.apvts().getParameter ("mode"))
+                param->setValueNotifyingHost (1.0f);
+            refNote_ = "Reference loaded: " + f.getFileNameWithoutExtension();
+        } else {
+            refNote_ = f.getFileName() + " is not an .aeqprof file";
+        }
+        lastVersion_ = -1;
+        repaint();
+    });
+}
+
 void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     const float sy = float (getHeight()) / kDesignH;
     const auto h = hd.toFloat();
@@ -564,6 +616,34 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     g.fillEllipse (pill.getX() + 12.0f * sy, pill.getCentreY() - 3.0f * sy, 6.0f * sy, 6.0f * sy);
     aeq::ui::draw (g, sealText, pill.translated (10.0f * sy, 0.0f).withTrimmedRight (12.0f * sy),
                    Justification::centred, kCap * sy, Palette::accentHi());
+
+    // The reference pill: the record Match aims at, named, and the way to change it.  A
+    // Match EQ whose target cannot be seen or chosen is a black box with a slope.
+    {
+        const auto rr = referenceHit().toFloat();
+        const auto pillR = Rectangle<float> (rr.getX(), rr.withSizeKeepingCentre (rr.getWidth(),
+                                                     roundToInt (30.0f * sy)).getY(),
+                                             rr.getWidth(), 30.0f * sy);
+        const auto name = proc_.referenceLabel();
+        const bool have = name.isNotEmpty();
+        g.setColour ((have ? Palette::accent() : Palette::text()).withAlpha (have ? 0.14f : 0.05f));
+        g.fillRoundedRectangle (pillR, kPillR * sy);
+        g.setColour ((have ? Palette::accent() : Palette::muted()).withAlpha (have ? 0.60f : 0.25f));
+        g.drawRoundedRectangle (pillR.reduced (0.5f), kPillR * sy, 1.0f);
+        g.setColour (have ? Palette::accentHi() : Palette::muted());
+        g.fillEllipse (pillR.getX() + 11.0f * sy, pillR.getCentreY() - 2.5f * sy,
+                       5.0f * sy, 5.0f * sy);
+        // The name, or the invitation.  Truncated with the file's own tail, never a
+        // shortened word - "AMIR 15 STA..." says which file, "AMIR..." does not.
+        String label = have ? name.toUpperCase() : String ("REFERENCE");
+        const float fit = pillR.getWidth() - 30.0f * sy;
+        while (label.length() > 4 && aeq::ui::measure (label, kMicro * sy) > fit)
+            label = label.dropLastCharacters (1);
+        aeq::ui::draw (g, label, pillR.translated (22.0f * sy, 0.0f)
+                                     .withTrimmedRight (8.0f * sy),
+                       Justification::centredLeft, kMicro * sy,
+                       have ? Palette::accentHi() : Palette::muted());
+    }
 
     // 13 px type in a 12 px box is a clipped line: the box is measured from the type now
     arabic (g, String (aeq::copy::stateSub (panelFacts())).toRawUTF8(),
@@ -1059,6 +1139,17 @@ void AeqAudioProcessorEditor::mouseDown (const MouseEvent& e) {
             param->setValueNotifyingHost (param->getValue() > 0.5f ? 0.0f : 1.0f);
             repaint();
         }
+        return;
+    }
+    if (referenceHit().contains (p)) {
+        if (e.mods.isPopupMenu()) {
+            proc_.clearReferenceProfile();
+            refNote_ = "Reference cleared";
+        } else {
+            pickReference();
+        }
+        lastVersion_ = -1;
+        repaint();
         return;
     }
     if (resetHit().contains (p)) {

@@ -231,6 +231,21 @@ bool AeqAudioProcessor::loadReferenceProfile(const juce::File& file) {
     return true;
 }
 
+void AeqAudioProcessor::clearReferenceProfile() {
+    core_.setReferences({}, {});
+    std::lock_guard<std::mutex> lk(refMx_);
+    referenceText_.clear();
+    referenceFile_.clear();
+    needsResolve_.store(true, std::memory_order_release);
+}
+
+juce::String AeqAudioProcessor::referenceLabel() const {
+    std::lock_guard<std::mutex> lk(refMx_);
+    if (referenceText_.isEmpty()) return {};
+    return referenceFile_.isNotEmpty() ? juce::File(referenceFile_).getFileNameWithoutExtension()
+                                       : juce::String("REFERENCE");
+}
+
 void AeqAudioProcessor::relearn() {
     core_.relearn();
     learning_ = true;
