@@ -163,6 +163,25 @@ void drawParagraph(juce::Graphics& g, const juce::String& utf8, juce::Rectangle<
     layout.draw(g, area);
 }
 
+std::vector<juce::String> wrapWords(const juce::String& text, float fontSize, float width,
+                                    Face face) {
+    std::vector<juce::String> lines;
+    if (text.isEmpty()) return lines;
+    const auto words = juce::StringArray::fromTokens (text, " ", "");
+    juce::String line;
+    for (const auto& w : words) {
+        const juce::String trial = line.isEmpty() ? w : line + " " + w;
+        if (! line.isEmpty() && measure (trial, fontSize, face) > width) {
+            lines.push_back (line);
+            line = w;
+        } else {
+            line = trial;
+        }
+    }
+    if (line.isNotEmpty()) lines.push_back (line);
+    return lines;
+}
+
 float measure(const juce::String& utf8, float fontSize, Face face) {
     if (utf8.isEmpty()) return 0.0f;
     auto f = font(fontSize, face);

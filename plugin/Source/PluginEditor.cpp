@@ -817,8 +817,15 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     // is measured, and the screenshot test asserts the sentence fits it - the failure was
     // invisible to every gate for three versions because no gate measured a sentence.
     const auto copyBox = footerCopyBox();
-    aeq::ui::drawParagraph (g, verdictLine(), copyBox, Justification::centredLeft,
-                            kCap * sy, Palette::muted());
+    const auto lines = aeq::ui::wrapWords (verdictLine(), kCap * sy, copyBox.getWidth());
+    const float pitch = aeq::ui::linePitch (kCap * sy);
+    const float top = copyBox.getCentreY() - float (lines.size()) * pitch * 0.5f;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        const Rectangle<float> row (copyBox.getX(), top + float (i) * pitch,
+                                    copyBox.getWidth(), pitch);
+        aeq::ui::draw (g, lines[i], row, Justification::centredLeft, kCap * sy,
+                       Palette::muted());
+    }
 
     // the two things a hand turns: the knobs themselves are child sliders drawn by
     // the look and feel, so this only writes their two labels and their two numbers
@@ -888,19 +895,17 @@ Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {
 }
 
 bool AeqAudioProcessorEditor::footerCopyFits (const String& line) const {
-    // The same layout the paint code builds, in the same box, with the same font: if the
-    // sentence needs more height than the footer has, it is overlapping something.
+    // The same wrap, the same pitch and the same box the paint code uses.  Not the font's
+    // own line box: at 1.874 em per line, two lines of 19 px type measure 72 px in a 52 px
+    // row and the sentence would "not fit" while drawing perfectly - the pitch is the
+    // number that decides whether lines collide.
     const float sy = float (getHeight()) / kDesignH;
     const auto box = footerCopyBox();
     if (box.getWidth() < 40.0f || box.getHeight() < 8.0f) return false;
     if (line.isEmpty()) return true;
-    AttributedString as;
-    as.setJustification (Justification::centredLeft);
-    as.append (line, aeq::ui::font (kCap * sy, Face::Regular), Palette::muted());
-    as.setWordWrap (AttributedString::WordWrap::byWord);
-    TextLayout lay;
-    lay.createLayout (as, box.getWidth());
-    return lay.getHeight() <= box.getHeight() + 0.5f;
+    const auto lines = aeq::ui::wrapWords (line, kCap * sy, box.getWidth());
+    const float needed = float (lines.size()) * aeq::ui::linePitch (kCap * sy);
+    return needed <= box.getHeight() + 0.5f;
 }
 
 bool AeqAudioProcessorEditor::footerCopyFits() const { return footerCopyFits (verdictLine()); }

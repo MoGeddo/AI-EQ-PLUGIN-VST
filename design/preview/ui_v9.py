@@ -276,7 +276,7 @@ def caps_w(s: str, size: int, tracking: float, bold: bool = False) -> float:
     return sum(f.getlength(c) + tracking for c in s) - tracking
 
 
-def ar_wrapped(d, x0, x1, cy, text, size=T_CAP, col=None, max_lines=2, line_gap=1.22):
+def ar_wrapped(d, x0, x1, cy, text, size=T_CAP, col=None, max_lines=2, line_gap=1.25):
     """Draw a sentence wrapped into [x0, x1] and centred on cy - the render's half of the
     window's drawParagraph().  Word by word, because a sentence that does not fit is a
     sentence the panel cannot say."""
