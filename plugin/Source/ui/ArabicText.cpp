@@ -91,20 +91,35 @@ juce::Typeface::Ptr typeface(Face face) {
 
 bool embeddedFontLoaded() { return typeface(Face::Regular) != nullptr; }
 
+// The panel's sizes are *em* sizes: 15 px of micro type means a 15 px em, which is what the
+// render, the layout constants and the gates all mean by "15".  JUCE's Font height is not the
+// em - it is ascent + descent, and for the embedded Cairo those are 1.303 and 0.571 em - so a
+// Font asked for 15 px draws 8 px of type (cap height 5.6 px, measured on the 1.2.26
+// screenshot).  The panel had been rendering every label at 53 % of the size its own design
+// said, which is exactly what "الخطوط صغيرة و مش باينة" was pointing at, while the gate that
+// guards the type floor read the floor's number and passed.  Convert once, here, so every
+// caller in the plugin means ems and the window and the render finally agree.
+static juce::Font atEmHeight (const juce::Font& proto, float em) {
+    const float emPerHeight = proto.getHeightToPointsFactor();     // em per unit of height
+    const float box = emPerHeight > 0.05f ? em / emPerHeight : em * 1.875f;
+    return proto.withHeight (box);
+}
+
 juce::Font font(float height, Face face) {
     if (auto tf = typeface(face))
-        return juce::Font(juce::FontOptions().withTypeface(tf).withHeight(height));
+        return atEmHeight (juce::Font(juce::FontOptions().withTypeface(tf).withHeight(1.0f)),
+                           height);
 
     // The embedded face could not be built.  Rather than hand the OS a font that
     // may have no Arabic glyphs and paint a wall of boxes - the 1.2.0 failure -
     // ask for a family that does, in order of how likely it is to be installed.
     static const char* const candidates[] = { "Segoe UI", "Tahoma", "Arial", "DejaVu Sans" };
-    juce::Font best(juce::FontOptions().withHeight(height));
+    juce::Font best(juce::Font(juce::FontOptions().withHeight(1.0f)));
     for (auto* name : candidates) {
-        juce::Font f(juce::FontOptions().withHeight(height).withName(name));
+        juce::Font f(juce::Font(juce::FontOptions().withHeight(1.0f).withName(name)));
         if (f.getTypefacePtr() != nullptr && f.getTypefacePtr()->getName().isNotEmpty()) { best = f; break; }
     }
-    return best;
+    return atEmHeight (best, height);
 }
 
 void draw(juce::Graphics& g, const char* utf8, juce::Rectangle<float> area,
