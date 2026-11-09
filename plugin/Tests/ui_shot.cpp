@@ -29,6 +29,7 @@
 #include <typeinfo>
 
 #include "PluginEditor.h"
+#include "ui/PanelCopy.h"
 #include "PluginProcessor.h"
 #include "ui/ProblemList.h"      // this test renders the report cards on their own, so it
                                  // includes what it uses instead of relying on the editor
@@ -488,6 +489,28 @@ int runControls(const juce::File& dir) {
                        "and a drag on the bare field moves no band");
             }
         }
+    }
+
+    // ---- 12. every sentence the panel can say fits the row it says it in --------
+    // At the panel's true type size (1.2.27) the footer's sentences are ~100 characters,
+    // and one line of them ran straight through the dial labels: "the numbers are coarse,
+    // the d[ial]" on the shipped 1.2.26 window.  No gate measured a sentence, so all eight
+    // passed.  The window wraps now, and this asserts that wrapping is enough - for the
+    // state on screen and for the five other states the copy module can produce.
+    {
+        check(ed->footerCopyFits(), "the panel's sentence fits the row it is drawn in");
+        const aeq::copy::Facts states[] = {
+            { false, false, false, false, 0, 0.0, 0.0 },          // nothing heard yet
+            { true,  false, false, false, 0, 6.0, 45.0 },         // listening, early
+            { true,  false, true,  true,  4, 44.0, 45.0 },        // open again
+            { true,  true,  true,  true,  0, 45.0, 45.0 },        // sealed, nothing to fix
+            { true,  true,  true,  false, 4, 21.0, 45.0 },        // sealed early
+            { true,  true,  true,  true,  7, 45.0, 45.0 }         // sealed, settled
+        };
+        int fits = 0;
+        for (const auto& f : states)
+            if (ed->footerCopyFits (juce::String (aeq::copy::verdict (f)))) ++fits;
+        check(fits == 6, "and so do all six states the copy module can be in");
     }
 
     stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)

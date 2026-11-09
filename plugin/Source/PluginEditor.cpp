@@ -640,12 +640,16 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // the caption row, inside the well: what was learnt (left) and the keys (right)
     const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
     const auto st = proc_.core().state();
-    String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S   ·   "
-                   + String (int (bands_.size())) + " BANDS   ·   AMIR 15 + 13-TAKE CONSENSUS";
+    // The separators are UTF-8 bytes spelled out, not a character in the source file:
+    // "· " in a literal is at the mercy of the build's source encoding, and the shipped
+    // 1.2.26 window reads "AMIR 15 + 13-TAKE CONSENSUS Â· AUTO GAIN" because of it.
+    const String dot = String::fromUTF8 ("  \xc2\xb7  ");
+    String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S" + dot
+                   + String (int (bands_.size())) + " BANDS" + dot + "AMIR 15 + 13-TAKE CONSENSUS";
     // the level match runs by itself, so it is a number on the panel rather than a fudge
     // in the dark: how much gain it is holding to keep the take where it was
     if (proc_.isFrozen() || proc_.isCommitted())
-        learned += "   ·   AUTO GAIN " + String (proc_.core().levelMatchDb(), 1) + " DB";
+        learned += dot + "AUTO GAIN " + String (proc_.core().levelMatchDb(), 1) + " DB";
     trackedText (g, learned, caption, Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();
@@ -737,7 +741,7 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
             const auto spec = proc_.core().trackedSpec (chip.tracked);
             gain = proc_.core().trackedGainDb (chip.tracked);
             q = spec.q;
-            micro = "H" + String (spec.harmonic) + "  ·  Q " + String (q, 2);
+            micro = "H" + String (spec.harmonic) + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2);
         } else if (chip.band < int (bands_.size())) {
             const auto& spec = bands_[size_t (chip.band)];
             gain = spec.gainDb + (chip.band < int (trims_.size()) ? trims_[size_t (chip.band)] : 0.0);
@@ -758,8 +762,8 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
 
         if (! hot)
             micro = f0 >= 1000.0
-                ? String (f0 / 1000.0, 2) + " kHz  ·  Q " + String (q, 2)
-                : String (int (f0)) + " Hz  ·  Q " + String (q, 2);
+                ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2)
+                : String (int (f0)) + " Hz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2);
         trackedText (g, micro, { r.getRight() - 12.0f * sy - 150.0f * sy,
                                  r.getY() + 31.0f * sy, 150.0f * sy, 14.0f * sy },
                      Palette::dim(), kMicro * sy, 0.9f, Justification::centredRight);
@@ -807,12 +811,14 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
                        i == active ? Palette::accentHi() : Palette::muted());
     }
 
-    // one sentence, then nothing else - the report card is gone
-    const float knobsX = float (area.getRight()) - 202.0f * sx - 110.0f * sx;
-    arabic (g, verdictLine().toRawUTF8(),
-            { pill.getRight() + 24.0f * sx, cy - 12.0f * sy,
-              jmax (120.0f, knobsX - pill.getRight() - 40.0f * sx), 26.0f * sy },
-            Palette::muted(), kBody * sy, Justification::centredLeft);
+    // One sentence, then nothing else - the report card is gone.  It wraps: at the panel's
+    // true type size (1.2.27 made a "15 px" label a 15 px em) these sentences are ~100
+    // characters, and a single line of them ran straight through the dial labels.  The box
+    // is measured, and the screenshot test asserts the sentence fits it - the failure was
+    // invisible to every gate for three versions because no gate measured a sentence.
+    const auto copyBox = footerCopyBox();
+    aeq::ui::drawParagraph (g, verdictLine(), copyBox, Justification::centredLeft,
+                            kCap * sy, Palette::muted());
 
     // the two things a hand turns: the knobs themselves are child sliders drawn by
     // the look and feel, so this only writes their two labels and their two numbers
@@ -869,6 +875,35 @@ aeq::copy::Facts AeqAudioProcessorEditor::panelFacts() const {
 String AeqAudioProcessorEditor::verdictLine() const {
     return String (aeq::copy::verdict (panelFacts()));
 }
+
+Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const float sx = float (getWidth()) / kDesignW;
+    const auto area = blocks().footer.toFloat();
+    const auto s0 = modeSeg (0).toFloat(), s1 = modeSeg (1).toFloat();
+    const float pillRight = s1.getRight() + 4.0f * sx;
+    const float knobsX = area.getRight() - 202.0f * sx - 110.0f * sx;
+    return { pillRight + 24.0f * sx, area.getY(),
+             jmax (120.0f, knobsX - pillRight - 40.0f * sx), area.getHeight() };
+}
+
+bool AeqAudioProcessorEditor::footerCopyFits (const String& line) const {
+    // The same layout the paint code builds, in the same box, with the same font: if the
+    // sentence needs more height than the footer has, it is overlapping something.
+    const float sy = float (getHeight()) / kDesignH;
+    const auto box = footerCopyBox();
+    if (box.getWidth() < 40.0f || box.getHeight() < 8.0f) return false;
+    if (line.isEmpty()) return true;
+    AttributedString as;
+    as.setJustification (Justification::centredLeft);
+    as.append (line, aeq::ui::font (kCap * sy, Face::Regular), Palette::muted());
+    as.setWordWrap (AttributedString::WordWrap::byWord);
+    TextLayout lay;
+    lay.createLayout (as, box.getWidth());
+    return lay.getHeight() <= box.getHeight() + 0.5f;
+}
+
+bool AeqAudioProcessorEditor::footerCopyFits() const { return footerCopyFits (verdictLine()); }
 
 // --------------------------------------------------------------------------- layout
 void AeqAudioProcessorEditor::resized() {

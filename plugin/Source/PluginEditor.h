@@ -59,6 +59,13 @@ public:
     // the tests that click the real panel instead of trusting a number they were told.
     juce::Rectangle<int> controlBounds (Control c) const;
 
+    // The footer's sentence and the box it has to live in: asserted by the screenshot test,
+    // because "the claim does not fit the panel" is a defect no screenshot reviewer sees and
+    // every user does.
+    juce::Rectangle<float> footerCopyBox() const;
+    bool footerCopyFits() const;                       // the sentence the panel is saying
+    bool footerCopyFits (const juce::String&) const;   // ... and any sentence it could say
+
     float strengthShown() const { return float (amountKnob_.getValue()); }
     float autoStopShown() const { return float (settleKnob_.getValue()); }
     int   chipCount() const { return int (chips_.size()); }

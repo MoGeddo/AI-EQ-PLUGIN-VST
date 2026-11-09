@@ -168,7 +168,12 @@ DECISION_KEY = "decision"
 BAND_MODES = ("STATIC", "STATIC", "DYNAMIC", "TRACKED")
 MODE_SEGMENTS = ("RESTORE", "MATCH")
 FOOTER_SEAL = "nothing moves on its own"
-FOOTER_REPORT = "4 bands - 1 dynamic - 1 tracked"
+# The sentence is the one the window draws in the same state, and it is drawn the way the
+# window draws it: wrapped, in a box that stops short of the two dials and their labels.
+# A short report here made the render look calm and hid the fact that at the panel's true
+# type size these sentences take two lines (docs/23 §7).
+FOOTER_REPORT = ("Sealed at 4 bands on 24 s of a 45 s pass - the numbers are coarse, "
+                 "the decision is not.")
 KNOB_LABELS = ("strength", "auto-stop")
 CHIP_UNIT = "dB"
 CHIP_HZ = "Hz"
@@ -269,6 +274,46 @@ def ar_w(s: str, size: int, bold: bool = False) -> float:
 def caps_w(s: str, size: int, tracking: float, bold: bool = False) -> float:
     f = font(FONT_B if bold else FONT_R, size)
     return sum(f.getlength(c) + tracking for c in s) - tracking
+
+
+def ar_wrapped(d, x0, x1, cy, text, size=T_CAP, col=None, max_lines=2, line_gap=1.22):
+    """Draw a sentence wrapped into [x0, x1] and centred on cy - the render's half of the
+    window's drawParagraph().  Word by word, because a sentence that does not fit is a
+    sentence the panel cannot say."""
+    words = text.split()
+    lines, cur = [], ""
+    for w in words:
+        trial = (cur + " " + w).strip()
+        if cur and sentence_w(trial, size) > (x1 - x0):
+            lines.append(cur)
+            cur = w
+        else:
+            cur = trial
+    if cur:
+        lines.append(cur)
+    lines = lines[:max_lines]
+    step = size * line_gap
+    top = cy - (len(lines) - 1) * step / 2
+    for i, line in enumerate(lines):
+        sentence(d, (x0, top + i * step - size * 0.62), line, size, col or SOFT)
+    return lines
+
+
+def sentence(d, xy, s, size=T_CAP, col=None, anchor="la"):
+    """Draw running text the way the window draws it: one call, sentence case, no tracking.
+
+    ar_text() sends ASCII through caps(), which is the panel's *label* voice - uppercase,
+    one glyph at a time, 2.6 px of tracking.  Running sentences must not go through it, and
+    for three versions they did: the render's footer was 226 px wider than the sentence it
+    was drawing, which is why it ran under the dial labels while the window's did not.
+    """
+    DRAWN["sizes"].add(size)
+    DRAWN["caps"].add(s)
+    _ar_text(d, xy, s, size, fill=col or SOFT, anchor=anchor)
+
+
+def sentence_w(s: str, size: int) -> float:
+    return font(FONT_R, size).getlength(shape(s))
 
 
 def num(canvas, x, y, s, size=T_VALUE, col=None, anchor="ra", bold=True, tracking=1.1):
@@ -804,8 +849,14 @@ def draw_footer(canvas):
         ar_text(d, (sx + 5 + seg_w * i + seg_w / 2, cy - 8), label, T_CAP,
                 BRASS_HOT if i == 0 else DIM, anchor="ma")
 
-    # the report, one Arabic sentence, and the seal state
-    ar_text(d, (sx + total + 28, cy - 7), FOOTER_REPORT, T_BODY, SOFT)
+    # the report, one sentence, wrapped into the same box the window measures: from the
+    # pill's right edge to 40 px short of the dial labels, and no wider
+    copy_left = sx + total + 28
+    # 110 design px left of the strength dial: that is where the window's footer
+    # copy box stops (footerCopyBox(): the dials' side of the row minus 40), so the two
+    # drawings wrap the same sentence at the same word.
+    copy_right = KNOB_X[0] - 110
+    ar_wrapped(d, copy_left, copy_right, cy, FOOTER_REPORT, T_CAP, SOFT)
 
     # two knobs: the only values the operator turns by hand
     # the plugin puts "strength" on the left dial and "auto-stop" on the right one, so the
