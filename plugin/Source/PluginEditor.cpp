@@ -652,8 +652,16 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // "· " in a literal is at the mercy of the build's source encoding, and the shipped
     // 1.2.26 window reads "AMIR 15 + 13-TAKE CONSENSUS Â· AUTO GAIN" because of it.
     const String dot = String::fromUTF8 ("  \xc2\xb7  ");
+    // What the curve is aiming at.  With a reference profile loaded it says so by name -
+    // the corpus is the default, not the only answer, and a panel that keeps claiming
+    // "13-take consensus" while chasing a record the user chose is lying about its target.
+    String target = "AMIR 15 + 13-TAKE CONSENSUS";
+    if (proc_.core().hasReference()) {
+        const String n = String (proc_.core().referenceName());
+        target = n.isNotEmpty() ? ("REFERENCE " + n.toUpperCase()) : String ("REFERENCE");
+    }
     String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S" + dot
-                   + String (int (bands_.size())) + " BANDS" + dot + "AMIR 15 + 13-TAKE CONSENSUS";
+                   + String (int (bands_.size())) + " BANDS" + dot + target;
     // the level match runs by itself, so it is a number on the panel rather than a fudge
     // in the dark: how much gain it is holding to keep the take where it was
     if (proc_.isFrozen() || proc_.isCommitted())

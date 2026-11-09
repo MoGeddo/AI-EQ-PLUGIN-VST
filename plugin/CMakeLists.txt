@@ -182,6 +182,14 @@ target_link_libraries(aeq_bounds PRIVATE aeq_asan)
 set_target_properties(aeq_bounds PROPERTIES CXX_STANDARD 17)
 add_test(NAME hostile_host COMMAND aeq_bounds)
 
+# Reference profiles: measured by this analyser, blended with weights, saved, and used as
+# the target Match aims at (the idea Match EQ and smart:EQ both get right).
+add_executable(aeq_profile Tests/test_profile.cpp)
+target_include_directories(aeq_profile PRIVATE Source)
+target_link_libraries(aeq_profile PRIVATE aeq_asan)
+set_target_properties(aeq_profile PROPERTIES CXX_STANDARD 17)
+add_test(NAME reference_profile COMMAND aeq_profile)
+
 # The moving bank, on its own: a signal on the target passes, one above it is pulled
 # back by the ratio, one below it is never lifted, and the ceiling is a ceiling.
 add_executable(aeq_stabilizer Tests/test_stabilizer.cpp)

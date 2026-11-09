@@ -19,6 +19,7 @@
 #include "DeEsser.h"
 #include "TrackedBand.h"
 #include "Stabilizer.h"
+#include "Profile.h"
 #include "DynamicProfile.h"
 #include "EqSolver.h"
 #include "ProblemDetector.h"
@@ -676,8 +677,27 @@ public:
         for (size_t i = 0; i < m.freqs.size(); ++i)
             in.valid[i] = (m.freqs[i] >= 100.0 && TargetCurve::inMeasuredRange(m.freqs[i])) ? 1.0 : 0.0;
 
+        // A loaded reference replaces the corpus table as the thing to aim at, and it is
+        // sampled on the analyser's own grid so the subtraction happens in one frame.
+        {
+            std::lock_guard<std::mutex> lk(refMx_);
+            in.targetDb.clear();
+            if (reference_.valid()) {
+                in.targetDb.resize(m.freqs.size(), 0.0);
+                const double r1k = reference_.at(1000.0);
+                for (size_t i = 0; i < m.freqs.size(); ++i)
+                    in.targetDb[i] = reference_.at(m.freqs[i]) - r1k;
+            }
+        }
+        // the take as a profile too: this is what `referenceGapDb` compares against, and
+        // what the panel shows as "you are 2.4 dB from the record you chose"
+        measuredProfile_.freqs = m.freqs;
+        measuredProfile_.db = m.bandDb;
+        measuredProfile_.frames = analyzer_.activeFrames();
+        measuredProfileValid_ = true;
+
         SolverConfig sc;
-        sc.mode = settings_.mode == 1 ? MatchMode::Match : MatchMode::Restore;
+        sc.mode = (settings_.mode == 1 || in.hasTarget()) ? MatchMode::Match : MatchMode::Restore;
         sc.maxBands = settings_.maxBands;
         sc.maxGainDb = settings_.maxGainDb;
         if (sc.mode == MatchMode::Restore) { sc.maxQ = 1.2; sc.deadZoneDb = 2.5; }
@@ -1000,6 +1020,57 @@ public:
     double dbgOutGain() const { return outGain_; }
     double dbgApplyGain() const { return applyGain_; }
     double dbgLearned(int i) const { return learnStab_.learnedLevelDb(i); }
+
+    // ---- reference profiles ------------------------------------------------
+    //
+    // A profile is a spectrum measured by *this* analyser: captured here, saved by the
+    // caller, and put back as the thing Match mode aims at.  The corpus table stays the
+    // default; a reference is what the user asked for, and it has to travel through the
+    // same instrument as the take or the delta is a comparison of two rulers.
+    Profile captureProfile(const std::string& name = "take") {
+        Profile p;
+        std::lock_guard<std::mutex> lk(analyzeMx_);
+        if (! analyzer_.ready()) return p;
+        p.freqs = analyzer_.grid().f;
+        p.db = analyzer_.bandLevelsDb();
+        p.frames = analyzer_.activeFrames();
+        p.name = name;
+        {
+            std::lock_guard<std::mutex> lk2(stateMx_);
+            p.loudDb = loudPub_.load(std::memory_order_relaxed);   // the take's own level
+        }
+        return p;
+    }
+
+    // Up to three references with weights (smart:EQ's group profile).  Merged into one
+    // curve here, once, so the solver never sees a list it would have to average on the
+    // message thread every four seconds.
+    void setReferences(const std::vector<Profile>& refs, const std::vector<double>& weights,
+                       const std::string& name = "") {
+        std::vector<const Profile*> ptr;
+        for (const auto& r : refs) ptr.push_back(&r);
+        Profile blended = blend(ptr, weights, name.empty() ? "references" : name.c_str());
+        std::lock_guard<std::mutex> lk(refMx_);
+        reference_ = blended;
+        referenceName_ = blended.valid() ? blended.name : std::string();
+        ++referenceVersion_;
+    }
+    void clearReference() {
+        std::lock_guard<std::mutex> lk(refMx_);
+        reference_ = Profile{};
+        referenceName_.clear();
+        ++referenceVersion_;
+    }
+    bool        hasReference()    const { std::lock_guard<std::mutex> lk(refMx_); return reference_.valid(); }
+    std::string referenceName()   const { std::lock_guard<std::mutex> lk(refMx_); return referenceName_; }
+    Profile     reference()       const { std::lock_guard<std::mutex> lk(refMx_); return reference_; }
+    // How much the solved curve has to do to make the take's shape equal the reference's:
+    // the number the panel can show instead of "trust me".
+    double referenceGapDb() const {
+        std::lock_guard<std::mutex> lk(refMx_);
+        if (! reference_.valid() || ! measuredProfileValid_) return 0.0;
+        return measuredProfile_.distanceTo(reference_);
+    }
     std::vector<BandSpec> dbgBands() const { std::lock_guard<std::mutex> lk(stateMx_); return activeBandsLocked(); }
 
     RestoreState state() const {
@@ -1254,6 +1325,14 @@ private:
     int maxBlock_ = 512;
     RestoreSettings settings_;
     mutable std::mutex liveMx_;
+    // Reference profiles: written by the message thread (load / clear), read by the
+    // analysis thread inside refreshLocked.  Mutable because the getters are const.
+    mutable std::mutex refMx_;
+    Profile reference_;
+    std::string referenceName_;
+    unsigned long long referenceVersion_ = 0;
+    Profile measuredProfile_;                 // analysis thread only
+    bool measuredProfileValid_ = false;
     LiveSpectrum live_;
     Analyzer analyzer_;
     HighPass24 hpf_;

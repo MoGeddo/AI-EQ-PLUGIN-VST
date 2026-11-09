@@ -53,6 +53,47 @@ struct SolveInput {
     std::vector<double> freqs;     // analysis grid (Hz)
     std::vector<double> levelDb;   // measured, absolute
     std::vector<double> valid;     // 1 where the measurement is trustworthy
+
+    // The curve to move toward, sampled on `freqs` and expressed *relative to 1 kHz* -
+    // exactly the frame the measured level is put into below.  Empty means "the corpus
+    // consensus", which is what this plugin solved against until a reference profile
+    // existed: the corpus table was measured by different code, in a different frame
+    // (1/3-octave, register-corrected), so the solver was comparing two instruments.
+    // With a profile loaded, target and measurement come from the same analyser.
+    std::vector<double> targetDb;
+    bool hasTarget() const { return targetDb.size() == freqs.size(); }
+
+    double targetAt(double f) const {
+        if (! hasTarget()) return TargetCurve::at(f);
+        return interpLog(freqs, targetDb, f);
+    }
+    double targetSmoothAt(double f, double octaves) const {
+        if (! hasTarget()) return TargetCurve::atSmoothed(f, octaves);
+        // same gaussian, same width, on the supplied curve
+        const double sigma = std::max(0.5, octaves * 12.0);
+        const int r = static_cast<int>(std::ceil(3.0 * sigma));
+        int c = 0;
+        for (int i = 0; i < int(freqs.size()); ++i) if (freqs[size_t(i)] <= f) c = i;
+        double acc = 0.0, wsum = 0.0;
+        for (int k = -r; k <= r; ++k) {
+            const int j = std::clamp(c + k, 0, int(targetDb.size()) - 1);
+            const double w = std::exp(-0.5 * (k / sigma) * (k / sigma));
+            acc += targetDb[size_t(j)] * w; wsum += w;
+        }
+        return acc / wsum;
+    }
+
+    static double interpLog(const std::vector<double>& xs, const std::vector<double>& ys, double x) {
+        if (xs.empty()) return 0.0;
+        if (x <= xs.front()) return ys.front();
+        if (x >= xs.back()) return ys.back();
+        for (size_t i = 1; i < xs.size(); ++i)
+            if (xs[i] >= x) {
+                const double t = std::log(x / xs[i - 1]) / std::log(xs[i] / xs[i - 1]);
+                return ys[i - 1] * (1 - t) + ys[i] * t;
+            }
+        return ys.back();
+    }
 };
 
 // log-frequency gaussian smoothing of a curve sampled at ~constant log spacing
@@ -91,8 +132,8 @@ public:
             mask[i] = usable ? 1.0 : 0.0;
             if (usable) {
                 const double t = (cfg.mode == MatchMode::Match)
-                                   ? TargetCurve::at(f)
-                                   : TargetCurve::atSmoothed(f, cfg.restoreSmoothingOct);
+                                   ? in.targetAt(f)
+                                   : in.targetSmoothAt(f, cfg.restoreSmoothingOct);
                 const double m = in.levelDb[i] - refMeas;            // re 1 kHz
                 double d = t - m;
                 // soft dead-zone: subtract the family's own natural spread
@@ -213,7 +254,7 @@ public:
         for (size_t i = 0; i < in.freqs.size(); ++i) {
             const double f = in.freqs[i];
             if (f < 200.0 || f > 13000.0 || in.valid[i] < 0.5) continue;
-            const double dev = TargetCurve::atSmoothed(f, 0.5) - (in.levelDb[i] - refMeas);
+            const double dev = in.targetSmoothAt(f, 0.5) - (in.levelDb[i] - refMeas);
             if (std::abs(dev) <= deadZoneDb) continue;
             double mod = 0.0;
             for (const auto& b : bands) mod += bandMagDb(b, f, fs);
@@ -234,7 +275,7 @@ public:
             double mod = 0.0;
             for (const auto& b : bands) mod += bandMagDb(b, f, fs);
             const double corrected = in.levelDb[i] - refMeas + mod;
-            const double e = TargetCurve::at(f) - corrected;
+            const double e = in.targetAt(f) - corrected;
             acc += e * e; ++n;
         }
         return n ? std::sqrt(acc / n) : 0.0;

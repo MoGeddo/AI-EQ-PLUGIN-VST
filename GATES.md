@@ -770,3 +770,28 @@ at any vocal stem first; the other gates need nothing but the source tree.
   FALSIFY: set `ratio` to 0.2 in Stabilizer.h -> "the loud part is pulled back (-0.56 dB)"
   FAILS, and the rest still pass; restoring 0.6 turns it green again.  The branch is tested
   by breaking it, not by reading it.
+
+- [x] G72: a reference is measured by the same instrument as the take.
+  Match EQ and smart:EQ both scan by *learning a reference profile and measuring the take
+  with the same analyser*, then subtracting.  This plugin compared its own 1/12-octave,
+  gated, 42.7 ms measurement against a corpus table built by other code in another frame
+  (1/3-octave, register-corrected, smoothed to 1/6) - the same class of mistake as G71's
+  narrow-slice target, at the corpus boundary.
+  `dsp/Profile.h` makes a spectrum an object: `normalised()` (each profile relative to its
+  own 1 kHz, so loudness cannot bias the shape), `blend()` (references combine as a weighted
+  *power* mean - half of +6 dB and 0 dB is +3.96 dB, not +3), `deltaCurve()` (reference
+  minus source, smoothed 1/6 octave, limited to 12 dB) and `toText/fromText` (17
+  significant digits, so a saved profile is bit-for-bit the same curve).
+  The solver's `SolveInput` now carries a target on its own grid; empty still means the
+  corpus.  `RestoreCore::setReferences()` takes up to N profiles with weights and hands the
+  analysis thread one blended curve; `captureProfile()` keeps any take as a profile; the
+  panel's caption says "REFERENCE <name>" instead of claiming the 13-take consensus while
+  aiming somewhere else.  `aeq_cli profile in.wav out.aeqprof [--name ...]` learns one and
+  `--ref` uses it, tested on two synthetic takes that differ by a 24 dB/octave tilt.
+  CHECK: build/aeq_profile && build/aeq_cli profile a.wav r.aeqprof && build/aeq_cli
+  analyze b.wav --ref r.aeqprof
+  EXPECT: 15 passed, 0 failed; the dull take's top end goes from +2.40 dB against the
+  corpus to +6.00 dB against the bright reference
+  FALSIFY: remove the 1 kHz normalisation from `Profile::normalised()` -> "level is divided
+  out of a blend" fails, and the 20 dB-louder copy of a reference stops blending to the
+  same target.

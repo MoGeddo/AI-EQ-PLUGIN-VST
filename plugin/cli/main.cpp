@@ -13,6 +13,9 @@
 #include <algorithm>
 
 #include "../Source/dsp/RestoreCore.h"
+#include "../Source/dsp/Profile.h"
+#include <fstream>
+#include <sstream>
 #include "../Source/model/TargetCurve.h"
 
 // ---- minimal WAV I/O (PCM 16/24/32 and float32) ----
@@ -200,8 +203,10 @@ static void printReport(aeq::RestoreCore& core) {
 
 int main(int argc, char** argv) {
     if (argc < 3) {
-        std::printf("usage: aeq_cli analyze in.wav\n"
-                    "       aeq_cli process in.wav out.wav [--amount 1.0] [--maxgain 6] [--bands 8]\n");
+        std::printf("usage: aeq_cli analyze in.wav [--ref profile.aeqprof]\n"
+                    "       aeq_cli process in.wav out.wav [--amount 1.0] [--maxgain 6] [--bands 8]\n"
+                    "                        [--ref profile.aeqprof] [--mode match]\n"
+                    "       aeq_cli profile in.wav out.aeqprof [--name \"who it sounds like\"]\n");
         return 1;
     }
     const std::string mode = argv[1];
@@ -210,16 +215,34 @@ int main(int argc, char** argv) {
 
     aeq::RestoreSettings s;
     s.learn = true;
+    std::string refPath, refName = "reference";
     for (int i = 3; i < argc - 1; ++i) {
         const std::string a = argv[i];
         if (a == "--amount")  s.correctionAmount = std::atof(argv[i + 1]);
         if (a == "--maxgain") s.maxGainDb = std::atof(argv[i + 1]);
         if (a == "--bands")   s.maxBands = std::atoi(argv[i + 1]);
+        if (a == "--ref")     refPath = argv[i + 1];
+        if (a == "--name")    refName = argv[i + 1];
+        if (a == "--mode")    s.mode = (std::string(argv[i + 1]) == "match") ? 1 : 0;
     }
 
     aeq::RestoreCore core;
     core.prepare(w.sr, 512);
     core.setSettings(s);
+
+    // A reference profile, if one was named: read from the text file the `profile`
+    // command writes.  Match then aims at *this* record instead of the corpus average,
+    // measured on the same grid as the take.
+    if (! refPath.empty()) {
+        std::ifstream f(refPath);
+        std::stringstream ss; ss << f.rdbuf();
+        const auto prof = aeq::fromText(ss.str());
+        if (! prof.valid()) { std::printf("cannot read profile %s\n", refPath.c_str()); return 3; }
+        core.setReferences({prof}, {1.0});
+        s.mode = 1;
+        std::printf("reference: %s (%zu bands, %ld frames)\n",
+                    prof.name.c_str(), prof.db.size(), prof.frames);
+    }
 
     // pass 1: learn over the whole take
     const int blk = 512;
@@ -257,6 +280,18 @@ int main(int argc, char** argv) {
         }
         saveWav(argv[3], o);
         std::printf("wrote %s\n", argv[3]);
+    }
+
+    if (mode == "profile") {
+        if (argc < 4) { std::printf("need an output path\n"); return 1; }
+        // Everything the analyser heard, kept as a curve that can be reused: this is the
+        // "learn a reference once" half of Match EQ, in one command.
+        const auto prof = core.captureProfile(refName);
+        if (! prof.valid()) { std::printf("nothing measured - was the file silent?\n"); return 4; }
+        std::ofstream f(argv[3], std::ios::binary);
+        f << aeq::toText(prof);
+        std::printf("wrote %s: %zu bands, %ld frames, %s\n",
+                    argv[3], prof.db.size(), prof.frames, prof.name.c_str());
     }
     return 0;
 }
