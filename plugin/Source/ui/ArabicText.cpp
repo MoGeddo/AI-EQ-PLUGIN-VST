@@ -100,8 +100,14 @@ bool embeddedFontLoaded() { return typeface(Face::Regular) != nullptr; }
 // guards the type floor read the floor's number and passed.  Convert once, here, so every
 // caller in the plugin means ems and the window and the render finally agree.
 static juce::Font atEmHeight (const juce::Font& proto, float em) {
-    const float emPerHeight = proto.getHeightToPointsFactor();     // em per unit of height
-    const float box = emPerHeight > 0.05f ? em / emPerHeight : em * 1.875f;
+    // How many em the typeface packs into one unit of JUCE "height".  getHeightInPoints() is
+    // the height in points, i.e. in ems, and it is the public half of the factor JUCE uses
+    // internally (getHeightToPointsFactor is private in JUCE 8).  Cairo is 1.874 em per unit
+    // of height; a font whose metrics cannot be read keeps the usual 1.2.
+    const float probe = 100.0f;
+    const auto at100 = proto.withHeight (probe);
+    const float emPerHeight = at100.getHeightInPoints() / probe;
+    const float box = emPerHeight > 0.05f ? em / emPerHeight : em * 1.2f;
     return proto.withHeight (box);
 }
 
