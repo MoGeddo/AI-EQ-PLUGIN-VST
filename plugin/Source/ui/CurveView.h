@@ -38,6 +38,17 @@ public:
 
     CurveView() { setWantsKeyboardFocus (false); }
 
+    // Which handle is under a point, or -1.  Public because the panel's own test has to know
+    // where the handles are: a graph that covers two thirds of the window is the thing a
+    // mixer will touch first, and "does dragging it change the sound" must be answered by a
+    // test rather than by looking at a screenshot.
+    int handleAt (juce::Point<float> p) const { return hitHandle (p); }
+    int handleCount() const { return int (data_.bands.size()); }
+    juce::Point<float> handleCentre (int i) const {
+        if (i < 0 || i >= int (data_.bands.size())) return { -1.0f, -1.0f };
+        return { xOf (data_.bands[size_t (i)].f0), yOf (bandGainWithTrim (i)) };
+    }
+
     // Embedded in v9's hero: the editor draws the well (plate, blooms, hairline) and
     // the legend, so the view stops drawing chrome of its own.  One surface, one owner.
     void setEmbedded (bool shouldBeEmbedded) { embedded_ = shouldBeEmbedded; repaint(); }

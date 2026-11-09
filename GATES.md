@@ -642,3 +642,36 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `BiquadCascade::reset()`.
   CHECK: g++ -fsanitize=thread plugin/Tests/test_threads.cpp && build/test_threads
   EXPECT: 3 passed, 0 failed
+
+- [x] G64: a control that answers without saying so is a control that does nothing.
+  "المفاتيح مش بتعمل حاجة و مش بتديني حاجة تاني" - and the panel had exactly that: Escape
+  opened a sealed take and changed no pixel, and nothing in the build pressed it.  Space was
+  tested (1.2.20), Escape and the wheel were not, and neither was the graph itself, which is
+  two thirds of the window.
+  The control stage now drives the real editor and asserts, in this order: every control is
+  reachable through `controlAt()`; the clamp seals and re-opens; a re-open starts the
+  analysis again; bypass round-trips; reset after a stop returns to listening and clears the
+  counter the panel reads; both dials follow their own parameters; a chip trims its band and
+  gives it back; Space stops the pass; the project survives `getStateInformation` /
+  `setStateInformation` with the same number of bands on the same frequencies; Escape is
+  handled, opens the take, is idempotent, says "Listening" when it does it, and leaves an
+  unclaimed key alone; the wheel moves the dial under it, upward is more, and the same wheel
+  over the bare field changes nothing; a drag on a curve handle lifts that band, a
+  double-click gives the band back to the solver, and a drag on the bare field moves no band.
+  Two real defects came out of it on the first two runs - the counter survived a reset, and
+  the resonances were never written to the project, so a reopened session came back with
+  fewer bands than the one that was closed.
+  CHECK: aeq_shot controls (Windows CI, `ci/ui:controls.log.txt`)
+  EXPECT: 39 passed, 0 failed
+
+- [x] G65: the smallest type on the panel is a number, and it is 14 px.
+  "الخطوط مش واضحة اللي على الأزرار صغيرة و مش باينة" was answered in 1.2.18 with an
+  11 px -> 12 px floor.  It was repeated ("لسة في مشاكل"), and 12 was still the floor.
+  The scale moved a step - 15/17/20/26 px - and the floor moved with it to 14, so the
+  smallest label in an 800 px-high window is 17 px on screen.  The header had to be rebuilt
+  to survive that: its four lines hung off the header's centre, and at the new sizes the
+  tagline landed on the wordmark.  Both rows are now placed from the header's top edge, and
+  the header is 58 px with a 60 px ceiling instead of a 56 px one that was measured when the
+  type was 18/15.
+  CHECK: design/preview/check_juce_api.py
+  EXPECT: juce ok: ... type 15/17/20/26 px, smallest at the floor

@@ -213,16 +213,18 @@ with tempfile.TemporaryDirectory() as td:
 
     # ---- 5. the panel's type is big enough to read ------------------------------
     # 1.2.18: "الخطوط مش واضحة اللي على الأزرار صغيرة و مش باينة".  The smallest string on
-    # the panel is the one that matters, and it was 11 px.  The floor is a number so it
-    # cannot quietly drift back down.
+    # the panel is the one that matters, and it was 11 px.  It was still 13 px when the
+    # complaint was repeated ("لسة في مشاكل"), so the floor moved to 14: at the window's
+    # 800 px height the 15 px micro step is 17 px on screen, and the floor is a number so
+    # it cannot quietly drift back down.
     sizes = re.search(r"kMicro = ([0-9.]+)f, kCap = ([0-9.]+)f, kBody = ([0-9.]+)f, "
                       r"kValue = ([0-9.]+)f", editor.read_text() if editor.exists() else "")
     if not sizes:
         problems.append("the editor does not declare its four type steps")
     else:
         micro, cap, body, value = [float(x) for x in sizes.groups()]
-        if micro < 12.0:
-            problems.append(f"the smallest label is {micro} px - under the 12 px floor")
+        if micro < 14.0:
+            problems.append(f"the smallest label is {micro} px - under the 14 px floor")
         if not (micro < cap < body < value):
             problems.append(f"the type scale is not a scale: {micro}/{cap}/{body}/{value}")
         notes.append(f"type {micro:.0f}/{cap:.0f}/{body:.0f}/{value:.0f} px, smallest at "

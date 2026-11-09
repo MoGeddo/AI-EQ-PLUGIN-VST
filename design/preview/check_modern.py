@@ -54,13 +54,15 @@ notes: list[str] = []
 # the bare margins of the panel: no text, no control, nothing but the field
 # The four bare strips of the field, chosen where the design leaves them bare:
 #   * left/right: the 20 px margin, from under the header to the chips row;
-#   * top: the 5 px strip above the well;
+#   * top: the empty middle of the header, between the tagline and the seal pill.  It used to
+#     be the 8 px strip above the well, which is where the panel's own top-lit vignette is -
+#     the same mistake as the bottom band, one edge up.
 #   * bottom: the 8 px between the chips row and the footer - NOT the last few rows of the
 #     window, which are the panel's own vignette (a smooth gradient eight grey levels deep)
 #     and, at the right-hand end, the two dials' seats.  Measuring there measured the fade,
 #     not the field, and it failed the moment the footer moved 6 px down.
 MARGINS = {"left": (4, 120, 20, 600), "right": (1160, 120, 1176, 600),
-           "top": (300, 5, 1100, 13), "bottom": (300, 633, 900, 639)}
+           "top": (470, 26, 1000, 44), "bottom": (300, 633, 900, 639)}
 # The real measure of texture is high-frequency energy: v9's margins sit at 0.06-0.36
 # and v7's fabric plate at 1.9-3.2, a 6x gap.  Colour count is a sanity bound only -
 # a saturated gradient legitimately holds more distinct colours than a warm grey one,
@@ -185,7 +187,7 @@ notes.append("block heights " + "/".join(str(h) for h in heights))
 
 # the header must not grow into a toolbar row (that is where v7's extra strips came from)
 head = blocks["header"]
-if head[3] - head[1] > 56:
+if head[3] - head[1] > 60:
     problems.append(f"the header is {head[3] - head[1]} px tall - a toolbar, not a title bar")
 
 # ------------------------------------------------------------------ proof, not a promise

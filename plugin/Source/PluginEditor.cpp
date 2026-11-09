@@ -21,7 +21,7 @@ constexpr float kPanelR = 16.0f, kWellR = 14.0f, kChipR = 12.0f, kPillR = 11.0f;
 // 1.2.18: the user read the panel and said the labels on the controls were too small to
 // make out.  Every size went up one step (11/13/16/21 -> 13/15/18/24) and the four
 // steps are still four: a fifth size is how a panel turns into a ransom note.
-constexpr float kMicro = 13.0f, kCap = 15.0f, kBody = 18.0f, kValue = 24.0f;
+constexpr float kMicro = 15.0f, kCap = 17.0f, kBody = 20.0f, kValue = 26.0f;
 
 // the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
 // the take strip is 494..520, and the caption row is 528..542.  These are y values,
@@ -241,7 +241,7 @@ AeqAudioProcessorEditor::Blocks AeqAudioProcessorEditor::blocks() const {
                                roundToInt ((x1 - x0) * sx), roundToInt ((y1 - y0) * sy));
     };
     Blocks b;
-    b.header = R (kMargin, 14, kDesignW - kMargin, 54);
+    b.header = R (kMargin, 10, kDesignW - kMargin, 68);
     b.hero   = R (kMargin, kHeroTop, kDesignW - kMargin, kHeroBottom);
     b.chips  = R (kMargin, 552, kDesignW - kMargin, 632);
     b.footer = R (kMargin, 640, kDesignW - kMargin, 686);
@@ -475,23 +475,27 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     const float sy = float (getHeight()) / kDesignH;
     const auto h = hd.toFloat();
 
+    // Two rows a side, placed from the header's own top edge rather than from its centre:
+    // the type grew a step (1.2.26) and lines hung off the centre started overlapping the
+    // moment one of them got taller - the tagline moved up into the wordmark.
     // wordmark: "AEQ" in the accent, "RESTORE" in the light ink, both tracked
     const float ws = kBody * sy;
     const float markH = ws * 1.15f;
+    const auto markRow = h.withTop (h.getY() + 4.0f * sy).withHeight (markH);
     const Font mark = aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (3.4f / ws);
     const float w1 = aeq::ui::measure ("AEQ", ws, Face::SemiBold);
     g.setFont (mark);
     g.setColour (Palette::accentHi());
-    g.drawText ("AEQ", h.withHeight (markH), Justification::centredLeft, false);
+    g.drawText ("AEQ", markRow, Justification::centredLeft, false);
     const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (3.4f / ws);
     g.setFont (rest);
     g.setColour (Palette::text().withAlpha (0.72f));
-    g.drawText ("RESTORE", h.withHeight (markH).translated (w1 + 8.0f * sy, 0.0f),
+    g.drawText ("RESTORE", markRow.translated (w1 + 8.0f * sy, 0.0f),
                 Justification::centredLeft, false);
 
     // tagline, one line, under the mark
-    arabic (g, kTagline, { h.getX(), h.getY() + markH + 2.0f * sy, h.getWidth() * 0.55f,
-                           h.getHeight() - markH - 2.0f * sy },
+    const float tagY = h.getY() + 4.0f * sy + markH + 2.0f * sy;
+    arabic (g, kTagline, { h.getX(), tagY, h.getWidth() * 0.55f, kCap * sy * 1.35f },
             Palette::muted(), kCap * sy);
 
     // right cluster: master bypass, reset, the seal pill with its LED, and the promise.
@@ -509,7 +513,7 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     const float textW = aeq::ui::measure (sealText, kCap * sy);
     const float pillW = textW + 44.0f * sy;
     const Rectangle<float> pill (float (rs.getX()) - pillW - 10.0f * sy,
-                                 h.getCentreY() - 11.0f * sy, pillW, 22.0f * sy);
+                                 h.getY() + 4.0f * sy, pillW, 30.0f * sy);
     g.setColour (Palette::accent().withAlpha (0.10f));
     g.fillRoundedRectangle (pill, kPillR * sy);
     g.setColour (Palette::accent().withAlpha (0.45f));
@@ -521,8 +525,8 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
 
     // 13 px type in a 12 px box is a clipped line: the box is measured from the type now
     arabic (g, String (aeq::copy::stateSub (panelFacts())).toRawUTF8(),
-            { pill.getRight() - 250.0f * sy, pill.getBottom() + 1.0f * sy,
-              250.0f * sy, kMicro * sy * 1.3f },
+            { pill.getRight() - 250.0f * sy, pill.getBottom() + 4.0f * sy,
+              250.0f * sy, kMicro * sy * 1.35f },
             Palette::dim(), kMicro * sy, Justification::centredRight);
 }
 

@@ -432,6 +432,64 @@ int runControls(const juce::File& dir) {
         }
     }
 
+    // ---- 11. the graph takes a hand ---------------------------------------------
+    // The well is two thirds of the window and the handles are the real editing surface: a
+    // drag on one is a trim on that band, a double-click gives the band back to the solver,
+    // and a drag on the bare field changes nothing - "nothing can be lost by an accidental
+    // hand".  All three were untested until this stage.
+    {
+        aeq::ui::CurveView* curve = nullptr;
+        for (int i = 0; i < ed->getNumChildComponents() && curve == nullptr; ++i)
+            curve = dynamic_cast<aeq::ui::CurveView*> (ed->getChildComponent (i));
+        check(curve != nullptr, "the graph is a component of the panel, not a picture");
+        if (curve != nullptr) {
+            pump();
+            check(curve->handleCount() > 0, "and there is a handle on it to take hold of");
+            int h = 0;
+            for (; h < curve->handleCount(); ++h) {
+                const auto c = curve->handleCentre (h);
+                if (c.x > 40.0f && c.y > 20.0f
+                    && c.x < float (curve->getWidth()) - 40.0f
+                    && c.y < float (curve->getHeight()) - 20.0f
+                    && curve->handleAt (c) == h)
+                    break;
+            }
+            if (h < curve->handleCount()) {
+                const auto c = curve->handleCentre (h);
+                const double was = proc.core().bandTrim (h);
+                auto src = juce::Desktop::getInstance().getMainMouseSource();
+                auto ev = [&] (juce::Point<float> at, int clicks) {
+                    juce::MouseEvent m (src, at, juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f,
+                                        0.0f, curve, curve, juce::Time::getCurrentTime(), at,
+                                        juce::Time::getCurrentTime(), clicks, false);
+                    return m;
+                };
+                curve->mouseDown (ev (c, 1));
+                curve->mouseDrag (ev (c.translated (0.0f, -22.0f), 1));
+                curve->mouseUp (ev (c.translated (0.0f, -22.0f), 1));
+                pump();
+                const double up = proc.core().bandTrim (h);
+                check (up > was + 0.5, "dragging a handle up lifts that band");
+                curve->mouseDown (ev (c, 2));         // double-click = back to the solver
+                curve->mouseUp (ev (c, 2));
+                pump();
+                check (std::abs (proc.core().bandTrim (h)) < 0.01,
+                       "and a double-click gives the band back to the solver");
+
+                const double before2 = proc.core().bandTrim (0);
+                const juce::Point<float> bare (float (curve->getWidth()) * 0.5f,
+                                               float (curve->getHeight()) * 0.85f);
+                check (curve->handleAt (bare) < 0, "the field under the handles is empty");
+                curve->mouseDown (ev (bare, 1));
+                curve->mouseDrag (ev (bare.translated (30.0f, -30.0f), 1));
+                curve->mouseUp (ev (bare.translated (30.0f, -30.0f), 1));
+                pump();
+                check (std::abs (proc.core().bandTrim (0) - before2) < 0.001,
+                       "and a drag on the bare field moves no band");
+            }
+        }
+    }
+
     stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)
           + " failed");
     // a log line the gate reads, and an exit code the build reads

@@ -133,12 +133,12 @@ WELLS = tuple((cxr, cyr, r, (_W[c] if c in ("accent", "second") else c), a)
 # 1.2.18: everything one step up.  The panel was read at arm's length and the labels on
 # the controls - "strength", "auto-stop", "STATIC", the frequency under each band - were
 # the ones a person could not make out.  Four steps, still four: 13 / 15 / 18 / 24.
-T_MICRO, T_CAP, T_BODY, T_VALUE = 13, 15, 18, 24
+T_MICRO, T_CAP, T_BODY, T_VALUE = 15, 17, 20, 26
 
 # ---- geometry ----------------------------------------------------------------------
 M = 22                                   # margin: tighter than v7, so the graph can breathe
 X0, X1 = M, W - M
-HEADER = (X0, 14, X1, 54)
+HEADER = (X0, 10, X1, 68)
 # 1.2.18: the type went up one step and the two rows under the graph had to grow with
 # it.  The old footer was 36 px tall and a 24 px knob value hung out of the bottom of the
 # window - the render said so before the window did.  The graph gives up 44 px of height
@@ -462,22 +462,25 @@ def draw_header(canvas):
     x0, y0, x1, y1 = HEADER
     cy = (y0 + y1) / 2
 
+    # Two rows a side, on a fixed baseline grid.  The type grew a step and a header whose
+    # lines were placed at "centre - 7" started overlapping itself the moment one of them
+    # got a pixel taller: the tagline moved up into the wordmark.
     # wordmark: light weight, wide tracking, left.  No pill in the middle (G50).
-    caps(d, (x0, cy - 7), "AEQ", T_BODY, BRASS_HOT, 3.4, bold=True)
-    caps(d, (x0 + caps_w("AEQ", T_BODY, 3.4, True) + 8, cy - 7), "RESTORE", T_BODY,
+    caps(d, (x0, 14), "AEQ", T_BODY, BRASS_HOT, 3.4, bold=True)
+    caps(d, (x0 + caps_w("AEQ", T_BODY, 3.4, True) + 8, 14), "RESTORE", T_BODY,
          LINE + (120,), 3.4)
+
+    # tagline under the wordmark: the one line that says what this is
+    ar_text(d, (x0, 38), TAGLINE, T_CAP, SOFT)
 
     # state: a pill at the right edge, and the seal LED
     label_w = ar_w(SEAL_STATE, T_CAP) + 40
-    pill(canvas, (x1 - label_w, cy - 11, x1, cy + 11), SEAL_STATE, T_CAP,
+    pill(canvas, (x1 - label_w, 14, x1, 44), SEAL_STATE, T_CAP,
          fill=BRASS + (26,), line=BRASS + (90,), text_col=BRASS_HOT)
-    led(canvas, x1 - label_w + 12, cy, 3)
+    led(canvas, x1 - label_w + 12, 29, 3)
 
     # the seal never changes by itself: said once, at the seal
-    ar_text(d, (x1, cy + 14), FOOTER_SEAL, T_MICRO, DIM, anchor="ra")
-
-    # tagline under the wordmark: the one line that says what this is
-    ar_text(d, (x0, y1 - 9), TAGLINE, T_BODY, SOFT)
+    ar_text(d, (x1, 46), FOOTER_SEAL, T_MICRO, DIM, anchor="ra")
 
 
 # ------------------------------------------------------------------ the graph
