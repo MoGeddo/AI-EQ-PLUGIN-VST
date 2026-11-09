@@ -743,3 +743,30 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: design/preview/check_juce_api.py
   EXPECT: no literal size under 14 px in the UI sources
   FALSIFY: put 12.0f back on one label -> FAIL text under the 14 px floor: CurveView.h: 12 px
+
+- [x] G71: the moving layer exists, and it is measured.
+  Four reference products do one thing this plugin did not: a bank of bands that moves
+  while the take plays (Ozone's Stabilizer, Equator's resonance suppression, AQ's adaptive
+  curve) - on top of the learned curve, not instead of it.  The plugin had a static curve,
+  two pitch-locked holds and a de-esser, and the user's standing complaint was that nothing
+  moved.  `dsp/Stabilizer.h` is that bank: ten half-octave bands, 150 Hz - 3.4 kHz, each
+  holding its part of the voice at the level *this take* gave it, cutting only, 3 dB per
+  band / 6 dB in total, 4 ms attack and 180 ms release.
+  Three things had to be right before it worked, and each was caught by a measurement:
+  the envelope started at 0 dB (full scale) instead of silence, so every band slammed its
+  ceiling for the first 50 ms; the target was taken from the 1/12-octave analyser grid and
+  compared against a 1/2-octave detector, which are different quantities, so every band
+  thought the voice was permanently over; and the learned level was a mean of *raw*
+  sub-block power, which a note's 2 ms onset dominates, putting the target 10 dB above what
+  the band reads while the note plays.  The target is now measured by the same filter on
+  the same audio, as the mean of the same smoothed level, carried through the low cut and
+  the frozen curve - and the two readouts agree to 0.1 dB (Tests/test_stabilizer.cpp).
+  A uniformly louder phrase is *not* levelled: the target follows loudness by the corpus
+  slope, so what is left to cut is what is above the take at that frequency.  Measured on
+  an 8 dB-louder phrase: -0.23 dB (inaudible), and on a 12 dB ring at 1.2 kHz: -4.77 dB at
+  the ring with -0.05 dB on the note (Tests/test_integration_stabilizer.cpp).
+  CHECK: build/aeq_stabilizer && build/aeq_stabilizer_chain
+  EXPECT: 16 passed, 0 failed / 14 passed, 0 failed
+  FALSIFY: set `ratio` to 0.2 in Stabilizer.h -> "the loud part is pulled back (-0.56 dB)"
+  FAILS, and the rest still pass; restoring 0.6 turns it green again.  The branch is tested
+  by breaking it, not by reading it.

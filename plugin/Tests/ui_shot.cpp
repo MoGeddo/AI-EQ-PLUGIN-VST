@@ -204,6 +204,7 @@ int runControls(const juce::File& dir) {
             { AeqAudioProcessorEditor::Control::ModeMatch,   "MATCH" },
             { AeqAudioProcessorEditor::Control::StrengthKnob, "strength dial" },
             { AeqAudioProcessorEditor::Control::AutoStopKnob, "auto-stop dial" },
+            { AeqAudioProcessorEditor::Control::StabiliserKnob, "stabiliser dial" },
         };
         // find each one by scanning the window at 2 px: the layout is the layout, not a
         // number copied into this test
@@ -220,7 +221,7 @@ int runControls(const juce::File& dir) {
             if (ok) ++found;
             check(ok, (juce::String("the ") + w.second + " can be hit by a pointer").toRawUTF8());
         }
-        check(found == 7, "seven controls are on the panel and each one is reachable");
+        check(found == 8, "eight controls are on the panel and each one is reachable");
     }
 
     // ---- 2. the clamp stops, and pressing it again opens ------------------------

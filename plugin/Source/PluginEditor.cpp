@@ -57,6 +57,7 @@ const char* kModeRestore = "RESTORE";
 const char* kModeMatch   = "MATCH";
 const char* kStrength  = "strength";
 const char* kAutoStop  = "auto-stop";
+const char* kStabiliser = "stabiliser";
 
 // A tracked-out Latin caption.  Arabic must never be tracked (it breaks the joins),
 // so this path exists only for the Latin micro-lines.
@@ -191,6 +192,7 @@ void AeqAudioProcessorEditor::buildControls() {
     const K specs[] = {
         { &amountKnob_, &amountName_, "amount",   kStrength,  0 },
         { &settleKnob_, &settleName_, "auto_stop", kAutoStop, 0 },
+        { &stableKnob_, &stabName_,   "stable",    kStabiliser, 0 },
     };
 
     for (const auto& k : specs) {
@@ -223,6 +225,8 @@ void AeqAudioProcessorEditor::buildControls() {
     // so the knob that says OFF at 0 was showing 45 s and was driving something else.
     aSettle_ = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (
         proc_.apvts(), "auto_stop", settleKnob_);
+    aStable_ = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (
+        proc_.apvts(), "stable", stableKnob_);
 }
 
 AeqAudioProcessorEditor::~AeqAudioProcessorEditor() {
@@ -329,6 +333,7 @@ Rectangle<int> AeqAudioProcessorEditor::controlBounds (Control c) const {
         }
         case Control::StrengthKnob: return amountKnob_.getBounds();
         case Control::AutoStopKnob: return settleKnob_.getBounds();
+        case Control::StabiliserKnob: return stableKnob_.getBounds();
         case Control::None:         break;
     }
     return {};
@@ -342,6 +347,7 @@ AeqAudioProcessorEditor::Control AeqAudioProcessorEditor::controlAt (Point<int> 
     if (modeSeg (1).contains (p))        return Control::ModeMatch;
     if (amountKnob_.getBounds().contains (p))  return Control::StrengthKnob;
     if (settleKnob_.getBounds().contains (p))  return Control::AutoStopKnob;
+    if (stableKnob_.getBounds().contains (p))  return Control::StabiliserKnob;
     if (chipAt (p) >= 0)                 return Control::Chip;
     return Control::None;
 }
@@ -372,6 +378,8 @@ String AeqAudioProcessorEditor::tooltipAt (Point<int> p) const {
             return String ("Drag up or down to trim this band; right click hands it back; "
                            "double click returns the solver's answer");
     }
+    if (stableKnob_.getBounds().contains (p))
+        return String ("Stabiliser: ten bands that hold every part of the voice at the level this take gave it");
     if (ribbon().contains (p)) return String ("The take: it fills while the plugin listens");
     if (well().contains (p))   return String ("Measured (blue) against the decision (pink)");
     return {};
@@ -402,7 +410,7 @@ bool AeqAudioProcessorEditor::keyPressed (const KeyPress& key) {
 void AeqAudioProcessorEditor::mouseWheelMove (const MouseEvent& e, const MouseWheelDetails& w) {
     // The knob under the pointer takes the wheel; everywhere else the wheel does nothing
     // rather than something surprising.
-    for (auto* s : { &amountKnob_, &settleKnob_ })
+    for (auto* s : { &stableKnob_, &amountKnob_, &settleKnob_ })
         if (s->getBounds().contains (e.getPosition())) {
             s->mouseWheelMove (e.getEventRelativeTo (s), w);
             return;
@@ -839,6 +847,8 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
         aeq::ui::draw (g, t2, { c.x - dx - w, cy - 20.0f * sy, w, kCap * sy * 1.35f },
                        Justification::centredRight, kCap * sy, Palette::muted());
     };
+    const Point<float> k0 (float (area.getRight()) - 370.0f * sx, cy);
+    labelFor (kStabiliser, k0, knobSize * 0.62f + 8.0f * sy);
     labelFor (kStrength, k1, knobSize * 0.62f + 8.0f * sy);
     labelFor (kAutoStop, k2, knobSize * 0.62f + 8.0f * sy);
 
@@ -857,6 +867,20 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     g.drawText (v2, Rectangle<float> (k2.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
                                       60.0f * sy, kValue * sy * 1.25f),
                 Justification::centredRight, false);
+    // the stabiliser dial shows its own doing: the amount it is set to, and under it the
+    // dB the ten bands are actually taking off right now.  A dial that moves a layer
+    // nobody can see is the "unclear" the panel kept being reported for.
+    const String v0 = String (roundToInt (stableKnob_.getValue())) + "%";
+    g.drawText (v0, Rectangle<float> (k0.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
+                                      60.0f * sy, kValue * sy * 1.25f),
+                Justification::centredRight, false);
+    if (proc_.core().stabilizerBands() > 0) {
+        const String live = String (proc_.core().stabilizerTotalDb(), 1) + " dB";
+        aeq::ui::draw (g, live, { k0.x - 74.0f * sy, cy + 11.0f * sy, 74.0f * sy, kCap * sy },
+                       Justification::centredRight, kCap * sy,
+                       proc_.core().stabilizerTotalDb() < -0.5 ? Palette::accent()
+                                                               : Palette::dim());
+    }
 }
 
 // --------------------------------------------------------------------------- copy
@@ -889,7 +913,7 @@ Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {
     const auto area = blocks().footer.toFloat();
     const auto s0 = modeSeg (0).toFloat(), s1 = modeSeg (1).toFloat();
     const float pillRight = s1.getRight() + 4.0f * sx;
-    const float knobsX = area.getRight() - 202.0f * sx - 110.0f * sx;
+    const float knobsX = area.getRight() - 370.0f * sx - 110.0f * sx;
     return { pillRight + 24.0f * sx, area.getY(),
              jmax (120.0f, knobsX - pillRight - 40.0f * sx), area.getHeight() };
 }
@@ -920,8 +944,10 @@ void AeqAudioProcessorEditor::resized() {
     const float sx = float (getWidth()) / kDesignW;
     const int cy = b.footer.getCentreY();
     const int box = roundToInt (54.0f * sy);    // body (42) + ring + seat
+    const int c0 = b.footer.getRight() - roundToInt (370.0f * sx);
     const int c1 = b.footer.getRight() - roundToInt (202.0f * sx);
     const int c2 = b.footer.getRight() - roundToInt (34.0f * sx);
+    stableKnob_.setBounds (c0 - box / 2, cy - box / 2, box, box);
     amountKnob_.setBounds (c1 - box / 2, cy - box / 2, box, box);
     settleKnob_.setBounds (c2 - box / 2, cy - box / 2, box, box);
 }

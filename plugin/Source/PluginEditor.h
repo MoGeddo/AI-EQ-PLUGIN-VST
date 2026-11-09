@@ -53,7 +53,7 @@ public:
     // plugin changed.  That needs the hit rectangles to be answerable from outside
     // paint(), which is all this is.
     enum class Control { None, Clamp, Bypass, Reset, ModeRestore, ModeMatch,
-                         Chip, StrengthKnob, AutoStopKnob };
+                         Chip, StrengthKnob, AutoStopKnob, StabiliserKnob };
     Control controlAt (juce::Point<int>) const;
     // The one place that answers "where is this control" - for the hit test above, and for
     // the tests that click the real panel instead of trusting a number they were told.
@@ -68,6 +68,7 @@ public:
 
     float strengthShown() const { return float (amountKnob_.getValue()); }
     float autoStopShown() const { return float (settleKnob_.getValue()); }
+    float stabiliserShown() const { return float (stableKnob_.getValue()); }
     int   chipCount() const { return int (chips_.size()); }
     int   chipSource (int i) const {
         return (i >= 0 && i < int (chips_.size())) ? chips_[size_t (i)].src : -1;
@@ -125,9 +126,11 @@ private:
 
     aeq::ui::CurveView curve_;
 
-    juce::Slider amountKnob_, settleKnob_;
-    juce::Label  amountName_, settleName_;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> aAmount_, aSettle_;
+    juce::Slider amountKnob_, settleKnob_, stableKnob_;
+    // the stabiliser's own readout: the bands that are cutting right now, as one number
+    float stabTotalShown_ = 0.0f;
+    juce::Label  amountName_, settleName_, stabName_;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> aAmount_, aSettle_, aStable_;
     std::unique_ptr<juce::LookAndFeel> look_;
 
     // the seal: how much of the take was heard when it was stopped

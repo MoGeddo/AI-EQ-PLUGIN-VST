@@ -12,6 +12,7 @@ constexpr const char* kAxis2  = "axis_body_air";
 constexpr const char* kAir    = "air_db";
 constexpr const char* kSettle = "settle_s";
 constexpr const char* kAutoStop = "auto_stop";
+constexpr const char* kStable = "stable";
 
 // RestoreSettings is a plain struct; comparing it is cheaper than rebuilding the
 // whole biquad cascade, and rebuild means an allocation - which must not happen
@@ -22,7 +23,7 @@ bool sameSettings(const aeq::RestoreSettings& a, const aeq::RestoreSettings& b) 
         && a.deEssAmount == b.deEssAmount && a.airTrimDb == b.airTrimDb
         && a.bypass == b.bypass && a.axis1 == b.axis1 && a.axis2 == b.axis2
         && a.learn == b.learn && a.settleSeconds == b.settleSeconds
-        && a.autoStopSeconds == b.autoStopSeconds;
+        && a.autoStopSeconds == b.autoStopSeconds && a.stabilizer == b.stabilizer;
 }
 
 // Settings that change the answer rather than how it is played back.  Bypass, learn and
@@ -81,6 +82,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout AeqAudioProcessor::createLay
                 .withStringFromValueFunction([](float v, int) {
                     return v < 1.f ? juce::String("OFF") : juce::String((int)v) + " s";
                 })));
+    // The stabiliser: ten moving bands that hold the voice on the curve this take gave
+    // it.  100 % is the product; 0 % takes them out of the path, which is the honest way
+    // to hear what they are doing.
+    l.add(std::make_unique<AudioParameterFloat>(kStable, "Stabiliser",
+              NormalisableRange<float>(0.f, 100.f, 1.f), 100.f,
+              AudioParameterFloatAttributes().withLabel("%")));
     l.add(std::make_unique<AudioParameterBool>(kBypass, "Bypass", false));
     return l;
 }
@@ -149,6 +156,7 @@ void AeqAudioProcessor::settingsFromParams() {
     settings_.airTrimDb        = apvts_.getRawParameterValue(kAir)->load();
     settings_.settleSeconds    = apvts_.getRawParameterValue(kSettle)->load();
     settings_.autoStopSeconds  = apvts_.getRawParameterValue(kAutoStop)->load();
+    settings_.stabilizer       = apvts_.getRawParameterValue(kStable)->load() / 100.0;
     settings_.bypass           = apvts_.getRawParameterValue(kBypass)->load() > 0.5f;
     settings_.learn            = learning_.load();
 }

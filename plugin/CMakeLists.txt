@@ -182,6 +182,20 @@ target_link_libraries(aeq_bounds PRIVATE aeq_asan)
 set_target_properties(aeq_bounds PROPERTIES CXX_STANDARD 17)
 add_test(NAME hostile_host COMMAND aeq_bounds)
 
+# The moving bank, on its own: a signal on the target passes, one above it is pulled
+# back by the ratio, one below it is never lifted, and the ceiling is a ceiling.
+add_executable(aeq_stabilizer Tests/test_stabilizer.cpp)
+target_include_directories(aeq_stabilizer PRIVATE Source)
+set_target_properties(aeq_stabilizer PROPERTIES CXX_STANDARD 17)
+add_test(NAME stabilizer_bank COMMAND aeq_stabilizer)
+
+# ... and inside the real chain: not in the path while learning, inaudible on the take's
+# own level, a 12 dB ring cut while the note under it is not, and never a leveller.
+add_executable(aeq_stabilizer_chain Tests/test_integration_stabilizer.cpp)
+target_include_directories(aeq_stabilizer_chain PRIVATE Source)
+set_target_properties(aeq_stabilizer_chain PROPERTIES CXX_STANDARD 17)
+add_test(NAME stabilizer_in_chain COMMAND aeq_stabilizer_chain)
+
 # Is the audio path smooth?  The analysis used to run inside processBlock (an
 # FFT-8192, a cepstrum and a pitch tracker, once every 2048 samples) and it allocated
 # there on the first frame; the EQ rebuilt its whole cascade 4 times a second, which

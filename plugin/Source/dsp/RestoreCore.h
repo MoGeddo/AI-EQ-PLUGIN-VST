@@ -18,6 +18,7 @@
 #include "Biquad.h"
 #include "DeEsser.h"
 #include "TrackedBand.h"
+#include "Stabilizer.h"
 #include "DynamicProfile.h"
 #include "EqSolver.h"
 #include "ProblemDetector.h"
@@ -43,6 +44,11 @@ struct RestoreSettings {
     // taste axes from the corpus study: warmth <-> presence, body <-> air
     double axis1 = 0.0;              // -1 .. +1
     double axis2 = 0.0;              // -1 .. +1
+
+    // The stabiliser's strength, 0..1.  0 takes the bank out of the path entirely.
+    // The user asked for a plug-in that keeps the take *on* the curve while it plays,
+    // not only one that draws a curve once; this is that layer's amount.
+    double stabilizer = 1.0;
 
     // How much sung audio to collect before the decision is *trusted* - it sets
     // `state().settled`, and the solver keeps refining until it is true.  0 means "trust
@@ -138,6 +144,11 @@ public:
         }
         phase_.store(int(Phase::Committed), std::memory_order_release);
         frozen_.store(true, std::memory_order_release);
+        // Make the audio thread read the pending slot even if it had already adopted the
+        // previous one.  Without this, a Stop pressed between two timer ticks found
+        // `pendingSeen_ == true` and the decision - the whole point of the product - was
+        // simply not applied until the next solve, which (once frozen) never comes.
+        pendingSeen_.store(false, std::memory_order_release);
         version_.fetch_add(1, std::memory_order_release);
     }
 
@@ -223,6 +234,24 @@ public:
     double trackedSlope(int i) const {
         return (i >= 0 && i < kTrackedMax) ? trackSpec_[size_t(i)].slopeDb : 1.0;
     }
+    // ---- the stabiliser (public, because the editor draws it) ------------------
+    int stabilizerBands() const { return stabPubCount_.load(std::memory_order_relaxed); }
+    double stabilizerHz(int i) const {
+        return (i >= 0 && i < Stabilizer::kMaxBands) ? stabPubHz_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
+    }
+    double stabilizerGainDb(int i) const {
+        return (i >= 0 && i < Stabilizer::kMaxBands) ? stabPubGain_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
+    }
+    double stabilizerLevelDb(int i) const {
+        return (i >= 0 && i < Stabilizer::kMaxBands) ? stabPubLevel_[size_t(i)].load(std::memory_order_relaxed) : -120.0;
+    }
+    double stabilizerTargetDb(int i) const {
+        return (i >= 0 && i < Stabilizer::kMaxBands) ? stabPubTarget_[size_t(i)].load(std::memory_order_relaxed) : -120.0;
+    }
+    // The sum of the bands that are cutting right now - what the panel shows as one
+    // number, because ten numbers moving is not a readout, it is decoration.
+    double stabilizerTotalDb() const { return stabPubTotal_.load(std::memory_order_relaxed); }
+
     double trackedCentreHz(int i) const {
         return (i >= 0 && i < kTrackedMax) ? trackedPubHz_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
     }
@@ -241,8 +270,12 @@ public:
         fs_ = sampleRate;
         maxBlock_ = std::max(1, maxBlockSize);
         analyzer_.prepare(fs_);
+        learnStab_.prepare(fs_);
+        beginLearnBank();
         hpf_.set(80.0, fs_);
         deEsser_.prepare(fs_);
+        stab_.prepare(fs_);
+        stab_.setAmount(settings_.stabilizer);
         eqLeft_.reset();
         eqRight_.reset();
         scratch_.assign(maxBlock_, 0.0f);   // kept for the report; processBlock never trusts it
@@ -270,6 +303,10 @@ private:
         hpf_.reset(); deEsser_.reset();
         for (auto& t : tracked_) { t.prepare(fs_); t.reset(); }
         trackedActive_ = 0;
+        stab_.prepare(fs_);
+        stab_.setBands(nullptr, 0);
+        stabPubCount_.store(0, std::memory_order_relaxed);
+        stabPubTotal_.store(0.0, std::memory_order_relaxed);
         // both locks are attempted, never waited on: a mutex that blocks the audio
         // thread is a dropout, and the caller of a reset can be a user clicking twice
         if (auto lk = std::unique_lock<std::mutex> (stateMx_, std::try_to_lock); lk.owns_lock())
@@ -280,10 +317,22 @@ private:
     }
 
     // analysis thread only
+    // Point the learn bank at the grid, with cutting switched off.
+    void beginLearnBank() {
+        double hz[Stabilizer::kMaxBands] = {};
+        const int n = Stabilizer::grid(hz, Stabilizer::kMaxBands);
+        learnStab_.beginLearn(hz, n, 2.5);
+        learning_ = true;
+        learnLoudDb_ = -30.0;
+        learnLoudN_ = 0;
+    }
+
     void resetAnalysisNow() {
         fifoRead_.store(fifoWrite_.load(std::memory_order_acquire), std::memory_order_release);
         fifoDropped_.store(0);
         analyzer_.reset();
+        learnStab_.prepare(fs_);
+        beginLearnBank();
         learnProgress_ = 0.0;
         // The published counter has to go too.  The DSP half clears state_, but
         // analyzedSeconds is republished by the next refresh - and a refresh right after a
@@ -430,6 +479,25 @@ public:
                 trackedPubHz_[size_t(i)].store(b.centreHz(), std::memory_order_relaxed);
             }
 
+            // 3b. the stabiliser.  Ten bands that hold each part of the voice at the
+            //     level this take had while the plug-in was listening, cutting only when
+            //     something pushes above it.  This is the layer that moves *all the time*
+            //     - Ozone's stabiliser, Equator's resonance suppression and AQ's adaptive
+            //     curve, in one bank - and it sits last so it sees what the static curve
+            //     and the pitch bands left over.
+            if (stabActive_ > 0) {
+                stab_.setLoudness(loudPub_.load(std::memory_order_relaxed));
+                stab_.process(wetChL_.data(), right ? wetChR_.data() : nullptr, m);
+                for (int i = 0; i < stabActive_; ++i) {
+                    stabPubHz_[size_t(i)].store(stab_.bandHz(i), std::memory_order_relaxed);
+                    stabPubGain_[size_t(i)].store(stab_.gainDb(i), std::memory_order_relaxed);
+                    stabPubLevel_[size_t(i)].store(stab_.levelDb(i), std::memory_order_relaxed);
+                    stabPubTarget_[size_t(i)].store(stab_.effectiveTargetDb(i), std::memory_order_relaxed);
+                }
+                stabPubCount_.store(stabActive_, std::memory_order_relaxed);
+                stabPubTotal_.store(stab_.totalGainDb(), std::memory_order_relaxed);
+            }
+
             // 4. crossfade, not a gain ramp: `dry + a*(wet - dry)` is dry at a = 0,
             //    which is what makes the commit silent.  Scaling the wet path from zero
             //    turns the first block of a committed decision into a step to silence.
@@ -532,6 +600,21 @@ public:
             for (size_t i = 0; i < n; ++i) chunk[i] = fifo_[size_t((r + i) & kFifoMask)];
             fifoRead_.store(r + n, std::memory_order_release);
             analyzer_.processBlock(chunk.data(), int(n));
+            // The stabiliser's targets are measured by the bank's own detector on this
+            // very audio, so the number it defends is the number it saw.  Learn-mode
+            // bands never cut (maxGrDb 0), so this cannot touch the signal.
+            if (learning_ && settings_.learn && !settings_.bypass) {
+                learnStab_.process(chunk.data(), nullptr, int(n));
+                double sq = 0.0;
+                for (int j = 0; j < int(n); ++j) sq += double(chunk[size_t(j)]) * chunk[size_t(j)];
+                const double ms = sq / double(n);
+                const double lvl = 10.0 * std::log10(std::max(ms, 1e-14));
+                if (lvl > -70.0) {          // voice, not the room between phrases
+                    const double a = 1.0 - std::exp(-double(n) / (fs_ * 0.15));
+                    learnLoudDb_ += a * (lvl - learnLoudDb_);
+                    ++learnLoudN_;
+                }
+            }
             learnProgress_ = analyzer_.activeFraction();
         }
     }
@@ -772,6 +855,43 @@ public:
             for (int i = 0; i < nLayers; ++i) pendingTrack_[size_t(i)] = layers[size_t(i)];
             pendingTrackCount_ = nLayers;
 
+            // The stabiliser's targets, from the same measurement the curve was solved
+            // from: the level this take had in each band, after the static curve and the
+            // pitch layers have had their say.  A band that was never learned keeps a
+            // target of -120 dB, so it stays silent forever instead of cutting audio the
+            // take never contained.
+            {
+                double hz[Stabilizer::kMaxBands] = {};
+                const int nStab = Stabilizer::grid(hz, Stabilizer::kMaxBands);
+                // The pitch layers are deliberately *not* in the sum: they are the
+                // moving part, and a target that contains their current gain would move
+                // the goalposts while the band is trying to hold them.  The static curve
+                // is in the sum because it is frozen from here on.
+                std::array<BandSpec, kBands> st{};
+                const int nSt = activeBandsIntoLocked(st.data(), kBands);
+                // The learn bank measured the *dry* take (during the pass-through every
+                // sample was untouched), but the bank itself sits after the low cut and
+                // the static curve.  Those two are deterministic transfer functions, so
+                // the target is carried through them exactly rather than left 6 dB low -
+                // which made every band think the voice was permanently quieter than the
+                // take and never cut at all (the first version of this file).
+                HighPass24 hp;
+                hp.set(corner > 0.0 ? corner : 70.0, fs_);
+                for (int i = 0; i < nStab; ++i) {
+                    Stabilizer::Band b;
+                    b.hz = hz[i];
+                    b.targetDb = learnStab_.learnedLevelDb(i);
+                    b.targetDb += hp.magDb(hz[i]);
+                    for (int k = 0; k < nSt; ++k) b.targetDb += bandMagDb(st[size_t(k)], hz[i], fs_);
+                    b.maxGrDb = 3.0;
+                    b.q = 2.5;
+                    b.slopeDb = std::clamp(corpusSlope(hz[i]), 0.0, 1.0);
+                    b.loudRefDb = learnLoudDb_;
+                    pendingStab_[size_t(i)] = b;
+                }
+                pendingStabCount_ = nStab;   // solved always; the amount decides if it runs
+            }
+
             ++pendingVersion_;
         }
         pendingSeen_.store(false);
@@ -843,6 +963,15 @@ public:
             b.reset();
             trackSpec_[size_t(i)] = sp;
         }
+        // the stabiliser travels in the same slot; its targets were measured at commit
+        stab_.setAmount(settings_.stabilizer);
+        stabActive_ = (settled && settings_.stabilizer > 0.001)
+                        ? std::min(pendingStabCount_, Stabilizer::kMaxBands) : 0;
+        stab_.setBands(pendingStab_.data(), stabActive_);
+        if (stabActive_ == 0) {
+            stabPubCount_.store(0, std::memory_order_relaxed);
+            stabPubTotal_.store(0.0, std::memory_order_relaxed);
+        }
         hpf_.set(settled && pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
         deEsser_.setEnabled(settled && pendingDeEssOn_);
         if (settled) deEsser_.setParameters(pendingDeThr_, pendingDeGr_);
@@ -851,6 +980,11 @@ public:
 
     // ------------------------------------------------------------- settings
     void setSettings(const RestoreSettings& s) {
+        // The stabiliser's amount is the one setting that decides whether a layer that is
+        // already solved is in the path, so moving it has to make the audio thread look at
+        // the pending slot again - otherwise turning it back up after a commit does
+        // nothing until the next solve, and there is no next solve: the pass is frozen.
+        if (s.stabilizer != settings_.stabilizer) pendingSeen_.store(false, std::memory_order_release);
         settings_ = s;
         // "settle 0" has always meant "apply as soon as a decision exists" - the CLI
         // and the offline gates depend on it.  Keep that meaning: the phase starts
@@ -863,6 +997,10 @@ public:
         version_.fetch_add(1, std::memory_order_release);
     }
     const RestoreSettings& settings() const { return settings_; }
+    double dbgOutGain() const { return outGain_; }
+    double dbgApplyGain() const { return applyGain_; }
+    double dbgLearned(int i) const { return learnStab_.learnedLevelDb(i); }
+    std::vector<BandSpec> dbgBands() const { std::lock_guard<std::mutex> lk(stateMx_); return activeBandsLocked(); }
 
     RestoreState state() const {
         std::lock_guard<std::mutex> lk(stateMx_);
@@ -1131,6 +1269,20 @@ private:
     std::atomic<double> trackedPubHz_[kTrackedMax];
     // decided on the analysis thread, adopted by the audio thread in pollAndApply()
     TrackedSpec pendingTrack_[kTrackedMax]{};
+    Stabilizer stab_;                                  // audio thread only
+    Stabilizer learnStab_;                             // analysis thread only: measures the take
+    bool learning_ = true;
+    double learnLoudDb_ = -30.0;                       // the take's own loudness
+    int learnLoudN_ = 0;
+    int stabActive_ = 0;
+    std::array<Stabilizer::Band, Stabilizer::kMaxBands> pendingStab_{};
+    int pendingStabCount_ = 0;
+    std::atomic<int> stabPubCount_{0};
+    std::atomic<double> stabPubTotal_{0.0};
+    std::atomic<double> stabPubHz_[Stabilizer::kMaxBands];
+    std::atomic<double> stabPubGain_[Stabilizer::kMaxBands];
+    std::atomic<double> stabPubLevel_[Stabilizer::kMaxBands];
+    std::atomic<double> stabPubTarget_[Stabilizer::kMaxBands];
     int pendingTrackCount_ = 0;
     EqSolver solver_;
     ProblemDetector detector_;
