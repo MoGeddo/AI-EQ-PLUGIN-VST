@@ -708,3 +708,15 @@ at any vocal stem first; the other gates need nothing but the source tree.
   FALSIFY: design/preview/check_match.py --against-v8 · EXPECT 5 problems
 
 
+
+- [x] G69: the version is written in one place, and CI does not edit itself.
+  bump_version.py used to rewrite `.github/workflows/build-windows.yml` on every bump,
+  because the installer step carried its own copy of the version.  From 1.2.31 on, every
+  push that touched that file produced a CI run with **zero jobs** and the message
+  "workflow file issue" - three release cycles' worth of confusion, a run that no `gh run
+  view --log` can explain because there is no log.  The installer reads
+  installer/AEQ_Restore.iss now, the workflow passes no version, and the bump script writes
+  two files (iss + CMakeLists) instead of four.  The version is single-sourced, and no
+  release step edits CI's own definition.
+  CHECK: python installer/bump_version.py --check
+  EXPECT: OK: X.Y.Z, two files listed
