@@ -13,6 +13,7 @@ on:
       - '**.md'
   workflow_dispatch:
 
+# The workflow carries no version number: installer/AEQ_Restore.iss does (1.2.31a).
 permissions:
   contents: write
 
