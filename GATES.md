@@ -716,7 +716,15 @@ at any vocal stem first; the other gates need nothing but the source tree.
   "workflow file issue" - three release cycles' worth of confusion, a run that no `gh run
   view --log` can explain because there is no log.  The installer reads
   installer/AEQ_Restore.iss now, the workflow passes no version, and the bump script writes
-  two files (iss + CMakeLists) instead of four.  The version is single-sourced, and no
-  release step edits CI's own definition.
+  two files (iss + CMakeLists) instead of four.
+
+  **The copy had to come back.**  Two attempts to take the version out of the workflow (a
+  step that derives it from the .iss, 1.2.31 and 1.2.33) were rejected by GitHub with a run
+  of zero jobs and the message "workflow file issue" - a shape that passes every local YAML
+  parse, produces no log because there is no job to log, and blocks every later push until
+  the literal is restored.  Restoring it made CI run again, twice, within a minute.  So the
+  workflow carries the number, bump_version.py keeps it in sync, and the check refuses to
+  let the three disagree.  What survives is the useful half: the installer script no longer
+  has a private default (it reads the .iss when no -Version is given).
   CHECK: python installer/bump_version.py --check
-  EXPECT: OK: X.Y.Z, two files listed
+  EXPECT: OK: X.Y.Z, three files listed

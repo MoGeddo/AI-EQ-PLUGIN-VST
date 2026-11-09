@@ -61,12 +61,7 @@ jobs:
         run: |
           # *>&1 merges Write-Host (the information stream) into the log: without
           # it the packaging step fails silently in CI
-          # The version is read from installer/AEQ_Restore.iss, the one place it is written.
-          # It is not repeated here: a copy in CI's own definition is a copy that drifts, and
-          # a stale one ships an .exe that lies about itself.
-          $v = ((Select-String -Path installer/AEQ_Restore.iss -Pattern 'AppVersion "(\d+\.\d+\.\d+)"').Matches)[0].Groups[1].Value
-          if (-not $v) { throw "cannot read AppVersion from installer/AEQ_Restore.iss" }
-          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version $v *>&1 |
+          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.2.33 *>&1 |
               Tee-Object -FilePath build.log -Append
           "`n=== installer exit: $LASTEXITCODE ===" | Tee-Object -FilePath build.log -Append
           if ($LASTEXITCODE -ne 0) {
