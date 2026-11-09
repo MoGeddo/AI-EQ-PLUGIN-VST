@@ -2,12 +2,16 @@
 """
 bump_version.py - change the version number in every place that carries it.
 
-The version lives in four files, and a release is only correct when all four agree:
+The version lives in two files, and a release is only correct when both agree:
 
   installer/AEQ_Restore.iss              #define AppVersion "x.y.z"
   plugin/CMakeLists.txt                  project(AEQRestore VERSION x.y.z ...)
-  installer/build_installer.ps1          [string]$Version = "x.y.z"
-  .github/workflows/build-windows.yml    -Version x.y.z
+
+It used to live in four.  The installer script and the workflow each carried their own
+copy, so every bump edited the workflow file - and on 1.2.31 a push that rewrote the
+workflow produced a run with no jobs at all and the message "workflow file issue", which
+cost a release cycle to diagnose.  A number that is copied into a CI definition is a
+number that breaks CI.  Both read the .iss now; this script writes two files.
 
 CI refuses to build when they disagree (see the "Check the version" step), so this
 script exists to make the mistake impossible rather than to fix it after the fact.
@@ -30,10 +34,6 @@ SITES = [
      re.compile(r'(#define AppVersion ")(\d+\.\d+\.\d+)(")')),
     (ROOT / "plugin" / "CMakeLists.txt",
      re.compile(r"(project\(AEQRestore VERSION )(\d+\.\d+\.\d+)( LANGUAGES)")),
-    (ROOT / "installer" / "build_installer.ps1",
-     re.compile(r'(\[string\]\$Version = ")(\d+\.\d+\.\d+)(")')),
-    (ROOT / ".github" / "workflows" / "build-windows.yml",
-     re.compile(r"(-Version )(\d+\.\d+\.\d+)(\s)")),
 ]
 
 
@@ -59,7 +59,7 @@ def main():
         for path, v in found.items():
             print(f"  {path:<42} {v or 'MISSING'}")
         if None in found.values() or len(uniq) != 1:
-            print("FAIL: the version is not consistent across the four files")
+            print("FAIL: the version is not consistent across both files")
             return 1
         print(f"OK: {uniq.pop()}")
         return 0

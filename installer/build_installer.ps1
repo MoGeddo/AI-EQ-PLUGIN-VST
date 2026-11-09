@@ -4,13 +4,17 @@
 #   .\build_installer.ps1                    build the plugin, then the installer
 #   .\build_installer.ps1 -SkipBuild         reuse the existing plugin build
 #   .\build_installer.ps1 -Version 1.0.1     stamp a different version
+#
+# With no -Version it reads installer/AEQ_Restore.iss, which is the one place the version
+# is written.  It is not copied into this file: a copy is a thing that drifts, and the
+# workflow used to carry a third copy of the same number.
 #   .\build_installer.ps1 -Sign              also sign, if a certificate is set up
 #
 # Needs: everything build_windows.ps1 needs, plus Inno Setup 6.3+
 #        winget install JRSoftware.InnoSetup
 
 param(
-    [string]$Version = "1.2.31",
+    [string]$Version = "",
     [switch]$SkipBuild,
     [switch]$Sign
 )
@@ -24,6 +28,13 @@ function Fail($msg) { Write-Host ""; Write-Host "FAILED: $msg" -ForegroundColor 
 function Step($msg) { Write-Host ""; Write-Host "== $msg ==" -ForegroundColor Cyan }
 
 # ---------------------------------------------------------------- 1. the plugin
+if (-not $Version) {
+    $iss = Join-Path $here "AEQ_Restore.iss"
+    $line = (Select-String -Path $iss -Pattern '#define AppVersion "(\d+\.\d+\.\d+)"').Matches
+    if (-not $line) { Fail "cannot read the version from $iss" }
+    $Version = $line[0].Groups[1].Value
+    Write-Host "version   : $Version (from AEQ_Restore.iss)"
+}
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { Fail "version must look like 1.0.0 (got '$Version')" }
 
 if (-not $SkipBuild) {
