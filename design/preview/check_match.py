@@ -115,23 +115,34 @@ def load(path: str, w: int, h: int) -> Image.Image:
 
 
 def row_edges(im: Image.Image, x0: int = 200, x1: int = 980) -> list[float]:
-    """Horizontal edges, as the rows where the mean vertical gradient spikes.
+    """Horizontal edges, as the rows where the vertical gradient is a *line*.
 
     Only the middle of the width is sampled: the blocks have rounded corners, and a
     corner is a diagonal that shows up as a weak edge across the whole row and drowns
     the straight one.
+
+    The strength is the 25th percentile of the per-column gradient, not its mean, and
+    that distinction is the whole gate.  A block edge is a line: it crosses every column
+    of the block, so even the faintest quarter of the width is brighter than the field.
+    A row of text is not: the p round of "HEARD 21.4 S ..." covers 46 % of the columns and
+    nothing at all in the other half, so its mean spikes while its weakest quarter is zero.
+    Measured with the mean, the caption's own type (mean 114 at 21 px, after the type grew
+    in 1.2.27) outranked the well's bottom hairline (mean 11, but on every single column),
+    and the matcher reported the graph's bottom edge at the caption's baseline.  The gate
+    was reading a sentence as a block.
     """
     px = im.load()
     w, h = im.size
     x1 = min(x1, w - 1)
     rows = []
     for y in range(1, h):
-        s = 0.0
+        cols = []
         for x in range(x0, x1, 2):
             a = px[x, y]
             b = px[x, y - 1]
-            s += abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])
-        rows.append((s / ((x1 - x0) / 2), y))
+            cols.append(abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2]))
+        cols.sort()
+        rows.append((cols[len(cols) // 4], y))
     rows.sort(reverse=True)
     return rows
 
@@ -259,7 +270,7 @@ def compare(shot_path: str, render_path: str, verbose: bool = True) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.25-window.png"))
+    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.30-window.png"))
     ap.add_argument("--render", default=str(ui.OUT))
     ap.add_argument("--against-v8", action="store_true",
                     help="compare the approved v8 panel with the v9 window: must FAIL")

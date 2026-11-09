@@ -675,3 +675,34 @@ at any vocal stem first; the other gates need nothing but the source tree.
   type was 18/15.
   CHECK: design/preview/check_juce_api.py
   EXPECT: juce ok: ... type 15/17/20/26 px, smallest at the floor
+
+- [x] G66: the line that says the verdict has to fit the row that says it.
+  At the panel's true type size (G67) the footer's sentences are ~100 characters, and a
+  single line of them ran through the dial labels on the shipped 1.2.26 window.  Wrapping
+  is one function now (`aeq::ui::wrapWords`, measured with the same font the painter uses),
+  line pitch is one number (`aeq::ui::linePitch`, 1.25 em - not JUCE's 1.874 em line box,
+  which made two lines of 19 px type "measure" 72 px in a 52 px row), and the control stage
+  asserts that the state on screen fits *and* that all six states `PanelCopy.h` can produce
+  fit, by measuring them in the same box the paint code builds.
+  The first version of this gate failed on CI and was wrong: it measured with TextLayout.
+  CHECK: aeq_shot controls (Windows CI) · EXPECT: 43 passed, 0 failed
+
+- [x] G67: the panel draws type at the size its own design says.
+  `juce::Font`'s height is ascent + descent, not the em: for the embedded Cairo that is
+  1.874 em, so every label was drawn at 53 % of its nominal size - a 15 px micro step
+  painted an 8 px em, cap height 5.6 px, on the shipped window.  That is what
+  "الخطوط مش واضحة ... صغيرة و مش باينة" was pointing at while the type floor in
+  check_juce_api read "13 px" and passed.  Sizes are ems everywhere now, converted in one
+  place (`atEmHeight` in ArabicText.cpp), and the floor moved 12 -> 14 with the scale at
+  15/17/20/26.
+  Measured: 'SEALED' cap height 8 px at 1.2.26, 11 px at 1.2.30, in the approved render 11 px.
+  CHECK: design/preview/check_juce_api.py · EXPECT: type 15/17/20/26 px, smallest at the floor
+
+- [x] G68: a block edge is a line across the block, not a row that happens to be bright.
+  check_match scored rows by the mean gradient, so once the type grew the caption's own
+  text (mean 114 at the caption baseline) outranked the well's bottom hairline (mean 11 -
+  but on every column) and the gate reported the graph's bottom edge at the caption's
+  baseline, 9 px off, on two drawings that agreed to 1 px.  Strength is the 25th percentile
+  of the per-column gradient now: a block edge crosses the block, a sentence does not.
+  CHECK: design/preview/check_match.py · EXPECT: 6 edges within 1 px
+  FALSIFY: design/preview/check_match.py --against-v8 · EXPECT 5 problems
