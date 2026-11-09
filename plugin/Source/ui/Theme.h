@@ -168,6 +168,14 @@ inline void label (juce::Graphics& g, const juce::String& text, juce::Rectangle<
                    juce::Colour c, float size,
                    juce::Justification j = juce::Justification::centredLeft,
                    bool bold = false) {
+    // The colour is set here as well as passed on.  aeq::ui::draw builds a TextLayout, and
+    // a TextLayout paints its own glyphs but leaves the Graphics colour as it found it
+    // afterwards, so a hairline drawn *after* a label is stroked in that label's colour.
+    // That is how the well's eight octave lines came out bright enough to read as white
+    // cables while the render's are nearly invisible (measured on the 1.2.32 screenshot:
+    // #b6b4c4 against the render's #262a45), and why the axis numbers - asked for muted -
+    // were the brightest thing in the graph.
+    g.setColour (c);
     aeq::ui::draw (g, text, r.toFloat(), j, size, c, bold ? Face::SemiBold : Face::Regular);
 }
 

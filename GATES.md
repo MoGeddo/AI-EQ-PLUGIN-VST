@@ -728,3 +728,18 @@ at any vocal stem first; the other gates need nothing but the source tree.
   has a private default (it reads the .iss when no -Version is given).
   CHECK: python installer/bump_version.py --check
   EXPECT: OK: X.Y.Z, three files listed
+
+- [x] G70: the grid is a hairline, and every label is on the panel's type scale.
+  Two defects, one cause - `aeq::ui::draw` builds a TextLayout, which paints its glyphs in
+  the colour it was given but leaves the *Graphics* colour at whatever the label asked for.
+  So `drawGrid` set the line colour once above its loop and then stroked seven of the eight
+  octave lines in the axis numbers' colour: measured on the 1.2.32 screenshot, a vertical
+  line at #b6b4c4 where the approved render's is #262a45 - eight white cables across the
+  graph, and the MUTED axis numbers were the brightest thing in it.
+  The same loop also drew those numbers at 12 px and the empty-state line at 12.5 px while
+  kMicro said 13 and the gate watched kMicro.  `label()` now sets the colour it is given,
+  `drawGrid` sets it before every line, and every literal size in the UI sources is checked
+  against the 14 px floor - not just the constant.
+  CHECK: design/preview/check_juce_api.py
+  EXPECT: no literal size under 14 px in the UI sources
+  FALSIFY: put 12.0f back on one label -> FAIL text under the 14 px floor: CurveView.h: 12 px

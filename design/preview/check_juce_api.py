@@ -230,6 +230,26 @@ with tempfile.TemporaryDirectory() as td:
         notes.append(f"type {micro:.0f}/{cap:.0f}/{body:.0f}/{value:.0f} px, smallest at "
                      f"the floor")
 
+        # ... and the floor applies to the *whole* UI, not to one constant.  The graph's
+        # axis numbers were 12 px and its empty-state line 12.5 px while kMicro said 13,
+        # so the gate that watched kMicro passed a panel whose smallest text was 12.  Every
+        # literal size passed to a drawing helper is read out of the sources now.
+        too_small = []
+        for f in sorted((p for p in (SRC / "ui").glob("*.h") if p.name != "ProblemList.h"),
+                        ) + [editor]:
+            if not f.exists():
+                continue
+            for m in re.finditer(r"(?:label|draw|drawParagraph|caption|trackedText|numeral)\s*"
+                                 r"\([^;]{0,400}?Palette::\w+(?:\(\))?[^;]{0,80}?(\d{1,2}\.\d)f",
+                                 f.read_text()):
+                v = float(m.group(1))
+                if 5.0 <= v < 14.0:
+                    too_small.append(f"{f.name}: {v:g} px")
+        if too_small:
+            problems.append("text under the 14 px floor: " + ", ".join(sorted(set(too_small))[:6]))
+        else:
+            notes.append("no literal size under 14 px in the UI sources")
+
     shot = SRC.parent / "Tests" / "ui_shot.cpp"
     if shot.exists():
         # JUCE_MODAL_LOOPS_PERMITTED: the shot runs the message loop while it analyses,

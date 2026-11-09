@@ -194,22 +194,24 @@ private:
     void drawGrid (juce::Graphics& g) {
         // the render's grid is nearly invisible: it is there to be found, not to be
         // read.  At 0.55 the eight decade lines were the loudest thing in the well.
-        g.setColour (Palette::line().withAlpha (0.10f));
+        // Set before *every* line, not once above the loop: a label between two lines
+        // leaves the Graphics colour at what the label asked for.
         const double ticks[] = { 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
         for (double f : ticks) {
             const float x = xOf (f);
+            g.setColour (Palette::line().withAlpha (0.10f));
             g.drawVerticalLine (int (x), plot_.getY(), plot_.getBottom());
             label (g, f >= 1000 ? juce::String (f / 1000.0, 0) + "k" : juce::String (int (f)),
-                   { int (x) - 18, int (plot_.getBottom()) + 2, 36, 14 },
-                   Palette::muted(), 12.0f, juce::Justification::centred);
+                   { int (x) - 20, int (plot_.getBottom()) + 2, 40, 18 },
+                   Palette::muted(), 17.0f, juce::Justification::centred);
         }
         for (int db = int (kDbMin); db <= int (kDbMax); db += 6) {
             const float y = yOf (double (db));
             g.setColour (Palette::line().withAlpha (db == 0 ? 0.18f : 0.09f));
             g.drawHorizontalLine (int (y), plot_.getX(), plot_.getRight());
             label (g, (db > 0 ? "+" : "") + juce::String (db),
-                   { int (plot_.getX()) - 38, int (y) - 8, 32, 16 },
-                   Palette::muted(), 12.0f, juce::Justification::centredRight);
+                   { int (plot_.getX()) - 42, int (y) - 9, 36, 18 },
+                   Palette::muted(), 15.0f, juce::Justification::centredRight);
         }
     }
 
@@ -221,11 +223,11 @@ private:
         label (g, "NO MEASUREMENT YET - PLAY THE TAKE FROM THE TOP",
                juce::Rectangle<int> (int (area.getX()), int (blockTop),
                                      int (area.getWidth()), 24),
-               Palette::muted(), 15.0f, juce::Justification::centred);
+               Palette::muted(), 17.0f, juce::Justification::centred);
         label (g, "the meter fills as it plays; nothing is applied before it settles",
                juce::Rectangle<int> (int (area.getX()), int (blockTop) + 26,
                                      int (area.getWidth()), 20),
-               Palette::muted().withAlpha (0.75f), 12.5f, juce::Justification::centred);
+               Palette::muted().withAlpha (0.85f), 15.0f, juce::Justification::centred);
     }
 
     void drawCorridor (juce::Graphics& g) {
@@ -471,7 +473,7 @@ private:
                 g.fillRoundedRectangle (box, 6.0f);
                 g.setColour (Palette::line());
                 g.drawRoundedRectangle (box, 6.0f, 1.0f);
-                label (g, text, box.toNearestInt(), Palette::text(), 13.0f,
+                label (g, text, box.toNearestInt(), Palette::text(), 15.0f,
                        juce::Justification::centred, false);
             }
         }
@@ -493,15 +495,15 @@ private:
             // system font is what turned it into boxes
             const auto txt = it.ar + "  ";
             aeq::ui::draw (g, txt, juce::Rectangle<float> (x, r.getY(), 80.0f, r.getHeight()),
-                           juce::Justification::centredLeft, 13.0f, Palette::muted());
-            x += aeq::ui::measure (txt, 13.0f) + 8.0f;
+                           juce::Justification::centredLeft, 15.0f, Palette::muted());
+            x += aeq::ui::measure (txt, 15.0f) + 8.0f;
         }
         // the corridor earns its own entry: it is the answer to "why no action?"
         const float sx = r.getRight() - 250.0f;
         g.setColour (Palette::standard().withAlpha (0.22f));
         g.fillRoundedRectangle (sx, r.getCentreY() - 6.0f, 18.0f, 12.0f, 3.0f);
         label (g, "engineer's range (1 sd)", { int (sx) + 26, int (r.getY()), 230, int (r.getHeight()) },
-               Palette::muted(), 13.0f);
+               Palette::muted(), 15.0f);
     }
 
     void drawHover (juce::Graphics& g) {
@@ -518,7 +520,7 @@ private:
                                           plot_.getY() + 4.0f, 74.0f, 18.0f);
         g.setColour (Palette::panelHi());
         g.fillRoundedRectangle (box, 4.0f);
-        label (g, text, box.toNearestInt(), Palette::text(), 13.0f, juce::Justification::centred);
+        label (g, text, box.toNearestInt(), Palette::text(), 15.0f, juce::Justification::centred);
     }
 
     bool embedded_ = false;
