@@ -270,7 +270,7 @@ def compare(shot_path: str, render_path: str, verbose: bool = True) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.30-window.png"))
+    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.34-window.png"))
     ap.add_argument("--render", default=str(ui.OUT))
     ap.add_argument("--against-v8", action="store_true",
                     help="compare the approved v8 panel with the v9 window: must FAIL")
