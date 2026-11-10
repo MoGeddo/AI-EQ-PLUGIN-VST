@@ -135,7 +135,27 @@ winget install JRSoftware.InnoSetup        # مرة واحدة
 
 التفاصيل والرخصة والتوقيع: `docs/12_INSTALLER_AR.md`.
 
-بوابات القبول (18/18 ناجحة، بما فيها حقن أعطال معروفة والتأكد إنها اتصلحت):
+### هدف Match: من ريكورد إلى منحنى، بأداة واحدة
+
+```bash
+sh scripts/build_linux_tests.sh
+
+# 1) مجلد ستيمات -> بروفايل واحد بمحلل البلجن نفسه (wav مباشرة، mp3/flac بفك ترميز داخلي)
+.venv/bin/pip install miniaudio          # مرة واحدة
+python3 analysis/scripts/measure_amir_stems.py "<مجلد الستيمات>" --name "AMIR 15"
+#    -> analysis/out/amir15/amir_stems.aeqprof  + فرق المنحنى عن جدول AmirTarget.h
+
+# 2) إثبات إن التصحيح بيعيش بعد مسار الصوت، بمحلل مستقل
+python3 analysis/scripts/verify_match_render.py     # 6.20 -> 1.83 dB (70% أقرب)
+python3 analysis/scripts/compare_rulers.py           # البلجن ضد density: 0.96 dB RMS
+python3 analysis/scripts/gate_reference_roundtrip.py # نفس المرجع = نفس الصوت
+```
+
+في البلجن: بيل `REFERENCE` في الهيدر بيفتح `.aeqprof`، والاسم بيظهر عليه، وكليك
+يمين بيرجّع الهدف الافتراضي. المرجع بيتحفظ مع المشروع ويرجع معاه.
+
+بوابات القبول (نفس الجملة اللي تحت، بس السجل اتوسّع: `GATES.md` بقى 66 بوابة
+منها 30 بتتنفّذ وتنجح هنا — `python3 scripts/gate_check.py`):
 
 ```bash
 g++ -std=c++17 -O2 -Iplugin/Source plugin/Tests/test_core.cpp -o aeq_tests && ./aeq_tests

@@ -285,7 +285,8 @@ int main(int argc, char** argv) {
                     "       aeq_cli process in.wav out.wav [--amount 1.0] [--maxgain 6] [--bands 8]\n"
                     "                        [--ref profile.aeqprof] [--mode match]\n"
                     "       aeq_cli profile in.wav out.aeqprof [--name \"who it sounds like\"]\n"
-                    "       aeq_cli profile --from-dir stems/ out.aeqprof [--name \"Amir 15\"]\n");
+                    "       aeq_cli profile --from-dir stems/ out.aeqprof [--name \"Amir 15\"]\n"
+                    "       aeq_cli profile --rewrite in.aeqprof out.aeqprof\n");
         return 1;
     }
     const std::string mode = argv[1];
@@ -295,6 +296,22 @@ int main(int argc, char** argv) {
     // anyone re-implementing the analyser in Python and hoping the two agree.
     if (mode == "profile" && argc >= 6 && std::string(argv[2]) == "--from-dir")
         return profileFromDir(argv[3], argv[4], refNameOf(argc, argv));
+    // `profile --rewrite in out`: read a profile, write it back.  The file is user input
+    // that becomes the target of an EQ, so the parser and the writer have to agree with
+    // each other bit for bit - otherwise a profile saved by the plugin and reloaded by the
+    // plugin is a slightly different curve, which is exactly the kind of drift a session
+    // that reopens "sounding different" is made of.
+    if (mode == "profile" && argc >= 5 && std::string(argv[2]) == "--rewrite") {
+        std::ifstream f(argv[3]);
+        std::stringstream ss; ss << f.rdbuf();
+        const auto prof = aeq::fromText(ss.str());
+        if (! prof.valid()) { std::printf("cannot read profile %s\n", argv[3]); return 3; }
+        std::ofstream o(argv[4], std::ios::binary);
+        o << aeq::toText(prof);
+        std::printf("rewrote %s: %zu bands, name \"%s\"\n", argv[4], prof.db.size(),
+                    prof.name.c_str());
+        return 0;
+    }
 
     Wav w;
     if (!loadWav(argv[2], w)) return 2;

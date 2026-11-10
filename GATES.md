@@ -857,8 +857,14 @@ at any vocal stem first; the other gates need nothing but the source tree.
   CHECK: python3 analysis/scripts/gate_stems_profile.py
   EXPECT: STEMS PROFILE OK
   EVIDENCE: VERIFIED - STEMS PROFILE OK
-  FALSIFY: move `core.setSettings(s)` back above the `--ref` block -> "no match number was
-  printed" (run, then restored).
+  The CLI defect this gate found was reproduced afterwards by building the CLI from
+  d4fab9a and running the same command: with `--ref` it printed "reference: ..." and no
+  `match to target` line at all, because the settings had been pushed to the core before
+  the reference was known.  The current build prints `match to target  : reference,
+  3.57 -> 1.77 dB RMS (51% closer)` on the same file.
+  FALSIFY: blend the unmeasurable file instead of skipping it (drop the `continue` after
+  `if (!ok)`) -> "expected 3 usable stems, blended 4" and "the silent stem was blended
+  instead of skipped" (run, then restored).
 
 - [x] G76: the rendered file is closer to Amir's curve, measured by something else.
   Every number in the plugin comes from the analyser that solved the curve, which makes it
@@ -899,3 +905,38 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: the plugin reports density
   FALSIFY: pass `--bandpower` (or sum the bins again in verify_match_render.py) -> the
   independent distance goes back to 3.69 dB and stops matching the plugin's 1.83 dB.
+
+- [x] G78: a saved reference is the same curve, and the same render, after a round trip.
+  The promise is that a session reopens sounding like it did.  The plugin stores the
+  reference *as text* inside the project state, so the text surviving a read/write loop is
+  the text surviving a save and a reopen.  `aeq_cli profile --rewrite in out` is that loop
+  made runnable: parse a profile, write it back, compare - then render the same take twice
+  against it and compare the audio.  Any hidden state in the solve shows up as two renders
+  that differ; any loss of precision in the writer shows up as a profile that changes when
+  it is read and written back.
+  CHECK: python3 analysis/scripts/gate_reference_roundtrip.py
+  EXPECT: REFERENCE ROUND TRIP OK
+  FALSIFY: make the target resolution prefer the corpus over a loaded profile
+  (`if (false && reference_.valid())`) -> "the solve targeted 'AMIR 15', not the
+  reference", while the CLI still prints its loading line (run, then restored).  Note the
+  first falsification attempted here - "%.4g" in `Profile::toText` - did NOT fail, and that
+  is itself the finding: a lost-digit writer is idempotent, so a file written and read back
+  agrees with itself.  Precision loss is only visible against a file written by a *different*
+  build, which is why this gate pairs the byte comparison with the target-name check.
+
+- [x] G79: the command that measures his stems runs end to end, and refuses to be reassuring.
+  `analysis/scripts/measure_amir_stems.py` is the one command that turns a folder of Amir's
+  dry stems into a target measured by *this plugin's* analyser - wav read directly, mp3/flac
+  decoded through the bundled `miniaudio` (no ffmpeg on this machine, and none needed), then
+  `aeq_cli profile --from-dir`, then a comparison of the result against the generated header.
+  His audio is not in this repository, so the gate builds the situation it can: three
+  synthetic takes whose curves are known, a silent file that must be skipped and counted, a
+  text file that is not audio, and a check that the comparison prints a number *and* says
+  the two instruments disagree when the material is not his.
+  Measured on the fixtures: 3 stems blended, 1 skipped, 73 shared bands, 11.40 dB RMS,
+  tilt -3.07 dB/octave, and the disagreement is stated rather than smoothed over.
+  CHECK: python3 analysis/scripts/gate_stems_target.py
+  EXPECT: STEMS TARGET OK
+  FALSIFY: hard-code `--name "reference"` in the command the script builds -> "the profile
+  is named 'reference', not the name given" and "the name did not reach the file" (run,
+  then restored).
