@@ -62,4 +62,18 @@ g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$tmp" -I"$JUCE_DIR/modules" \
     -DJUCE_MODULE_AVAILABLE_juce_audio_utils=1 -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 \
     -DJUCE_WEB_BROWSER=0 -DJUCE_USE_CURL=0 -DJUCE_STANDALONE_APPLICATION=1 \
     -DJUCE_MODAL_LOOPS_PERMITTED=1 "$tmp/tu3.cpp"
-echo "UI compiles against $JUCE_DIR"
+# The processor is the other translation unit the plugin is made of, and it is the one
+# that owns the project state (the reference text lives in it).  The editor includes its
+# header, which catches the declarations; this catches the definitions.
+printf '#include "%s/Source/PluginProcessor.cpp"\n' "$here" > "$tmp/tu4.cpp"
+g++ -std=c++17 -fsyntax-only -I"$here/Source" -I"$tmp" -I"$JUCE_DIR/modules" \
+    -DJUCE_MODULE_AVAILABLE_juce_core=1 -DJUCE_MODULE_AVAILABLE_juce_events=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_data_structures=1 -DJUCE_MODULE_AVAILABLE_juce_graphics=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_gui_basics=1 -DJUCE_MODULE_AVAILABLE_juce_gui_extra=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_audio_basics=1 -DJUCE_MODULE_AVAILABLE_juce_audio_devices=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_audio_formats=1 -DJUCE_MODULE_AVAILABLE_juce_audio_processors=1 \
+    -DJUCE_MODULE_AVAILABLE_juce_audio_utils=1 -DJUCE_MODULE_AVAILABLE_juce_dsp=1 \
+    -DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1 -DJUCE_WEB_BROWSER=0 -DJUCE_USE_CURL=0 \
+    -DJUCE_PLUGINHOST_VST3=0 -DJUCE_PLUGINHOST_AU=0 -DJUCE_STANDALONE_APPLICATION=0 \
+    "$tmp/tu4.cpp"
+echo "editor, processor and harness compile against $JUCE_DIR"

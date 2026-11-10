@@ -903,6 +903,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   agree on the render: 6.36 -> 1.82 dB (plugin) against 6.20 -> 1.83 dB (independent).
   CHECK: python3 analysis/scripts/compare_rulers.py --strict
   EXPECT: the plugin reports density
+  EVIDENCE: VERIFIED - the plugin reports density
   FALSIFY: pass `--bandpower` (or sum the bins again in verify_match_render.py) -> the
   independent distance goes back to 3.69 dB and stops matching the plugin's 1.83 dB.
 
@@ -916,6 +917,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   it is read and written back.
   CHECK: python3 analysis/scripts/gate_reference_roundtrip.py
   EXPECT: REFERENCE ROUND TRIP OK
+  EVIDENCE: VERIFIED - REFERENCE ROUND TRIP OK
   FALSIFY: make the target resolution prefer the corpus over a loaded profile
   (`if (false && reference_.valid())`) -> "the solve targeted 'AMIR 15', not the
   reference", while the CLI still prints its loading line (run, then restored).  Note the
@@ -937,6 +939,24 @@ at any vocal stem first; the other gates need nothing but the source tree.
   tilt -3.07 dB/octave, and the disagreement is stated rather than smoothed over.
   CHECK: python3 analysis/scripts/gate_stems_target.py
   EXPECT: STEMS TARGET OK
+  EVIDENCE: VERIFIED - STEMS TARGET OK
   FALSIFY: hard-code `--name "reference"` in the command the script builds -> "the profile
   is named 'reference', not the name given" and "the name did not reach the file" (run,
   then restored).
+
+- [x] G80: the editor, the processor and the harness compile against real JUCE 8.
+  The plugin is built on Windows, and this machine has no cmake, no X11 and no ALSA
+  headers - so "it compiles" was the one claim in this repository that lived in chat
+  instead of in the ledger, and it was wrong once: a filter that matched `": error"` never
+  saw GCC's `fatal error:`, so a missing include read as success.  `plugin/check_ui_compile.sh`
+  now syntax-checks the editor, the Arabic text funnel, the screenshot harness **and**
+  `PluginProcessor.cpp` (the translation unit that owns the project state, including the
+  reference text) against a JUCE 8 tree.  The gate is honest about its limit: without a
+  JUCE checkout at `JUCE_DIR` the CHECK is UNAVAILABLE here, not green.
+  CHECK: sh -c 'JUCE_DIR=/tmp/JUCE-8.0.4 sh plugin/check_ui_compile.sh'
+  EXPECT: editor, processor and harness compile
+  EVIDENCE: VERIFIED - editor, processor and harness compile
+  FALSIFY: add `static int bogus_ = "not an int";` to a TU the script covers -> g++ reports
+  "invalid conversion from 'const char*' to 'int'" and the script exits 1 (run, then
+  restored).  The harness was itself falsified once by a doubled backslash, which is why the
+  script's own continuation lines are part of what the gate runs.
