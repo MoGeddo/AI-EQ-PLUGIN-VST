@@ -286,7 +286,8 @@ int main(int argc, char** argv) {
                     "                        [--ref profile.aeqprof] [--mode match]\n"
                     "       aeq_cli profile in.wav out.aeqprof [--name \"who it sounds like\"]\n"
                     "       aeq_cli profile --from-dir stems/ out.aeqprof [--name \"Amir 15\"]\n"
-                    "       aeq_cli profile --rewrite in.aeqprof out.aeqprof\n");
+                    "       aeq_cli profile --rewrite in.aeqprof out.aeqprof\n"
+                    "       (--width <octaves> sets the Match comparison width, default 1/6)\n");
         return 1;
     }
     const std::string mode = argv[1];
@@ -327,6 +328,7 @@ int main(int argc, char** argv) {
         if (a == "--ref")     refPath = argv[i + 1];
         if (a == "--name")    refName = argv[i + 1];
         if (a == "--mode")    s.mode = (std::string(argv[i + 1]) == "match") ? 1 : 0;
+        if (a == "--width")   s.compareWidthOct = std::atof(argv[i + 1]);
     }
 
     aeq::RestoreCore core;

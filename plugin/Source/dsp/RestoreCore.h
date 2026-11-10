@@ -68,6 +68,16 @@ struct RestoreSettings {
     // numbers.
     double autoStopSeconds = 0.0;
 
+    // The width at which two spectra are compared in Match, in octaves (FWHM of the
+    // smoothing kernel).  Two voices are compared as *shapes*; at 1/12 octave a 1/12-octave
+    // band is narrower than the spacing between a singer's harmonics, so a band-by-band
+    // difference measures where each singer's harmonics happen to fall rather than how the
+    // voice is balanced.  Measured on Amir's own 15 stems (analysis/scripts/loo_match.py):
+    // at 1/12 octave a stem sits 12 dB from his own consensus, and the number falls to a
+    // couple of dB by 1/6.  0 disables smoothing (only meaningful when target and take were
+    // measured the same way and are already comparable).
+    double compareWidthOct = 1.0 / 6.0;
+
     // The pass cannot run forever.  Five minutes of sung audio is several songs or one
     // very long take; past that the decision is frozen where it stands rather than the
     // plugin listening into the next session with nothing applied.
@@ -720,10 +730,17 @@ public:
             // would widen the comparison twice and loosen the control - measured as a
             // restore pass taking 2.98 dB off the air above 6 kHz, which is exactly the
             // "eaten" sound this mode exists to avoid.  Width matching belongs to the
-            // Match path, where the table is the reference and nothing else smooths it.
-            in.targetWidthOct = (settings_.mode == 1) ? 1.0 / 3.0 : 0.0;
+            // Match path.
+            //
+            // In Match the width is `settings_.compareWidthOct`, and it is applied to *both*
+            // sides: the take and the target.  Smoothing only the take (what this did when
+            // the target was a 1/3-octave table) is a comparison between a smoothed curve
+            // and an unsmoothed one, which biases the difference towards whatever detail the
+            // target still has.  One width, both sides, is the only version that answers
+            // "how differently are these two voices balanced".
+            in.targetWidthOct = (settings_.mode == 1) ? std::max(0.0, settings_.compareWidthOct)
+                                                      : 0.0;
             if (reference_.valid()) {
-                in.targetWidthOct = 0.0;        // a profile: measured by this analyser
                 in.targetDb.resize(m.freqs.size(), 0.0);
                 const double r1k = reference_.at(1000.0);
                 for (size_t i = 0; i < m.freqs.size(); ++i)
@@ -733,9 +750,25 @@ public:
                 in.targetDb.resize(m.freqs.size(), 0.0);
                 for (size_t i = 0; i < m.freqs.size(); ++i)
                     in.targetDb[i] = AmirTarget::shapeAt(m.freqs[i]);
-                targetName_ = "AMIR 15";
+                targetName_ = AmirTarget::name;
+                // A 1/3-octave table is already that wide: widening it further would make
+                // the target easier to match than it is.  The comparison width can only
+                // narrow it, never widen it.
+                if (!AmirTarget::sameInstrument)
+                    in.targetWidthOct = std::max(in.targetWidthOct, 1.0 / 3.0);
             } else {
                 targetName_ = "13-TAKE CONSENSUS";
+            }
+            // Equal widths on both sides, on the grid the solver will use - and the same
+            // *domain*: energy, not decibels (see smoothLogPower).  The re-normalisation
+            // after smoothing is not cosmetic: smoothing moves a curve's value at 1 kHz,
+            // and every consumer normalises the *measurement* at 1 kHz after smoothing, so
+            // leaving the target normalised before it puts a constant bias into every
+            // distance (measured on the synthetic fixture: 2.97 dB became 13.20 dB).
+            if (in.targetWidthOct > 0.0 && !in.targetDb.empty()) {
+                smoothLogPower(in.targetDb, in.targetWidthOct, 12.0);
+                const double t1k = EqSolver::interpAt(in.freqs, in.targetDb, 1000.0);
+                for (auto& v : in.targetDb) v -= t1k;
             }
         }
         // the take as a profile too: this is what `referenceGapDb` compares against, and

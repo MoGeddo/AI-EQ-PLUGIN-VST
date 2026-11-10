@@ -12,6 +12,12 @@
 # The JUCE tree is not vendored: it is a 250 MB dependency fetched by CMake, and
 # keeping a copy in git to satisfy this check would be the wrong trade.
 set -e
+# The default search: a checkout placed anywhere on this machine, including the two places
+# a previous session put JUCE 8.0.4 (a /tmp download does not survive a restart, a
+# /opt or ~ copy does).  Unset and absent is UNAVAILABLE, never green.
+for candidate in /tmp/JUCE-8.0.4 "$HOME/JUCE-8.0.4" /opt/JUCE-8.0.4; do
+    if [ -d "$candidate/modules" ]; then JUCE_DIR="${JUCE_DIR:-$candidate}"; fi
+done
 JUCE_DIR="${JUCE_DIR:-/tmp/JUCE-8.0.4}"
 if [ ! -d "$JUCE_DIR/modules" ]; then
     echo "no JUCE source at $JUCE_DIR - set JUCE_DIR to a JUCE 8 checkout" >&2

@@ -960,3 +960,40 @@ at any vocal stem first; the other gates need nothing but the source tree.
   "invalid conversion from 'const char*' to 'int'" and the script exits 1 (run, then
   restored).  The harness was itself falsified once by a doubled backslash, which is why the
   script's own continuation lines are part of what the gate runs.
+
+- [x] G81: the numbers under Amir's target are recomputed, not asserted.
+  `AmirTarget.h` now comes from measuring his 15 dry stems with the plugin's own analyser,
+  and the three things that header claims - the per-band spread between his mixes, the
+  leave-one-out shift of the consensus, and the blended curve itself - were produced by
+  `analysis/scripts/amir_stems_stats.py` and read off one line of prose.  A number printed
+  by a script nobody re-computes is a number that gets to be wrong for a year.  The gate
+  builds three curves whose statistics can be worked out on paper (two 6 dB apart, one with
+  a 4 dB bump), writes them as per-song profiles, and compares what the script prints
+  against an independent power-domain computation: the blend at 500 Hz, the per-band spread,
+  and the LOO mean and worst, all to 0.01 dB.  It also pins the two properties that make the
+  number mean anything: the blend is a power mean (4.37 dB where the mean of decibels would
+  say 2.00, so the two cannot be confused) and a song that is the same shape only 7 dB
+  louder moves the target by 0.0000 dB.
+  CHECK: python3 analysis/scripts/gate_stems_stats.py
+  EXPECT: STEMS STATS OK
+  EVIDENCE: VERIFIED - STEMS STATS OK
+  FALSIFY: replace the power accumulation in `power_blend()` with a plain sum of decibels
+  -> the run raises `math domain error` and the gate exits 1 (run, then restored).
+
+- [x] G82: the leave-one-out tabulation reads what the CLI actually prints.
+  This is the experiment that decides whether the shipped target is really his curve, and it
+  lied once: the CLI pads its label (`match to target  : AMIR LOO, 1.19 -> 1.01 dB RMS`) and
+  the table looked for a line that began differently, dropped every song, and still exited 0.
+  The parse and the verdict are now separate functions, and the gate pins them to real
+  output copied from that run byte for byte: the padded and unpadded spellings both yield
+  1.19/1.01, the band count comes from `(1 bands)`, three non-match outputs return None, a
+  dull synthetic take through `build/aeq_cli` gives 4.60 -> 1.02 dB with 3 bands, and the
+  verdict accepts the real 15/15 table while rejecting a table where nothing closes and one
+  where a song comes out farther than it went in.
+  CHECK: python3 analysis/scripts/gate_loo_match.py
+  EXPECT: LOO MATCH OK
+  EVIDENCE: VERIFIED - LOO MATCH OK
+  FALSIFY: parse the band count as `int(hdr.split()[1])` - the historical bug - and the gate
+  dies on `invalid literal for int() with base 10: 'corrective'` (run, then restored).
+  (The 15-song run itself needs his 128 MB of stems: `python3 analysis/scripts/loo_match.py
+  --audio google_drive` printed 2.86 -> 1.59 dB, 15/15 closer, median 1.21 dB.)

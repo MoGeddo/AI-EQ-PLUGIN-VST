@@ -13,6 +13,11 @@
 //   5. the solver, given a target, puts its bands where the target differs
 //   6. the plugin, given a reference, solves *toward that reference* - and the curve it
 //      produces is measurably different from the corpus one
+//   7. the built-in target is Amir's own curve, and Restore never chases it
+//   8. comparing a curve to *itself* gives zero at every comparison width - the invariant
+//      that catches asymmetric smoothing (a target normalised before smoothing and a
+//      measurement normalised after it are not the same quantity: measured 2.97 dB became
+//      13.20 dB, which no EQ could close)
 #include "../Source/dsp/Profile.h"
 #include "../Source/dsp/EqSolver.h"
 #include "../Source/dsp/RestoreCore.h"
@@ -346,6 +351,43 @@ int main() {
         runMatch(0, &rb, &ra, &rname);
         checkF(rname == "13-TAKE CONSENSUS",
                "7. Restore still aims at the family average, unnamed by the panel (%.0f)", 0.0);
+    }
+
+    // ---- 8. a curve compared with itself is zero, at every width -----------------
+    // The invariant behind the comparison width: whatever smoothing the engine applies, it
+    // must apply the same thing to both sides.  When the target was normalised to 1 kHz
+    // *before* smoothing and the measurement *after* it, a take matched against its own
+    // profile came out 13.20 dB apart - a number the solver then tried to close with EQ.
+    {
+        const auto take = voice(196.0, 12.0, 0);
+        const auto self = capturedFrom(take, "same take");
+        for (double width : {0.0, 1.0 / 12.0, 1.0 / 6.0, 1.0 / 3.0}) {
+            aeq::RestoreCore core;
+            core.prepare(kSr, 256);
+            aeq::RestoreSettings s;
+            s.learn = true;
+            s.settleSeconds = 3600.0;
+            s.mode = 1;                       // Match
+            s.compareWidthOct = width;
+            core.setSettings(s);
+            core.setReferences({self}, {1.0});
+            std::vector<float> l(256), r(256);
+            size_t pos = 0; int blk = 0;
+            while (pos < take.size()) {
+                for (int i = 0; i < 256; ++i) {
+                    l[size_t(i)] = (pos + size_t(i) < take.size()) ? take[pos + size_t(i)] : 0.0f;
+                    r[size_t(i)] = l[size_t(i)];
+                }
+                core.processBlock(l.data(), r.data(), 256);
+                pos += 256;
+                if (++blk % 38 == 0) core.refresh();
+            }
+            core.refresh();
+            const double gap = core.state().gapBeforeDb;
+            checkF(gap < 0.6,
+                   "8. the same take against its own profile is %.2f dB apart at width %.3f",
+                   gap, width);
+        }
     }
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);

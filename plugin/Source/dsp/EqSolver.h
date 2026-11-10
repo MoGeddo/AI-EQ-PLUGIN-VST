@@ -135,6 +135,20 @@ inline void smoothLog(std::vector<double>& y, double octaves, double pointsPerOc
     y.swap(tmp);
 }
 
+// Smoothing a spectrum means averaging *energy*, not decibels.  Averaging dB values of a
+// signal whose bands alternate between +10 and -40 dB (a sung note at 1/12-octave
+// resolution is exactly that: harmonics with notches between them) collapses the whole
+// band range to one number, and two different voices then look identical because both
+// collapsed to their own average.  Every smoothing here goes through power.
+inline void smoothLogPower(std::vector<double>& dbCurve, double octaves, double pointsPerOct) {
+    if (dbCurve.empty() || octaves <= 0.0) return;
+    std::vector<double> p(dbCurve.size());
+    for (size_t i = 0; i < dbCurve.size(); ++i) p[i] = std::pow(10.0, dbCurve[i] / 10.0);
+    smoothLog(p, octaves, pointsPerOct);
+    for (size_t i = 0; i < dbCurve.size(); ++i)
+        dbCurve[i] = 10.0 * std::log10(std::max(p[i], 1e-20));
+}
+
 class EqSolver {
 public:
     // The measurement as the comparison sees it: smoothed to the target's bandwidth.
@@ -143,7 +157,7 @@ public:
     // the stabiliser, one layer down).
     static std::vector<double> asMeasured(const SolveInput& in) {
         std::vector<double> m = in.levelDb;
-        if (in.targetWidthOct > 0.0) smoothLog(m, in.targetWidthOct, 12.0);
+        smoothLogPower(m, in.targetWidthOct, 12.0);   // no-op when the width is 0
         return m;
     }
 

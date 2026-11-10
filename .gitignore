@@ -17,3 +17,7 @@ dist/
 installer/__pycache__/
 installer/_sizes_preview.png
 build/
+
+# his audio and the decoded caches (128 MB - never in the repository)
+google_drive/
+analysis/out/amir15/wav/

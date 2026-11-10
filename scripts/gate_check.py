@@ -151,7 +151,8 @@ def evaluate(gate: Gate) -> tuple[str, str]:
     # product failing.  Say which, loudly - silence is how a gate starts lying.
     for marker, why in (("ModuleNotFoundError", "python package missing"),
                         ("cannot open", "input file missing"),
-                        ("no wav files", "corpus not present here")):
+                        ("no wav files", "corpus not present here"),
+                        ("no JUCE source at", "JUCE checkout not present here")):
         if marker in combined:
             return "UNAVAILABLE", why
     if gate.expect not in combined:
