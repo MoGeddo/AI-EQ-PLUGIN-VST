@@ -1,0 +1,299 @@
+== checking prerequisites ==
+   cmake version 4.4.5
+   git ok (JUCE will be fetched on the first configure)
+   Visual Studio Enterprise 2026 (18.11.12328.437)
+== configure ==
+-- The CXX compiler identification is MSVC 19.51.36260.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- The C compiler identification is MSVC 19.51.36260.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - not found
+-- Found Threads: TRUE
+-- Performing Test AEQ_HAVE_TSAN
+-- Performing Test AEQ_HAVE_TSAN - Success
+-- AEQ: aeq_bounds built without AddressSanitizer (behavioural checks only)
+-- Configuring done (68.1s)
+-- Generating done (0.2s)
+-- Build files have been written to: D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build
+== build (Release) ==
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
+
+  Checking File Globs
+  1>Checking Build System
+  Generating AEQRestore_artefacts/JuceLibraryCode/AEQRestore_resources.rc
+  Generating aeq_shot_artefacts/JuceLibraryCode/aeq_shot_resources.rc
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  aeq_shot_rc_lib.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_shot_rc_lib.dir\Release\aeq_shot_rc_lib.lib
+  AEQRestore_rc_lib.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore_rc_lib.dir\Release\AEQRestore_rc_lib.lib
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Generating juce_binarydata_AEQRestoreFonts/JuceLibraryCode/BinaryData1.cpp, juce_binarydata_AEQRestoreFonts/JuceLibraryCode/BinaryData2.cpp, juce_binarydata_AEQRestoreFonts/JuceLibraryCode/BinaryData.h
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  juce_VST3ManifestHelper.cpp
+  BinaryData1.cpp
+  BinaryData2.cpp
+  Generating Code...
+  AEQRestoreFonts.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\AEQRestoreFonts.lib
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  PluginProcessor.cpp
+  PluginEditor.cpp
+  ArabicText.cpp
+  juce_audio_processors.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Profile.h(225,18): warning C4996: 'sscanf': This function or variable may be unsafe. Consider using sscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details. [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+  (compiling source file '../Source/PluginEditor.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Profile.h(225,18): warning C4996: 'sscanf': This function or variable may be unsafe. Consider using sscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details. [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+  (compiling source file '../Source/PluginProcessor.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(625,65): warning C4244: 'argument': conversion from 'int' to 'ValueType', possible loss of data [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(625,65): warning C4244:         with [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(625,65): warning C4244:         [ [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(625,65): warning C4244:             ValueType=float [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(625,65): warning C4244:         ] [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244: 'initializing': conversion from 'ValueType' to 'int', possible loss of data [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:         with [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:         [ [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:             ValueType=float [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:         ] [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244: 'initializing': conversion from 'ValueType' to 'const int', possible loss of data [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:         with [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:         [ [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:             ValueType=float [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(713,18): warning C4244:         ] [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1044,17): warning C4189: 'sy': local variable is initialized but not referenced [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+  juce_audio_processors_ara.cpp
+  juce_audio_processors_lv2_libs.cpp
+  juce_gui_extra.cpp
+  juce_vst3_helper.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\juce_vst3_helper.exe
+  juce_gui_basics.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\_deps\juce-src\modules\juce_gui_basics\juce_gui_basics.cpp(61): warning : This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore.vcxproj]
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_basics.cpp
+  juce_audio_utils.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  AEQRestore.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore_artefacts\Release\AEQ Restore_SharedCode.lib
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+     Creating library D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build/AEQRestore_artefacts/Release/VST3/AEQ Restore.lib and object D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build/AEQRestore_artefacts/Release/VST3/AEQ Restore.exp
+  Generating code
+  Finished generating code
+  AEQRestore_VST3.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore_artefacts\Release\VST3\AEQ Restore.vst3\Contents\x86_64-win\AEQ Restore.vst3
+  removing moduleinfo.json
+  creating D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build/AEQRestore_artefacts/Release/VST3/AEQ Restore.vst3/Contents/Resources/moduleinfo.json
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  test_bounds.cpp
+  main.cpp
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+  test_auto.cpp
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  test_smooth.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(263,18): error C2664: 'aeq::Profile measureFile(const char *,const std::string &,bool *)': cannot convert argument 1 from 'const std::filesystem::path::value_type *' to 'const char *' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_cli.vcxproj]
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(263,48):
+      Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(223,21):
+      see declaration of 'measureFile'
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(263,18):
+      while trying to match the argument list '(const std::filesystem::path::value_type *, std::string, bool *)'
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(264,43): warning C4477: 'printf' : format string '%s' requires an argument of type 'char *', but variadic argument 1 has type 'const std::filesystem::path::value_type *' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_cli.vcxproj]
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(264,43):
+      consider using '%ls' in the format string
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(264,43):
+      consider using '%lls' in the format string
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(264,43):
+      consider using '%Ls' in the format string
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(264,43):
+      consider using '%ws' in the format string
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(267,21): warning C4477: 'printf' : format string '%-40s' requires an argument of type 'char *', but variadic argument 1 has type 'const std::filesystem::path::value_type *' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_cli.vcxproj]
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(267,21):
+      consider using '%ls' in the format string
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(267,21):
+      consider using '%lls' in the format string
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(267,21):
+      consider using '%Ls' in the format string
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\cli\main.cpp(267,21):
+      consider using '%ws' in the format string
+  
+  test_profile.cpp
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(237,38): error C2079: 'aeq::BiquadCascade::cur_' uses undefined class 'std::array<aeq::Biquad,24>' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(237,46): error C2079: 'aeq::BiquadCascade::prev_' uses undefined class 'std::array<aeq::Biquad,24>' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(237,42): error C2439: 'aeq::BiquadCascade::cur_': member could not be initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(237,38):
+      see declaration of 'aeq::BiquadCascade::cur_'
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(237,51): error C2439: 'aeq::BiquadCascade::prev_': member could not be initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+      D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(237,46):
+      see declaration of 'aeq::BiquadCascade::prev_'
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(176,42): error C2079: 'next' uses undefined class 'std::array<aeq::Biquad,24>' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(190,53): error C2109: subscript requires array or pointer type [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+  ui_shot.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(190,82): error C2109: subscript requires array or pointer type [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  PluginProcessor.cpp
+  (compiling source file '../Tests/test_profile.cpp')
+  
+  PluginEditor.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(191,29): error C2109: subscript requires array or pointer type [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  ArabicText.cpp
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,35): error C3312: no callable 'begin' function found for type '<error>' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,35): error C3312: no callable 'end' function found for type '<error>' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,31): error C2530: 's': references must be initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,31): error C3531: 's': a symbol whose type contains 'auto' must have an initializer [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,33): error C2143: syntax error: missing ';' before ':' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,39): error C2143: syntax error: missing ';' before ')' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,67): error C3312: no callable 'begin' function found for type '<error>' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,67): error C3312: no callable 'end' function found for type '<error>' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,63): error C2530: 's': references must be initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,63): error C3531: 's': a symbol whose type contains 'auto' must have an initializer [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,65): error C2143: syntax error: missing ';' before ':' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(205,72): error C2143: syntax error: missing ';' before ')' [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(209,59): error C2109: subscript requires array or pointer type [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  aeq_auto.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_auto.exe
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(212,63): error C2109: subscript requires array or pointer type [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(221,79): error C2109: subscript requires array or pointer type [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(230,40): error C2676: binary '[': 'const std::array<aeq::Biquad,24>' does not define this operator or a conversion to a type acceptable to the predefined operator [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(230,27): error C2530: 'x': references must be initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(231,43): error C2109: subscript requires array or pointer type [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(231,27): error C2530: 'y': references must be initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(232,17): error C3536: 'x': cannot be used before it is initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Biquad.h(232,25): error C3536: 'y': cannot be used before it is initialized [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_profile.vcxproj]
+  (compiling source file '../Tests/test_profile.cpp')
+  
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  aeq_smooth.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_smooth.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  test_stabilizer.cpp
+  test_core.cpp
+  aeq_stabilizer.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_stabilizer.exe
+  aeq_bounds.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_bounds.exe
+  Generating code
+  juce_audio_utils.cpp
+  juce_audio_processors.cpp
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  juce_audio_processors_ara.cpp
+  juce_audio_processors_lv2_libs.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  test_integration_stabilizer.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\_deps\juce-src\modules\juce_gui_basics\juce_gui_basics.cpp(61): warning : This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_shot.vcxproj]
+  juce_graphics.cpp
+  aeq_stabilizer_chain.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_stabilizer_chain.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  test_threads.cpp
+  juce_core.cpp
+  aeq_threads.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_threads.exe
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  aeq_shot.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_shot_artefacts\Release\aeq_shot.exe
+  Finished generating code
+  AEQRestore_Standalone.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\AEQRestore_artefacts\Release\Standalone\AEQ Restore.exe
+  aeq_tests.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_tests.exe
+
+FAILED: build failed
+
+=== plugin build exit: 1 ===
