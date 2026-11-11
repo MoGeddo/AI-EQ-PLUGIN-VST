@@ -4,42 +4,42 @@
    "_f0": 260.0,
    "mud": [
     2.89,
-    1.71
+    1.92
    ],
    "box": [
     3.62,
-    1.39
+    1.32
    ],
    "nasal": [
     -0.44,
-    -0.06
+    -0.08
    ],
    "harsh": [
     -0.17,
-    -2.24
+    -1.84
    ],
    "boomtilt": [
     -50.0,
-    3.08
+    3.16
    ]
   },
   "\u0627\u0633\u0643\u062a - \u0623\u0646\u063a\u0627\u0645 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 320.0,
    "mud": [
     -50.0,
-    -2.06
+    -1.79
    ],
    "box": [
     4.31,
-    -0.23
+    -0.3
    ],
    "nasal": [
     -1.18,
-    -0.14
+    -0.16
    ],
    "harsh": [
     -1.8,
-    -1.28
+    -0.89
    ],
    "boomtilt": [
     -50.0,
@@ -50,180 +50,180 @@
    "_f0": 230.0,
    "mud": [
     -1.08,
-    -0.34
+    -0.13
    ],
    "box": [
     0.73,
-    0.61
+    0.54
    ],
    "nasal": [
     -1.2,
-    0.24
+    0.21
    ],
    "harsh": [
     0.37,
-    2.26
+    2.65
    ],
    "boomtilt": [
     -50.0,
-    -1.38
+    -1.56
    ]
   },
   "\u0627\u0644\u0642\u0645\u0631 - \u0631\u0627\u0645\u064a \u0635\u0628\u0631\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 250.0,
    "mud": [
     -1.79,
-    -4.02
+    -3.81
    ],
    "box": [
     -1.21,
-    -1.5
+    -1.57
    ],
    "nasal": [
     -1.58,
-    0.11
+    0.09
    ],
    "harsh": [
     -1.81,
-    0.47
+    0.86
    ],
    "boomtilt": [
     -50.0,
-    -3.77
+    -4.03
    ]
   },
   "\u0627\u064a\u0627\u0645\u064a - \u0631\u0627\u0645\u064a \u0635\u0628\u0631\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 220.0,
    "mud": [
     2.31,
-    1.11
+    1.32
    ],
    "box": [
     2.65,
-    1.81
+    1.74
    ],
    "nasal": [
     -1.62,
-    -0.22
+    -0.24
    ],
    "harsh": [
     -1.56,
-    -0.99
+    -0.59
    ],
    "boomtilt": [
     -50.0,
-    0.58
+    0.76
    ]
   },
   "\u0628\u062d\u0627\u0648\u0644 - \u0639\u0645\u0631\u0648 \u062f\u064a\u0627\u0628 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 240.0,
    "mud": [
     0.32,
-    0.73
+    0.93
    ],
    "box": [
     0.49,
-    0.28
+    0.21
    ],
    "nasal": [
     -1.06,
-    -0.43
+    -0.45
    ],
    "harsh": [
     -2.68,
-    -1.83
+    -1.44
    ],
    "boomtilt": [
     -50.0,
-    1.48
+    1.81
    ]
   },
   "\u062a\u0648\u0628\u0647 - \u0645\u062d\u0645\u062f \u062d\u0645\u0627\u0642\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 180.0,
    "mud": [
     6.76,
-    3.63
+    3.84
    ],
    "box": [
     0.25,
-    -2.2
+    -2.27
    ],
    "nasal": [
     -1.1,
-    -0.19
+    -0.21
    ],
    "harsh": [
     -0.14,
-    -2.4
+    -2.0
    ],
    "boomtilt": [
     -50.0,
-    6.14
+    5.77
    ]
   },
   "\u062c\u0631\u0627\u0644\u0643 \u0627\u064a\u0647 - \u0633\u0645\u064a\u0631\u0629 \u0633\u0639\u064a\u062f (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 340.0,
    "mud": [
     -50.0,
-    -3.39
+    -3.09
    ],
    "box": [
     -3.16,
-    0.89
+    0.82
    ],
    "nasal": [
     -0.85,
-    0.64
+    0.61
    ],
    "harsh": [
     0.77,
-    3.65
+    4.04
    ],
    "boomtilt": [
     -50.0,
-    -3.22
+    -3.25
    ]
   },
   "\u062c\u064a\u062a\u0644\u0643 - \u0639\u0645\u0631\u0648 \u062f\u064a\u0627\u0628 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 270.0,
    "mud": [
     -1.88,
-    -0.96
+    -0.75
    ],
    "box": [
     2.88,
-    -0.19
+    -0.26
    ],
    "nasal": [
     -0.73,
-    0.08
+    0.05
    ],
    "harsh": [
     -1.46,
-    -1.91
+    -1.52
    ],
    "boomtilt": [
     -50.0,
-    -0.2
+    -0.16
    ]
   },
   "\u0634\u0627\u06cc\u0641 \u0642\u0645\u0631 - \u0639\u0645\u0631\u0648 \u062f\u064a\u0627\u0628 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 290.0,
    "mud": [
     -50.0,
-    -2.86
+    -2.65
    ],
    "box": [
     0.18,
-    -0.13
+    -0.2
    ],
    "nasal": [
     -0.86,
-    0.07
+    0.05
    ],
    "harsh": [
     -4.56,
-    -5.17
+    -4.78
    ],
    "boomtilt": [
     -50.0,
@@ -234,65 +234,65 @@
    "_f0": 230.0,
    "mud": [
     3.81,
-    0.36
+    0.57
    ],
    "box": [
     2.76,
-    -0.43
+    -0.5
    ],
    "nasal": [
     -0.81,
-    -0.13
+    -0.16
    ],
    "harsh": [
     1.28,
-    1.96
+    2.35
    ],
    "boomtilt": [
     -50.0,
-    -0.33
+    -0.11
    ]
   },
   "\u0642\u0627\u0644\u0648\u0627 \u0639\u0646\u064a \u0627\u064a\u0647 - \u0645\u062d\u0645\u062f \u062d\u0645\u0627\u0642\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 230.0,
    "mud": [
     1.07,
-    2.45
+    2.66
    ],
    "box": [
     2.81,
-    0.84
+    0.78
    ],
    "nasal": [
     -0.82,
-    0.05
+    0.03
    ],
    "harsh": [
     -1.72,
-    -1.73
+    -1.34
    ],
    "boomtilt": [
     -50.0,
-    1.69
+    2.11
    ]
   },
   "\u0643\u0627\u0646 \u0628\u0631\u0626 - \u0623\u0646\u063a\u0627\u0645 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 320.0,
    "mud": [
     -50.0,
-    -0.79
+    -0.51
    ],
    "box": [
     -4.11,
-    -2.02
+    -2.09
    ],
    "nasal": [
     -2.04,
-    -0.04
+    -0.06
    ],
    "harsh": [
     -2.49,
-    -0.26
+    0.13
    ],
    "boomtilt": [
     -50.0,
@@ -303,52 +303,52 @@
    "_f0": 230.0,
    "mud": [
     0.89,
-    2.05
+    2.25
    ],
    "box": [
     1.67,
-    1.66
+    1.59
    ],
    "nasal": [
     -2.34,
-    -0.05
+    -0.07
    ],
    "harsh": [
     -4.12,
-    -1.37
+    -0.97
    ],
    "boomtilt": [
     -50.0,
-    1.5
+    1.92
    ]
   },
   "\u064a\u0627 \u0644\u0637\u064a\u0641 - \u0633\u0645\u064a\u0631\u0629 \u0633\u0639\u064a\u062f (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 350.0,
    "mud": [
     -50.0,
-    -3.29
+    -2.98
    ],
    "box": [
     -3.13,
-    0.24
+    0.17
    ],
    "nasal": [
     -2.28,
-    0.05
+    0.03
    ],
    "harsh": [
     2.7,
-    5.21
+    5.6
    ],
    "boomtilt": [
     -50.0,
-    -3.16
+    -3.19
    ]
   }
  },
  "inject": {
   "mud": {
-   "env": 1.9633333333333336,
+   "env": 1.956666666666667,
    "raw": 1.2133333333333332
   },
   "box": {
@@ -356,7 +356,7 @@
    "raw": 1.5266666666666666
   },
   "boomtilt": {
-   "env": 1.6300000000000001
+   "env": 1.5633333333333335
   }
  }
 }
