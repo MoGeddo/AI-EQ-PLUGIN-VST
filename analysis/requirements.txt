@@ -1,3 +1,10 @@
 numpy
 pillow
 pyyaml
+miniaudio
+arabic-reshaper
+python-bidi
+soundfile
+fonttools
+matplotlib
+scipy

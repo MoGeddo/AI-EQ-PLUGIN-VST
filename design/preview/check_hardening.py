@@ -40,8 +40,11 @@ problems: list[str] = []
 notes: list[str] = []
 
 # ------------------------------------------------------------------ static checks
-PY = [p for p in ROOT.rglob("*.py")
-      if ".git" not in p.parts and "build" not in p.parts and "node_modules" not in p.parts]
+# Third-party code is not our attack surface and is not ours to fix: a .venv full of
+# numpy helpers that shell out would turn this gate red for ever and teach everyone to
+# ignore it.  The boundary is *this repository's own code*.
+SKIP = {".git", "build", "node_modules", ".venv", "venv", "dist", "__pycache__"}
+PY = [p for p in ROOT.rglob("*.py") if not (SKIP & set(p.parts))]
 for p in PY:
     src = p.read_text(errors="ignore")
     rel = p.relative_to(ROOT)

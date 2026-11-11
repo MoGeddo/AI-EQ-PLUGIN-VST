@@ -16,12 +16,12 @@
 namespace aeq {
 
 struct EnvThresholds {
-    // mud: clean max +3.65 dB, +3.0 dB Q2.0 fault moves it +1.94 dB (raw bar +6.77)
+    // mud: clean max +3.63 dB, +3.0 dB Q2.0 fault moves it +1.96 dB (raw bar +6.76)
     static constexpr double mud = 3.8;
-    // box: clean max +1.89 dB, +3.0 dB Q2.0 fault moves it +1.65 dB (raw bar +4.35)
+    // box: clean max +1.81 dB, +3.0 dB Q2.0 fault moves it +1.67 dB (raw bar +4.31)
     static constexpr double box = 2.0;
-    // boomtilt: pitch-relative tilt (low 0.9-2.5 F0 minus body 3-8 F0): clean max +5.56 dB, fault at 1.5 F0 moves it +1.59 dB
-    static constexpr double boom_tilt = 5.7;
+    // boomtilt: pitch-relative tilt (low 0.9-2.5 F0 minus body 3-8 F0): clean max +6.14 dB, fault at 1.5 F0 moves it +1.63 dB
+    static constexpr double boom_tilt = 6.3;
 };
 
 } // namespace aeq

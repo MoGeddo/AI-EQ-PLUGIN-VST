@@ -48,6 +48,9 @@ ALLOWED_PREFIX = (
     "python3 ", "python ",
     ".venv/bin/python ",
     "build/", "./build/", "plugin/build/",
+    # a repository script, named explicitly: `sh -c` could run anything, so the narrow
+    # forms come first and the generic one is last
+    "sh plugin/", "sh scripts/",
     "mkdir ", "sh -c ", "g++ ", "cmake ", "ctest ", "git ",
     "head ", "test ", "ls ", "grep ",
 )
@@ -113,10 +116,18 @@ def runnable(check: str) -> tuple[bool, str]:
     if head in ("python3", "python"):
         if len(argv) < 2:
             return False, "python with no script"
+        # `python -c ...` is arbitrary code in a data file; the ledger may name a script in
+        # this repository, never a string to be executed
+        if argv[1].startswith("-"):
+            return False, f"python flags are not a script: {argv[1]}"
         target = argv[1]
     # Any executable path in the CHECK that is not in this checkout is simply not
     # available here (a Windows .exe, or a target this checkout never builds).
-    if "/" in head and not os.path.exists(os.path.join(ROOT, head.lstrip("./"))):
+    # NB: not `head.lstrip("./")` - that strips a *character set*, turning ".venv/bin/python"
+    # into "venv/bin/python", so every gate that runs inside the venv reported the venv as
+    # missing.  32 gates were UNAVAILABLE for that one reason.
+    local_head = head[2:] if head.startswith("./") else head
+    if "/" in head and not os.path.exists(os.path.join(ROOT, local_head)):
         if head.endswith("bin/python"):
             return False, ("python environment not built here: "
                            "python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt")
@@ -142,7 +153,10 @@ def evaluate(gate: Gate) -> tuple[str, str]:
     if not gate.expect:
         return "UNAVAILABLE", "no EXPECT line - nothing to compare against"
     try:
-        proc = subprocess.run(gate.check, shell=True, cwd=ROOT, text=True,
+        # list form, no shell=True: `sh -c` is spelled out so the hardening gate can see
+        # that the only string reaching a shell is a CHECK line that already passed the
+        # allowlist above
+        proc = subprocess.run(["sh", "-c", gate.check], cwd=ROOT, text=True,
                               capture_output=True, timeout=900)
     except subprocess.TimeoutExpired:
         return "FAIL", "timed out after 900 s"
@@ -152,7 +166,8 @@ def evaluate(gate: Gate) -> tuple[str, str]:
     for marker, why in (("ModuleNotFoundError", "python package missing"),
                         ("cannot open", "input file missing"),
                         ("no wav files", "corpus not present here"),
-                        ("no JUCE source at", "JUCE checkout not present here")):
+                        ("no JUCE source at", "JUCE checkout not present here"),
+                        ("no audio in", "his audio not on this machine")):
         if marker in combined:
             return "UNAVAILABLE", why
     if gate.expect not in combined:

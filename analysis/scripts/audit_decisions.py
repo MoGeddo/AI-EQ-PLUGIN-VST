@@ -43,9 +43,12 @@ def main():
                 if float(line.split()[5]) > -49:
                     tilt_measured += 1
             elif line.startswith("ZPEAK "):
-                _, f, z = line.split()
+                # `f` is the loop variable over the takes; rebinding it here is how one
+                # row of the table printed "339.0" instead of the song that produced the
+                # peak.  The peak's frequency gets its own name.
+                _, zf, z = line.split()
                 if float(z) > zmax:
-                    zmax, zwhere = float(z), float(f)
+                    zmax, zwhere = float(z), float(zf)
         takes = {i for i in ids if not i.endswith("_near")}
         per_take.append((os.path.basename(f)[:26], sorted(takes)))
         fires.update(takes)

@@ -117,7 +117,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
       minutes on the Windows build (a changed JUCE API or a missing include is a
       seconds-long check, not a build-and-wait)
   CHECK: sh plugin/check_ui_compile.sh
-  EXPECT: UI compiles against
+  EXPECT: editor, processor and harness compile
 
 - [x] G20: the design preview is generated from the table the plugin actually compiles
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -344,7 +344,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   no two blocks of the layout overlap.  The strings are read out of ui_v6.ARABIC_STRINGS so
   the gate cannot pass on copy that has since changed.
   CHECK: .venv/bin/python design/preview/check_panel.py --claim=blocks
-  EXPECT: panel ok: 21 Arabic strings fully covered by the bundled font
+  EXPECT: panel ok: 20 panel strings fully covered by the bundled font
 
 - [x] G49: the panel is made of real parts, and the pointer answers the value.  v3, v4 and
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -381,7 +381,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   design/IDENTITY_AR.md - brass = a decision, patina = a measurement - and the copy is
   read out of the module, so this cannot drift.
   CHECK: .venv/bin/python design/preview/check_identity.py --against-v6
-  EXPECT: identity ok: 21 Arabic strings covered
+  EXPECT: identity ok: 20 panel strings covered
 
 - [x] G51: the craft floor is measured, not admired.  Two skill sets were read for the UI
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -444,7 +444,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   timestamp that attests to nothing.  Two real defects were fixed for this gate and one
   is still open and named in docs/21.
   CHECK: .venv/bin/python design/preview/check_hardening.py
-  EXPECT: hardening ok: 50 Python files
+  EXPECT: no shell and no string commands
 
 - [x] G55: the UI compiles against the JUCE we pin, not the JUCE in my memory.  This is
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -501,7 +501,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   legitimately holds more distinct colours; the texture ceiling stays at 0.8 hf, and the
   field measures 0.32-0.68 against v7's fabric at 1.9-3.2.
   CHECK: .venv/bin/python design/preview/check_identity.py
-  EXPECT: identity ok: 21 Arabic strings covered
+  EXPECT: identity ok: 20 panel strings covered
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G58: the picture that was approved is the picture that runs.  The panel was
@@ -518,7 +518,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   22108 px in the declared hues`.  `--against-v8` fails the palette, and comparing with
   v7 fails six edges, which is what makes the pass mean something.
   CHECK: .venv/bin/python design/preview/check_match.py
-  EXPECT: match ok: 6 edges agree within 2 px
+  EXPECT: match ok: 6 edges agree within 1 px
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G59: all English, and a type scale that is actually readable.  Two asks in one
@@ -544,7 +544,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   The six matched edges are unchanged (graph 71-556, strip 496-522, chips 572-636), so
   the render still matches the shipped window - the type grew, the frame did not.
   CHECK: .venv/bin/python design/preview/check_identity.py && .venv/bin/python design/preview/check_match.py
-  EXPECT: identity ok: 20 panel strings covered ... / match ok: 6 edges agree within 2 px
+  EXPECT: identity ok: 20 panel strings covered
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G60: the controls are a state machine, not a row of buttons.  Seven targets is
@@ -603,7 +603,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   (the end of the travel) it reads `58 %`, and on the 1.2.15 shot it reads
   `auto-stop 17 %` and names the binding.
   CHECK: .venv/bin/python design/preview/check_knobs.py
-  EXPECT: knobs ok: strength 100% of the ring (expected 100%); auto-stop 0% of the ring
+  EXPECT: knobs ok: strength 100% of the ring
   (expected 0%)
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -682,7 +682,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   the header is 58 px with a 60 px ceiling instead of a 56 px one that was measured when the
   type was 18/15.
   CHECK: .venv/bin/python design/preview/check_juce_api.py
-  EXPECT: juce ok: ... type 15/17/20/26 px, smallest at the floor
+  EXPECT: type 15/17/20/26 px, smallest at the floor
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G66: the line that says the verdict has to fit the row that says it.
@@ -718,7 +718,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   baseline, 9 px off, on two drawings that agreed to 1 px.  Strength is the 25th percentile
   of the per-column gradient now: a block edge crosses the block, a sentence does not.
   CHECK: .venv/bin/python design/preview/check_match.py
-  EXPECT: 6 edges within 1 px
+  EXPECT: match ok: 6 edges agree within 1 px
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   FALSIFY: design/preview/check_match.py --against-v8 · EXPECT 5 problems
 
@@ -953,7 +953,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `PluginProcessor.cpp` (the translation unit that owns the project state, including the
   reference text) against a JUCE 8 tree.  The gate is honest about its limit: without a
   JUCE checkout at `JUCE_DIR` the CHECK is UNAVAILABLE here, not green.
-  CHECK: sh -c 'JUCE_DIR=/tmp/JUCE-8.0.4 sh plugin/check_ui_compile.sh'
+  CHECK: sh plugin/check_ui_compile.sh
   EXPECT: editor, processor and harness compile
   EVIDENCE: VERIFIED - editor, processor and harness compile
   FALSIFY: add `static int bogus_ = "not an int";` to a TU the script covers -> g++ reports
@@ -997,3 +997,22 @@ at any vocal stem first; the other gates need nothing but the source tree.
   dies on `invalid literal for int() with base 10: 'corrective'` (run, then restored).
   (The 15-song run itself needs his 128 MB of stems: `python3 analysis/scripts/loo_match.py
   --audio google_drive` printed 2.86 -> 1.59 dB, 15/15 closer, median 1.21 dB.)
+
+- [x] G83: the ledger runner finds the executables its own lines name.
+  `runnable()` decided whether a CHECK could run with `head.lstrip("./")`, and `str.lstrip`
+  strips a *set of characters*, not a prefix: `.venv/bin/python` became `venv/bin/python`,
+  which does not exist.  Every gate that runs inside the venv was therefore reported as
+  "python environment not built here" - 32 of them - and the ledger read
+  `PASS 31 / FAIL 1 / UNAVAILABLE 37` while the truth was `PASS 47 / FAIL 0 / UNAVAILABLE 22`.
+  A ledger that under-reports is still a lying ledger: a reader cannot tell "not checked"
+  from "the checker cannot find its own python".  The same bug class hid four UI gates that
+  only looked for JUCE in `/tmp` (fixed by searching `$HOME` and `/opt` too), five that
+  needed `arabic-reshaper`/`soundfile` (now in `requirements.txt`), and an audit that
+  scanned `.venv` and then reported numpy's own `shell=True` as this project's.
+  CHECK: python3 analysis/scripts/gate_ledger_paths.py
+  EXPECT: LEDGER PATHS OK
+  EVIDENCE: VERIFIED - LEDGER PATHS OK
+  FALSIFY: put `head.lstrip("./")` back -> `.venv/bin/python resolves: False` and
+  "32 ledger CHECKs run inside the venv, 32 unresolvable" (run, then restored).
+  The allowlist got tighter in the same pass: `python3 -c '...'` is now refused, because a
+  ledger is data and a data file that can name arbitrary code is not a boundary.

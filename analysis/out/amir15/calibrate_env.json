@@ -1,422 +1,362 @@
 {
  "clean": {
-  "\u0627\u062a\u0623\u062e\u0631_\u0639\u062a\u0627\u0628\u0646\u0627_-_\u0639\u0645\u0631\u0648_\u062f\u064a\u0627\u0628_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0627\u062a\u0623\u062e\u0631 \u0639\u062a\u0627\u0628\u0646\u0627 - \u0639\u0645\u0631\u0648 \u062f\u064a\u0627\u0628 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 260.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
    "mud": [
-    2.78,
-    1.72
+    2.89,
+    1.71
    ],
    "box": [
-    3.29,
-    1.42
+    3.62,
+    1.39
    ],
    "nasal": [
-    -0.49,
-    -0.02
+    -0.44,
+    -0.06
    ],
    "harsh": [
-    -0.27,
-    -2.16
+    -0.17,
+    -2.24
    ],
    "boomtilt": [
     -50.0,
-    3.15
+    3.08
    ]
   },
-  "\u0627\u0633\u0643\u062a_-_\u0623\u0646\u063a\u0627\u0645_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0627\u0633\u0643\u062a - \u0623\u0646\u063a\u0627\u0645 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 320.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
    "mud": [
     -50.0,
-    -1.9
+    -2.06
    ],
    "box": [
-    4.35,
-    -0.28
+    4.31,
+    -0.23
    ],
    "nasal": [
-    -1.21,
-    -0.03
+    -1.18,
+    -0.14
    ],
    "harsh": [
-    -1.67,
-    -1.04
+    -1.8,
+    -1.28
    ],
    "boomtilt": [
     -50.0,
-    -0.45
+    -0.34
    ]
   },
-  "\u0627\u0633\u0645\u0639\u064a\u0646\u064a_-_\u0631\u0627\u0645\u064a_\u0635\u0628\u0631\u064a_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0627\u0633\u0645\u0639\u064a\u0646\u064a - \u0631\u0627\u0645\u064a \u0635\u0628\u0631\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 230.0,
-   "boom": [
-    -50.0,
-    -2.1
-   ],
    "mud": [
+    -1.08,
+    -0.34
+   ],
+   "box": [
+    0.73,
+    0.61
+   ],
+   "nasal": [
+    -1.2,
+    0.24
+   ],
+   "harsh": [
+    0.37,
+    2.26
+   ],
+   "boomtilt": [
+    -50.0,
+    -1.38
+   ]
+  },
+  "\u0627\u0644\u0642\u0645\u0631 - \u0631\u0627\u0645\u064a \u0635\u0628\u0631\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
+   "_f0": 250.0,
+   "mud": [
+    -1.79,
+    -4.02
+   ],
+   "box": [
     -1.21,
-    -0.09
-   ],
-   "box": [
-    0.7,
-    0.81
+    -1.5
    ],
    "nasal": [
-    -1.3,
-    0.22
+    -1.58,
+    0.11
    ],
    "harsh": [
-    0.39,
-    2.83
+    -1.81,
+    0.47
    ],
    "boomtilt": [
     -50.0,
-    -1.63
+    -3.77
    ]
   },
-  "\u0627\u0644\u0642\u0645\u0631_-_\u0631\u0627\u0645\u064a_\u0635\u0628\u0631\u064a_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
-   "_f0": 260.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
-   "mud": [
-    -0.86,
-    -3.78
-   ],
-   "box": [
-    -1.27,
-    -1.42
-   ],
-   "nasal": [
-    -1.6,
-    0.12
-   ],
-   "harsh": [
-    -1.77,
-    0.95
-   ],
-   "boomtilt": [
-    -50.0,
-    -4.44
-   ]
-  },
-  "\u0627\u064a\u0627\u0645\u064a_-_\u0631\u0627\u0645\u064a_\u0635\u0628\u0631\u064a_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0627\u064a\u0627\u0645\u064a - \u0631\u0627\u0645\u064a \u0635\u0628\u0631\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 220.0,
-   "boom": [
-    -50.0,
-    0.62
-   ],
    "mud": [
-    2.29,
-    1.31
+    2.31,
+    1.11
    ],
    "box": [
-    2.64,
-    1.89
+    2.65,
+    1.81
    ],
    "nasal": [
-    -1.67,
-    -0.19
+    -1.62,
+    -0.22
    ],
    "harsh": [
-    -1.48,
+    -1.56,
+    -0.99
+   ],
+   "boomtilt": [
+    -50.0,
+    0.58
+   ]
+  },
+  "\u0628\u062d\u0627\u0648\u0644 - \u0639\u0645\u0631\u0648 \u062f\u064a\u0627\u0628 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
+   "_f0": 240.0,
+   "mud": [
+    0.32,
+    0.73
+   ],
+   "box": [
+    0.49,
+    0.28
+   ],
+   "nasal": [
+    -1.06,
     -0.43
    ],
-   "boomtilt": [
-    -50.0,
-    0.52
-   ]
-  },
-  "\u0628\u062d\u0627\u0648\u0644_-_\u0639\u0645\u0631\u0648_\u062f\u064a\u0627\u0628_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
-   "_f0": 240.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
-   "mud": [
-    0.41,
-    0.68
-   ],
-   "box": [
-    0.67,
-    0.22
-   ],
-   "nasal": [
-    -1.1,
-    -0.49
-   ],
    "harsh": [
-    -2.32,
-    -1.66
+    -2.68,
+    -1.83
    ],
    "boomtilt": [
     -50.0,
     1.48
    ]
   },
-  "\u062a\u0648\u0628\u0647_-_\u0645\u062d\u0645\u062f_\u062d\u0645\u0627\u0642\u064a_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
-   "_f0": 170.0,
-   "boom": [
-    -50.0,
-    3.23
-   ],
+  "\u062a\u0648\u0628\u0647 - \u0645\u062d\u0645\u062f \u062d\u0645\u0627\u0642\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
+   "_f0": 180.0,
    "mud": [
-    6.77,
+    6.76,
+    3.63
+   ],
+   "box": [
+    0.25,
+    -2.2
+   ],
+   "nasal": [
+    -1.1,
+    -0.19
+   ],
+   "harsh": [
+    -0.14,
+    -2.4
+   ],
+   "boomtilt": [
+    -50.0,
+    6.14
+   ]
+  },
+  "\u062c\u0631\u0627\u0644\u0643 \u0627\u064a\u0647 - \u0633\u0645\u064a\u0631\u0629 \u0633\u0639\u064a\u062f (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
+   "_f0": 340.0,
+   "mud": [
+    -50.0,
+    -3.39
+   ],
+   "box": [
+    -3.16,
+    0.89
+   ],
+   "nasal": [
+    -0.85,
+    0.64
+   ],
+   "harsh": [
+    0.77,
     3.65
    ],
-   "box": [
-    0.27,
-    -2.27
-   ],
-   "nasal": [
-    -1.14,
-    -0.21
-   ],
-   "harsh": [
-    -0.03,
-    -2.32
-   ],
    "boomtilt": [
     -50.0,
-    5.56
+    -3.22
    ]
   },
-  "\u062c\u0631\u0627\u0644\u0643_\u0627\u064a\u0647_-_\u0633\u0645\u064a\u0631\u0629_\u0633\u0639\u064a\u062f_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
-   "_f0": 340.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
-   "mud": [
-    -50.0,
-    -1.86
-   ],
-   "box": [
-    -3.15,
-    0.54
-   ],
-   "nasal": [
-    -0.88,
-    0.67
-   ],
-   "harsh": [
-    0.87,
-    4.61
-   ],
-   "boomtilt": [
-    -50.0,
-    -3.04
-   ]
-  },
-  "\u062c\u064a\u062a\u0644\u0643_-_\u0639\u0645\u0631\u0648_\u062f\u064a\u0627\u0628_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u062c\u064a\u062a\u0644\u0643 - \u0639\u0645\u0631\u0648 \u062f\u064a\u0627\u0628 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 270.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
    "mud": [
-    -2.09,
-    -0.86
+    -1.88,
+    -0.96
    ],
    "box": [
-    2.38,
-    -0.25
-   ],
-   "nasal": [
-    -0.63,
-    -0.07
-   ],
-   "harsh": [
-    -1.56,
-    -1.81
-   ],
-   "boomtilt": [
-    -50.0,
-    -0.13
-   ]
-  },
-  "\u0634\u0627\u06cc\u0641_\u0642\u0645\u0631_-_\u0639\u0645\u0631\u0648_\u062f\u064a\u0627\u0628_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
-   "_f0": 290.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
-   "mud": [
-    -50.0,
-    -3.18
-   ],
-   "box": [
-    0.2,
+    2.88,
     -0.19
    ],
    "nasal": [
-    -0.84,
-    -0.03
+    -0.73,
+    0.08
    ],
    "harsh": [
-    -4.29,
+    -1.46,
+    -1.91
+   ],
+   "boomtilt": [
+    -50.0,
+    -0.2
+   ]
+  },
+  "\u0634\u0627\u06cc\u0641 \u0642\u0645\u0631 - \u0639\u0645\u0631\u0648 \u062f\u064a\u0627\u0628 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
+   "_f0": 290.0,
+   "mud": [
+    -50.0,
+    -2.86
+   ],
+   "box": [
+    0.18,
+    -0.13
+   ],
+   "nasal": [
+    -0.86,
+    0.07
+   ],
+   "harsh": [
+    -4.56,
     -5.17
    ],
    "boomtilt": [
     -50.0,
-    0.65
+    0.92
    ]
   },
-  "\u0639\u0645\u0631\u0646\u0627_\u0645\u0627\u0646\u0633\u064a\u0646\u0627_-_\u0645\u062d\u0645\u062f_\u062d\u0645\u0627\u0642\u064a_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0639\u0645\u0631\u0646\u0627 \u0645\u0627\u0646\u0633\u064a\u0646\u0627 - \u0645\u062d\u0645\u062f \u062d\u0645\u0627\u0642\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 230.0,
-   "boom": [
-    -50.0,
-    -0.06
-   ],
    "mud": [
-    3.83,
-    0.3
+    3.81,
+    0.36
    ],
    "box": [
-    2.7,
-    -0.55
+    2.76,
+    -0.43
    ],
    "nasal": [
-    -0.84,
-    -0.14
+    -0.81,
+    -0.13
    ],
    "harsh": [
-    1.31,
-    2.17
+    1.28,
+    1.96
    ],
    "boomtilt": [
     -50.0,
-    -0.31
+    -0.33
    ]
   },
-  "\u0642\u0627\u0644\u0648\u0627_\u0639\u0646\u064a_\u0627\u064a\u0647_-_\u0645\u062d\u0645\u062f_\u062d\u0645\u0627\u0642\u064a_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0642\u0627\u0644\u0648\u0627 \u0639\u0646\u064a \u0627\u064a\u0647 - \u0645\u062d\u0645\u062f \u062d\u0645\u0627\u0642\u064a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 230.0,
-   "boom": [
-    -50.0,
-    3.43
-   ],
    "mud": [
-    1.2,
-    2.6
+    1.07,
+    2.45
    ],
    "box": [
-    2.85,
-    0.89
+    2.81,
+    0.84
    ],
    "nasal": [
-    -0.75,
-    0.04
+    -0.82,
+    0.05
    ],
    "harsh": [
-    -1.55,
-    -1.61
+    -1.72,
+    -1.73
    ],
    "boomtilt": [
     -50.0,
-    2.1
+    1.69
    ]
   },
-  "\u0643\u0627\u0646_\u0628\u0631\u0626_-_\u0623\u0646\u063a\u0627\u0645_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0643\u0627\u0646 \u0628\u0631\u0626 - \u0623\u0646\u063a\u0627\u0645 (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 320.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
    "mud": [
     -50.0,
-    -1.18
+    -0.79
    ],
    "box": [
-    -3.97,
-    -2.75
+    -4.11,
+    -2.02
    ],
    "nasal": [
-    -1.99,
-    -0.17
+    -2.04,
+    -0.04
    ],
    "harsh": [
-    -2.22,
-    -0.3
+    -2.49,
+    -0.26
    ],
    "boomtilt": [
     -50.0,
-    -1.01
+    -0.63
    ]
   },
-  "\u0645\u0646_\u063a\u064a\u0631_\u0643\u0644\u0627\u0645_-_\u062a\u0648\u0648_\u0644\u064a\u062a_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u0645\u0646 \u063a\u064a\u0631 \u0643\u0644\u0627\u0645 - \u062a\u0648\u0648 \u0644\u064a\u062a (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 230.0,
-   "boom": [
-    -50.0,
-    3.1
-   ],
    "mud": [
-    0.83,
-    2.02
+    0.89,
+    2.05
    ],
    "box": [
-    1.57,
+    1.67,
     1.66
    ],
    "nasal": [
-    -2.49,
-    -0.09
+    -2.34,
+    -0.05
    ],
    "harsh": [
-    -4.11,
-    -1.31
+    -4.12,
+    -1.37
    ],
    "boomtilt": [
     -50.0,
-    1.7
+    1.5
    ]
   },
-  "\u064a\u0627_\u0644\u0637\u064a\u0641_-_\u0633\u0645\u064a\u0631\u0629_\u0633\u0639\u064a\u062f_(Vocals)_(Mel-Roformer_deux_by_becruily)_(Dry)_(BS-RoFormer_by_playdasegunda).wav": {
+  "\u064a\u0627 \u0644\u0637\u064a\u0641 - \u0633\u0645\u064a\u0631\u0629 \u0633\u0639\u064a\u062f (Vocals) (Mel-Roformer deux by becruily) (Dry) (BS-RoFormer by playdasegunda).wav": {
    "_f0": 350.0,
-   "boom": [
-    -50.0,
-    -50.0
-   ],
    "mud": [
     -50.0,
-    -0.71
+    -3.29
    ],
    "box": [
-    -3.24,
-    0.28
+    -3.13,
+    0.24
    ],
    "nasal": [
-    -2.33,
-    -0.08
+    -2.28,
+    0.05
    ],
    "harsh": [
-    2.71,
-    7.51
+    2.7,
+    5.21
    ],
    "boomtilt": [
     -50.0,
-    -2.58
+    -3.16
    ]
   }
  },
  "inject": {
   "mud": {
-   "env": 1.9366666666666665,
-   "raw": 1.2100000000000002
+   "env": 1.9633333333333336,
+   "raw": 1.2133333333333332
   },
   "box": {
-   "env": 1.6533333333333333,
-   "raw": 1.5233333333333334
+   "env": 1.67,
+   "raw": 1.5266666666666666
   },
   "boomtilt": {
-   "env": 1.5866666666666667
+   "env": 1.6300000000000001
   }
  }
 }

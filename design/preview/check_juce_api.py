@@ -48,7 +48,21 @@ if not m:
 PINNED = m.group(1)
 
 # ------------------------------------------------------------------ 2. the checkout
-JUCE = pathlib.Path(os.environ.get("JUCE_PATH", "/tmp/JUCE-8.0.4"))
+def find_juce() -> pathlib.Path:
+    """The checkout, wherever it was put: JUCE_PATH wins, then the three places this
+    repository's own script and this machine's history use.  A /tmp download does not
+    survive a restart, a ~ copy does, and a gate that only looks in /tmp reports four
+    green checks as failures the morning after - which is exactly what happened."""
+    if os.environ.get("JUCE_PATH"):
+        return pathlib.Path(os.environ["JUCE_PATH"])
+    for cand in ("/tmp/JUCE-8.0.4", pathlib.Path.home() / "JUCE-8.0.4",
+                 "/opt/JUCE-8.0.4"):
+        if (pathlib.Path(cand) / "modules" / "juce_gui_basics").exists():
+            return pathlib.Path(cand)
+    return pathlib.Path("/tmp/JUCE-8.0.4")
+
+
+JUCE = find_juce()
 if not (JUCE / "modules" / "juce_gui_basics").exists():
     print(f"FAIL no JUCE checkout at {JUCE} - fetch it with\n"
           f"  git clone --depth 1 --branch {PINNED} "
