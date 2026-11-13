@@ -69,9 +69,12 @@ def main():
     print("\nnear-miss notes (evidence, no action):")
     for rid in ("mud_near", "box_near"):
         print(f"  {rid:<10} {near[rid]}/{n}")
-    # the reference mixes ARE the standard, so an envelope-scored region firing on
-    # them means the calibration is not wired to the measurement it claims
-    bad = {rid: fires[rid] for rid in ("mud", "box", "boom") if fires[rid]}
+    # The reference mixes ARE the standard, so *any* problem firing on them means the
+    # calibration is not wired to the measurement it claims.  This used to check three
+    # region ids; on the 15 dry stems `noise` fired on all fifteen and `sib` on ten,
+    # which is what a typed threshold looks like from the outside.  Every detector is
+    # now calibrated or demoted to a readout, so the bar is the whole list.
+    bad = {rid: n for rid, n in fires.items() if n}
     if bad:
         print(f"GATE FAIL: envelope-scored regions fire on the reference material: {bad}")
         raise SystemExit(1)

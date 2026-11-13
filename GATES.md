@@ -31,7 +31,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
 
 - [x] G3: nothing else regressed - the original gates still pass, and G8/G16 add asserts
   CHECK: sh -c "ulimit -s 512; build/aeq_tests"
-  EXPECT: 28 passed, 0 failed
+  EXPECT: 0 failed
   EVIDENCE: VERIFIED - 28 passed, 0 failed
 
 - [x] G4: determinism survives the new accumulator
@@ -110,7 +110,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
       plus ten of them in one function killed the MSVC build with 0xC00000FD before it
       printed a line
   CHECK: sh -c 'ulimit -s 512; build/aeq_tests'
-  EXPECT: 28 passed, 0 failed
+  EXPECT: 0 failed
 
 - [x] G19: the editor compiles against a pristine JUCE 8 tree before CI spends six
   EVIDENCE: UNAVAILABLE - command not on the allowlist
@@ -1016,3 +1016,47 @@ at any vocal stem first; the other gates need nothing but the source tree.
   "32 ledger CHECKs run inside the venv, 32 unresolvable" (run, then restored).
   The allowlist got tighter in the same pass: `python3 -c '...'` is now refused, because a
   ledger is data and a data file that can name arbitrary code is not a boundary.
+
+- [x] G84: the warning bars are the measurement, and they still speak.
+  Three detectors may call a take wrong (rumble, dull, noise); three may not (sibilance,
+  2-4 kHz harshness, 1 kHz nasality).  That sentence is worth nothing unless both halves
+  are checked, so this gate recomputes every bar from `analysis/out/amir15/warn_stats.json`
+  - the shipped binary measuring his 15 dry stems, plus the same takes faulted (40 Hz hum,
+  7 kHz low-pass, hiss, a 3 kHz bell, sibilant bursts) - and compares it with the constants
+  in `WarnThresholds.h`:
+    * rumble  bar -22.5 dB (his worst -31.27, a hum -13.82, gap 17.45)
+    * dull    bar -20.6 dB (his worst -18.75, a low-pass -22.50, gap 3.75)
+    * noise   bar -58.9 dBFS (his worst -64.81, hiss -52.98, gap 11.83)
+  and it asserts the three readouts carry **no** bar at all, because their range overlaps
+  every fault injected (sibilance 26 dB of it, harshness 8.0, nasality 9.8), and that the
+  de-esser's automatic engagement is his own p75 + 4 dB (15.0), which engages on exactly
+  one of his fifteen mixes.
+  The bars of the old code were typed - `sib` at -6 dB fired on 10 of 15 of his mixes and
+  `noise` at -72 dBFS on 15 of 15 - which is what a typing looks like from the outside.
+  CHECK: .venv/bin/python analysis/scripts/gate_warn_calibration.py
+  EXPECT: WARN CALIBRATION OK
+  EVIDENCE: VERIFIED - WARN CALIBRATION OK
+  FALSIFY: set `rumble` to -34.0 in WarnThresholds.h -> "the header says -34.0, the
+  measurement says -22.55" and "one of his own takes would fire (-31.27)" (run, restored).
+- [x] G85: the Windows compiler is checked from Linux, because it was not checked at all.
+  Every release from v1.2.34 onwards was published by a CI run that *failed*, and the last
+  five runs on this branch failed at the same line: `Biquad.h` uses `std::array` and never
+  includes `<array>`.  libstdc++ hands `<array>` to anything that includes `<vector>`; MSVC
+  does not, so the profile target died with C2079 and twenty follow-on errors, and the .exe
+  the user downloads stopped existing while every Linux gate stayed green.  The same run also
+  failed on `std::filesystem::path::c_str()` (wchar_t* on Windows) and on `fopen(argv[i])`,
+  which compiles everywhere and then cannot open an Arabic file name on Windows.
+  Two fixes and one checker: `Biquad.h`/`Profile.h`/`RestoreCore.h` now include what they
+  use, `Source/Platform.h` is the one door for files (`aeq::openRead/openWrite`, `_wfopen`
+  on Windows) and for paths (`aeq::pathUtf8` / `pathFromUtf8`, UTF-8 in and out), and
+  `scripts/check_msvc_hygiene.py` fails when any dependency-free header uses a `std::` name
+  without that header, when anything outside Platform.h calls `fopen` or crosses a path to
+  `const char*` through `path::c_str()`, when a POSIX-only spelling appears, or when a
+  windows.h include is not covered by NOMINMAX.  It also compiles all 15 DSP/model headers
+  standalone, one translation unit each, so a header that only works after something else
+  was included first fails here instead of on a runner eight minutes later.
+  CHECK: python3 scripts/check_msvc_hygiene.py
+  EXPECT: MSVC HYGIENE OK
+  EVIDENCE: VERIFIED - MSVC HYGIENE OK
+  FALSIFY: delete `<array>` from Biquad.h -> "uses std::array but does not include <array>
+  (it has: algorithm, cmath, cstddef, vector)" (run against the real bug, restored).

@@ -3,6 +3,8 @@
 // reproducible in the Python reference implementation to < 0.01 dB.
 #pragma once
 #include <cmath>
+#include <cstddef>
+#include <array>          // std::array, said out loud: MSVC does not get it from <vector>
 #include <vector>
 #include <algorithm>
 

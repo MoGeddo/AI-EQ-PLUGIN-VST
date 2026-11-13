@@ -10,6 +10,7 @@
 #include <initializer_list>
 #include "Analyzer.h"
 #include "../model/TargetCurve.h"
+#include "../model/WarnThresholds.h"
 #include "../model/EnvTargetCurve.h"
 #include "../model/EnvThresholds.h"
 
@@ -41,7 +42,7 @@ struct Measurements {
     std::vector<double> envSdDb;
     std::vector<int>    envFrames;  // frames in which that band was measurable
     std::vector<double> freqs;
-    double sibMed = -60, sibP90 = -60;
+    double sibMed = -60, sibP90 = -60, sibP99 = -60;
     double medianF0 = 0, dynamicRange = 0, peakDbfs = 0;
     double dcOffset = 0, clipRate = 0, activeFraction = 0, clipSamples = 0;
     double noiseFloorDb = -120, maxRmsDb = -120;
@@ -256,11 +257,16 @@ public:
         if (m.nActive < 40) return out;
 
         // ---- 1. rumble / sub energy -------------------------------------
+        // The bar is measured, not chosen: WarnThresholds::rumble is the midpoint between
+        // the worst 30-70 Hz excess in his own 15 mixes (-31.3 dB) and the best a 40 Hz
+        // hum does to them (-13.8 dB), so his material cannot trip it and a hum cannot
+        // hide under it.
         const double rumble = levelBetween(m, 30, 70) - levelBetween(m, 300, 700);
-        if (rumble > -34.0) {
+        if (rumble > WarnThresholds::rumble) {
             out.push_back({"rumble", "ترددات تحت صوت الغناء",
-                           fmt("طاقة 30–70 Hz أعلى من الطبيعي بـ %.0f dB", {rumble + 34.0}),
-                           sev(rumble, -34, -18), 0, 1, 0, Action::RaiseHpf});
+                           fmt("طاقة 30–70 Hz أعلى من الطبيعي بـ %.0f dB", {rumble - WarnThresholds::rumble}),
+                           sev(rumble, WarnThresholds::rumble, WarnThresholds::rumble + 18.0),
+                           0, 1, 0, Action::RaiseHpf});
         }
         if (std::abs(m.dcOffset) > 0.002) {
             out.push_back({"dc", "إزاحة DC",
@@ -289,12 +295,17 @@ public:
         // a region has to leave his own spread before it can be called a fault.
         // The old fixed 2.2 dB sat *below* that spread (3.04 dB median per band)
         // and flagged the target material itself 6 times out of 15.
+        // Only the regions whose bar is *measured* live here.  `harsh` (2-4.2 kHz) and
+        // `nasal` (850-1300 Hz) used to sit in this table with a typed 2.2 / 2.5 dB, and
+        // on his 15 dry stems the harsh one fired on a released Samira Said mix: the 2-4k
+        // balance of his own material spans 8 dB, and a +8 dB bell - an obviously harsh
+        // voice - only reaches the same place from the other end.  The two are still
+        // measured and printed (the report's `EXCESS` lines and `STAT harshslope` /
+        // `STAT nasalslope`); what they no longer do is call a record wrong.
         const Region regions[] = {
             {"boom",  "تخنة (Boom)",           0,   0, EnvThresholds::boom_tilt, Mode::Tilt},  // pitch-relative
             {"mud",   "عكارة (Mud)",         260, 520, EnvThresholds::mud, Mode::Env},   // corpus max +4.88
             {"box",   "صندوقية (Box)",       520, 850, EnvThresholds::box, Mode::Env},   // corpus max +2.54
-            {"nasal", "خنّة (Nasal)",        850, 1300, 2.5, Mode::Raw},  // holds the 1 kHz reference
-            {"harsh", "حدّة (Harsh)",       2000, 4200, 2.2, Mode::Raw},  // SD 2.06, the one that behaves
         };
         for (const auto& r : regions) {
             double ex = 0.0, fc = 0.0, q = 1.0;
@@ -391,23 +402,32 @@ public:
         for (size_t i = 0; i < resoFound.size() && i < 3; ++i) out.push_back(resoFound[i]);
 
         // ---- 4. sibilance (dynamic, not static) -------------------------
-        if (m.sibP90 > -6.0) {
-            out.push_back({"sib", "حروف سِيبيلانت قوية",
-                           fmt("5-10k / 1-4k عند أعلى 10 بالمية = %.1f dB - القمم محتاجة de-esser ديناميكي", {m.sibP90}),
-                           sev(m.sibP90, -6.0, 0.0), 7200.0, 1.0,
-                           -std::min((m.sibP90 + 6.0) * 1.2, 6.0), Action::DeEss});
-        }
+        // Sibilance is measured three ways (median, p90, p99 - see `sibilance()` in
+        // Analyzer.h) and none of them is a verdict: his own 15 mixes span 26 dB of the
+        // excess, and 200 injected bursts at +20 dB do not reach the top of that range.
+        // The de-esser decides from the take itself in RestoreCore
+        // (WarnThresholds::deEssAuto), which is the only place where being wrong costs a
+        // decibel rather than a wrong claim.
 
         // ---- 5. dull / missing air -------------------------------------
-        const double airMiss = TargetCurve::at(9000.0) - (levelBetween(m, 7000, 12000) - levelBetween(m, 1000, 2000));
-        if (airMiss > 4.0) {
+        // "Dull" is measured inside the take.  The distance from the target curve was the
+        // old statistic and his own mixes span 6.9 dB of it, while a 7 kHz low-pass moves
+        // it 7.3 dB - the two ranges overlap (a known fault clears it by 0.2 dB), so no
+        // bar exists.  The slope from 8-12k down to 2-4k is the same property measured
+        // against the take instead of against a curve: his own range is 7.8 dB wide and
+        // the same fault moves it 10.6 dB, which is daylight.
+        const double airSlope = levelBetween(m, 8000, 12000) - levelBetween(m, 2000, 4000);
+        if (airSlope < WarnThresholds::airSlope) {
             // only if the content above 10 kHz still exists (not codec-limited)
             const double top = levelBetween(m, 12000, 16000) - levelBetween(m, 7000, 10000);
             if (top > -18.0) {
+                const double miss = WarnThresholds::airSlope - airSlope;
                 out.push_back({"dull", "نقص في الأعلى",
-                               fmt("المنطقة 7–12k أقل من الهدف بـ %.1f dB", {airMiss}),
-                               sev(airMiss, 4.0, 12.0), 9000.0, 0.7,
-                               std::min(airMiss * 0.5, 4.0), Action::AddAir});
+                               fmt("المنطقة 8–12k أقل من 2–4k بـ %.1f dB عن الحد (%.1f)",
+                                   {miss, WarnThresholds::airSlope}),
+                               sev(-airSlope, -WarnThresholds::airSlope,
+                                   -WarnThresholds::airSlope + 8.0), 9000.0, 0.7,
+                               std::min(miss * 0.5, 4.0), Action::AddAir});
             }
         }
 
@@ -417,10 +437,13 @@ public:
                            fmt("%.0f عيّنة عند الحد الأقصى - قلّل الدخل قبل أي EQ", {(double) m.clipSamples}),
                            sev(m.clipRate, 1e-6, 1e-4), 0, 1, 0, Action::WarnOnly});
         }
-        if (m.noiseFloorDb > -72 && m.maxRmsDb > -30) {
+        if (m.noiseFloorDb > WarnThresholds::noiseFloor
+            && m.maxRmsDb > WarnThresholds::loudEnough) {
             out.push_back({"noise", "أرضية تشويش عالية",
                            fmt("أرضية الصمت %.0f dBFS — الـEQ مش هيشيلها (بوابة/تنظيف مطلوب)", {m.noiseFloorDb}),
-                           sev(m.noiseFloorDb, -72, -55), 0, 1, 0, Action::WarnOnly});
+                           sev(m.noiseFloorDb, WarnThresholds::noiseFloor,
+                               WarnThresholds::noiseFloor + 17.0), 0, 1, 0,
+                           Action::WarnOnly});
         }
         const double hfCut = levelBetween(m, 14000, 16000) - levelBetween(m, 9000, 11000);
         if (hfCut < -20.0) {

@@ -10,6 +10,7 @@
 #include <atomic>
 #include <mutex>
 #include <array>
+#include <string>
 #include <vector>
 #include <cmath>
 #include <algorithm>
@@ -25,6 +26,7 @@
 #include "EqSolver.h"
 #include "ProblemDetector.h"
 #include "../model/TargetCurve.h"
+#include "../model/WarnThresholds.h"
 
 namespace aeq {
 
@@ -680,7 +682,7 @@ public:
         m.envFrames.resize(m.freqs.size());
         for (size_t i = 0; i < m.freqs.size(); ++i)
             m.envFrames[i] = analyzer_.envelopeFrames(static_cast<int>(i));
-        analyzer_.sibilance(m.sibMed, m.sibP90);
+        analyzer_.sibilance(m.sibMed, m.sibP90, m.sibP99);
         m.medianF0 = analyzer_.medianF0();
         m.dynamicRange = analyzer_.dynamicRangeDb();
         m.peakDbfs = analyzer_.peakDbfs();
@@ -925,7 +927,19 @@ public:
         corner = std::clamp(corner, 30.0, 220.0);
 
         // de-esser decision
+        //
+        // Two different questions, two different numbers.  "Is this take faulty?" is the
+        // Problems list, and sibilance is not allowed to answer it (his own mixes span
+        // 26 dB of sibilant excess - see WarnThresholds.h).  "Would a gentle de-esser
+        // help here?" is answered by the take itself: the sibilant peaks standing 15 dB
+        // or more above its own body is beyond three quarters of his material, and the
+        // gain reduction is capped at 1.5 dB because the plugin's job on a good take is
+        // to be inaudible.
         double deThr = -30.0, deGr = 0.0;
+        if (m.sibP90 - m.sibMed > WarnThresholds::deEssAuto) {
+            deGr = std::min(1.5, 0.35 * (m.sibP90 - m.sibMed - WarnThresholds::deEssAuto));
+            deThr = -34.0;
+        }
         for (const auto& p : probs) {
             if (p.action == Action::DeEss) { deGr = std::min(1.5, std::abs(p.gainDb) * 0.6); deThr = -34.0; }
         }

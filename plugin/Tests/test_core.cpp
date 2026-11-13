@@ -277,7 +277,25 @@ int main() {
         }
         checkTrue(foundReso, "detects the 3.15 kHz room resonance");
         checkTrue(foundRumble, "detects the missing low cut");
-        checkTrue(foundHarsh, "detects the harsh 2-4 kHz region");
+
+        // The harsh region is measured, not judged.
+        //
+        // This used to assert a `harsh` problem.  On his 15 dry stems the 2-4k balance
+        // spans 8 dB - a released mix of his is as "harsh" as a +8 dB bell on another -
+        // so the verdict was withdrawn (see WarnThresholds.h).  What must still be true
+        // is that the *measurement* moves when the region is lifted, and that the plugin
+        // no longer claims a fault it cannot separate from his own work.
+        auto excessOf = [&](const std::vector<float>& v) {
+            auto c = makeCore();
+            RestoreSettings t; t.learn = true;
+            runPipeline(v, *c, t, true);
+            return aeq::excessVsTarget(c->measurements(), 2000.0, 4200.0);
+        };
+        const double exClean = excessOf(clean);
+        const double exBad = excessOf(bad);
+        check(exBad - exClean > 2.0, "the harsh 2-4 kHz region is measured (+4 dB injected)",
+              exBad - exClean, 4.0, 1.5);
+        checkTrue(!foundHarsh, "and no fault is claimed for it - his own mixes span that range");
         std::printf("       resonance reported at %.0f Hz, correction %+.1f dB\n", resoF, resoGain);
     }
 

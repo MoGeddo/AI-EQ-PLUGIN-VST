@@ -17,6 +17,7 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include "../Source/Platform.h"
 #include "../Source/model/TargetCurve.h"
 
 // ---- minimal WAV I/O (PCM 16/24/32 and float32) ----
@@ -29,9 +30,12 @@ struct Wav {
 static uint32_t rd32(const unsigned char* p) { return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24); }
 static uint16_t rd16(const unsigned char* p) { return (uint16_t)(p[0] | (p[1] << 8)); }
 
-static bool loadWav(const char* path, Wav& w) {
-    FILE* f = fopen(path, "rb");
-    if (!f) { std::printf("cannot open %s\n", path); return false; }
+// The path is a std::filesystem::path, not a `const char*`: on Windows a path is UTF-16,
+// so `path::c_str()` is `const wchar_t*` and `fopen` cannot see an Arabic file name.
+// aeq::openRead (Platform.h) is the only fopen in the project.
+static bool loadWav(const std::filesystem::path& path, Wav& w) {
+    FILE* f = aeq::openRead(path);
+    if (!f) { std::printf("cannot open %s\n", aeq::pathUtf8(path).c_str()); return false; }
     unsigned char hdr[12];
     if (fread(hdr, 1, 12, f) != 12 || std::memcmp(hdr, "RIFF", 4) || std::memcmp(hdr + 8, "WAVE", 4)) {
         std::printf("not a WAV file\n"); fclose(f); return false;
@@ -79,8 +83,8 @@ static bool loadWav(const char* path, Wav& w) {
 static void wr32(FILE* f, uint32_t v) { fwrite(&v, 4, 1, f); }
 static void wr16(FILE* f, uint16_t v) { fwrite(&v, 2, 1, f); }
 
-static bool saveWav(const char* path, const Wav& w) {
-    FILE* f = fopen(path, "wb");
+static bool saveWav(const std::filesystem::path& path, const Wav& w) {
+    FILE* f = aeq::openWrite(path);
     if (!f) return false;
     const int ch = 2;
     const size_t n = w.L.size();
@@ -106,7 +110,8 @@ static void printReport(aeq::RestoreCore& core) {
     std::printf("\n================ AEQ RESTORE - REPORT ================\n");
     std::printf("median F0        : %.0f Hz\n", st.measuredF0);
     std::printf("peak             : %.1f dBFS   dynamic range %.1f dB\n", m.peakDbfs, m.dynamicRange);
-    std::printf("sibilance median : %.1f dB   p90 %.1f dB\n", m.sibMed, m.sibP90);
+    std::printf("sibilance median : %.1f dB   p90 %.1f   p99 %.1f\n",
+                m.sibMed, m.sibP90, m.sibP99);
     // The envelope is printed, not just used: any claim about it can then be
     // rechecked on the user's own material with this binary.
     if (!m.envDb.empty()) {
@@ -146,6 +151,42 @@ static void printReport(aeq::RestoreCore& core) {
         // spectrum below 1.5*F0 measured nothing at all on this corpus (0/15).
         std::printf("EXCESS boomtilt raw %+.2f env %+.2f\n",
                     -50.0, aeq::weightTilt(m));
+        // The evidence behind the detectors that are NOT scored by a region: each of these
+        // numbers is the one an `if` in ProblemDetector compares against a constant.  They
+        // are printed so the constant can be derived from the material that defines
+        // "right" instead of being typed, and so a reader can check the bar against the
+        // distribution it was set from (`analysis/scripts/calibrate_warn.py`).
+        {
+            const double rumble = aeq::levelBetween(m, 30, 70) - aeq::levelBetween(m, 300, 700);
+            const double airMiss = aeq::TargetCurve::at(9000.0)
+                                 - (aeq::levelBetween(m, 7000, 12000) - aeq::levelBetween(m, 1000, 2000));
+            const double airTop = aeq::levelBetween(m, 12000, 16000) - aeq::levelBetween(m, 7000, 10000);
+            const double hfCut = aeq::levelBetween(m, 14000, 16000) - aeq::levelBetween(m, 9000, 11000);
+            std::printf("STAT rumble %+.3f\n", rumble);
+            std::printf("STAT sibp90 %+.3f\n", m.sibP90);
+            std::printf("STAT sibmed %+.3f\n", m.sibMed);
+            std::printf("STAT sibp99 %+.3f\n", m.sibP99);
+            // two take-relative candidates for the same decisions: how far the top stands
+            // above the body *of this take*, which is what a singer's brightness is,
+            // rather than an absolute level that depends on how the mix was mastered
+            std::printf("STAT sibexc %+.3f\n", m.sibP90 - m.sibMed);
+            std::printf("STAT sibexc99 %+.3f\n", m.sibP99 - m.sibMed);
+            std::printf("STAT airslope %+.3f\n",
+                        aeq::levelBetween(m, 8000, 12000) - aeq::levelBetween(m, 2000, 4000));
+            // the same idea for the two "raw" regions: measured inside the take, so the
+            // arrangement's own balance cancels and only the shape of the voice is left
+            std::printf("STAT nasalslope %+.3f\n",
+                        aeq::levelBetween(m, 850, 1300) - aeq::levelBetween(m, 2000, 4000));
+            std::printf("STAT harshslope %+.3f\n",
+                        aeq::levelBetween(m, 2000, 4200) - aeq::levelBetween(m, 6000, 9000));
+            std::printf("STAT airmiss %+.3f\n", airMiss);
+            std::printf("STAT airtop %+.3f\n", airTop);
+            std::printf("STAT hfcut %+.3f\n", hfCut);
+            std::printf("STAT noisefloor %.3f\n", m.noiseFloorDb);
+            std::printf("STAT maxrms %.3f\n", m.maxRmsDb);
+            std::printf("STAT clip %.3e\n", m.clipRate);
+            std::printf("STAT dc %+.5f\n", m.dcOffset);
+        }
         // every measurable band of the envelope, re the 900-1150 Hz reference, in
         // dB.  analysis/scripts/env_target.py averages exactly these numbers over the
         // 15 takes to build the target - the target must come from the same binary
@@ -220,7 +261,7 @@ static void printReport(aeq::RestoreCore& core) {
 // describing the room instead of the voice.
 struct DirResult { aeq::Profile prof; int used = 0, skipped = 0; };
 
-static aeq::Profile measureFile(const char* path, const std::string& name, bool* ok) {
+static aeq::Profile measureFile(const std::filesystem::path& path, const std::string& name, bool* ok) {
     *ok = false;
     Wav w;
     if (!loadWav(path, w)) return {};
@@ -253,21 +294,30 @@ static std::string refNameOf(int argc, char** argv) {
     return "reference";
 }
 
-static int profileFromDir(const char* dir, const char* out, const std::string& name) {
+static int profileFromDir(const std::filesystem::path& dir, const std::filesystem::path& out,
+                          const std::string& name) {
     std::vector<aeq::Profile> profiles;
     int skipped = 0;
+    // Sorted: a reference blended from 15 stems must be the same number whichever order
+    // the file system hands the names over in.
+    std::vector<std::filesystem::path> files;
     for (const auto& entry : std::filesystem::directory_iterator(dir)) {
         if (!entry.is_regular_file()) continue;
         if (entry.path().extension() != ".wav") continue;
+        files.push_back(entry.path());
+    }
+    std::sort(files.begin(), files.end());
+    for (const auto& path : files) {
         bool ok = false;
-        auto p = measureFile(entry.path().c_str(), entry.path().stem().string(), &ok);
+        auto p = measureFile(path, aeq::pathUtf8(path.stem()), &ok);
         if (!ok) { ++skipped; std::printf("  skip %s (nothing measurable)\n",
-                                          entry.path().filename().c_str()); continue; }
+                                          aeq::pathUtf8(path.filename()).c_str()); continue; }
         profiles.push_back(p);
         std::printf("  %-40s %zu bands, %ld frames\n",
-                    entry.path().filename().c_str(), p.db.size(), p.frames);
+                    aeq::pathUtf8(path.filename()).c_str(), p.db.size(), p.frames);
     }
-    if (profiles.empty()) { std::printf("no measurable wav files in %s\n", dir); return 4; }
+    if (profiles.empty()) { std::printf("no measurable wav files in %s\n",
+                                        aeq::pathUtf8(dir).c_str()); return 4; }
     std::vector<const aeq::Profile*> ptr;
     for (const auto& p : profiles) ptr.push_back(&p);
     const std::vector<double> weights(profiles.size(), 1.0);
@@ -275,7 +325,8 @@ static int profileFromDir(const char* dir, const char* out, const std::string& n
     std::ofstream f(out, std::ios::binary);
     f << aeq::toText(blended);
     std::printf("wrote %s: %zu bands blended from %zu stems (%d skipped), name \"%s\"\n",
-                out, blended.db.size(), profiles.size(), skipped, name.c_str());
+                aeq::pathUtf8(out).c_str(), blended.db.size(), profiles.size(), skipped,
+                name.c_str());
     return 0;
 }
 
@@ -296,18 +347,19 @@ int main(int argc, char** argv) {
     // domain.  This is how a record - or Amir's 15 dry stems - becomes a target without
     // anyone re-implementing the analyser in Python and hoping the two agree.
     if (mode == "profile" && argc >= 6 && std::string(argv[2]) == "--from-dir")
-        return profileFromDir(argv[3], argv[4], refNameOf(argc, argv));
+        return profileFromDir(aeq::pathFromUtf8(argv[3]), aeq::pathFromUtf8(argv[4]),
+                              refNameOf(argc, argv));
     // `profile --rewrite in out`: read a profile, write it back.  The file is user input
     // that becomes the target of an EQ, so the parser and the writer have to agree with
     // each other bit for bit - otherwise a profile saved by the plugin and reloaded by the
     // plugin is a slightly different curve, which is exactly the kind of drift a session
     // that reopens "sounding different" is made of.
     if (mode == "profile" && argc >= 5 && std::string(argv[2]) == "--rewrite") {
-        std::ifstream f(argv[3]);
+        std::ifstream f(aeq::pathFromUtf8(argv[3]));
         std::stringstream ss; ss << f.rdbuf();
         const auto prof = aeq::fromText(ss.str());
         if (! prof.valid()) { std::printf("cannot read profile %s\n", argv[3]); return 3; }
-        std::ofstream o(argv[4], std::ios::binary);
+        std::ofstream o(aeq::pathFromUtf8(argv[4]), std::ios::binary);
         o << aeq::toText(prof);
         std::printf("rewrote %s: %zu bands, name \"%s\"\n", argv[4], prof.db.size(),
                     prof.name.c_str());
@@ -315,7 +367,7 @@ int main(int argc, char** argv) {
     }
 
     Wav w;
-    if (!loadWav(argv[2], w)) return 2;
+    if (!loadWav(aeq::pathFromUtf8(argv[2]), w)) return 2;
 
     aeq::RestoreSettings s;
     s.learn = true;
@@ -344,7 +396,7 @@ int main(int argc, char** argv) {
     // ignores the flag it reports reading is worse than one that rejects it, so the
     // settings are pushed after the reference is known.
     if (! refPath.empty()) {
-        std::ifstream f(refPath);
+        std::ifstream f(aeq::pathFromUtf8(refPath.c_str()));
         std::stringstream ss; ss << f.rdbuf();
         const auto prof = aeq::fromText(ss.str());
         if (! prof.valid()) { std::printf("cannot read profile %s\n", refPath.c_str()); return 3; }
@@ -389,7 +441,7 @@ int main(int argc, char** argv) {
             core.processBlock(L.data(), R.data(), n);
             for (int i = 0; i < n; ++i) { o.L[off + i] = L[i]; if (!o.R.empty()) o.R[off + i] = R[i]; }
         }
-        saveWav(argv[3], o);
+        saveWav(aeq::pathFromUtf8(argv[3]), o);
         std::printf("wrote %s\n", argv[3]);
     }
 
@@ -399,7 +451,7 @@ int main(int argc, char** argv) {
         // "learn a reference once" half of Match EQ, in one command.
         const auto prof = core.captureProfile(refName);
         if (! prof.valid()) { std::printf("nothing measured - was the file silent?\n"); return 4; }
-        std::ofstream f(argv[3], std::ios::binary);
+        std::ofstream f(aeq::pathFromUtf8(argv[3]), std::ios::binary);
         f << aeq::toText(prof);
         std::printf("wrote %s: %zu bands, %ld frames, %s\n",
                     argv[3], prof.db.size(), prof.frames, prof.name.c_str());

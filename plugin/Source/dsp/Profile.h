@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>        // std::atof / std::atol, which the parser uses on the header lines
 #include <string>
 #include <vector>
 

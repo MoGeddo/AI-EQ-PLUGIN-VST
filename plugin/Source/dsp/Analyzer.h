@@ -260,9 +260,15 @@ public:
         return 0.0;
     }
 
-    // sibilance: median and 90th percentile of (5-10k energy / 1-4k energy) in dB
-    void sibilance(double& medDb, double& p90Db) const {
-        medDb = p90Db = -60.0;
+    // sibilance: median, 90th and 99th percentile of (5-10k energy / 1-4k energy) in dB.
+    //
+    // The 99th exists because the 90th cannot see a sibilant.  A real "sss" is sparse -
+    // a few percent of a phrase - and on the 15 dry stems the 90th percentile of the
+    // ratio is dominated by whatever the mix's overall top-end balance happens to be
+    // (it spans 27 dB between his own songs).  Forty short bursts injected into a take
+    // moved the 90th percentile by 0.0 dB.  The tail is where the sibilant lives.
+    void sibilance(double& medDb, double& p90Db, double& p99Db) const {
+        medDb = p90Db = p99Db = -60.0;
         double tot = 0; for (int c : sdHist_) tot += c;
         if (tot <= 0) return;
         double acc = 0; bool gotMed = false;
@@ -271,9 +277,11 @@ public:
             const double frac = acc / tot;
             const double db = sdBinLo_ + i * sdBinW_;
             if (!gotMed && frac >= 0.5) { medDb = db; gotMed = true; }
-            if (frac >= 0.9) { p90Db = db; return; }
+            if (frac >= 0.9 && p90Db < -59.0) { p90Db = db; }
+            if (frac >= 0.99) { p99Db = db; return; }
         }
-        p90Db = sdBinLo_ + static_cast<double>(sdHist_.size() - 1) * sdBinW_;
+        p99Db = sdBinLo_ + static_cast<double>(sdHist_.size() - 1) * sdBinW_;
+        if (p90Db < -59.0) p90Db = p99Db;
     }
 
 private:
