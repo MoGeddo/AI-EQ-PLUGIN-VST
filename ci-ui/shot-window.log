@@ -1,0 +1,62 @@
+[shot] start, mode window, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] editor constructed, before analysis
+[shot] window 1240x800 -> ui-empty-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 439
+[shot]   child 1 class juce::Slider 974 726 62 62
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1150 726 62 62
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 797 726 62 62
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-empty-1240x800.png (1240 x 800, 183206 bytes)
+[shot] window 1024x700 -> ui-empty-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 384
+[shot]   child 1 class juce::Slider 803 636 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 948 636 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 657 636 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-empty-1024x700.png (1024 x 700, 157517 bytes)
+[shot] analysis for the sealed shot
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] stopped; the seal should be where the user left it
+[shot] window 1240x800 -> ui-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 439
+[shot]   child 1 class juce::Slider 974 726 62 62
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1150 726 62 62
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 797 726 62 62
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-1240x800.png (1240 x 800, 260355 bytes)
+[shot] window 1024x700 -> ui-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 384
+[shot]   child 1 class juce::Slider 803 636 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 948 636 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 657 636 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-1024x700.png (1024 x 700, 218804 bytes)
+[shot] done

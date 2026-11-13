@@ -1,0 +1,15 @@
+[shot] start, mode components, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] curve view
+     wrote ui-curve.png (846 x 526, 77632 bytes)
+[shot] problem list
+     wrote ui-report.png (336 x 776, 50447 bytes)
+[shot] done

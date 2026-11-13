@@ -1,0 +1,97 @@
+[shot] start, mode cards, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] card 0 ترددات تحت صوت الغناء action=1 f=0 sev=0.99
+[shot]   text title (21 chars) 062a..
+     wrote probe-text-0-title.png (336 x 104, 1296 bytes)
+[shot]   text title-noparen (21 chars) 062a..
+     wrote probe-text-0-title-noparen.png (336 x 104, 1296 bytes)
+[shot]   text detail (38 chars) 0637..
+     wrote probe-text-0-detail.png (336 x 104, 2200 bytes)
+[shot]   text detail-noparen (38 chars) 0637..
+     wrote probe-text-0-detail-noparen.png (336 x 104, 2200 bytes)
+     wrote probe-card-0.png (336 x 104, 5345 bytes)
+[shot] card 1 إزاحة DC action=1 f=0 sev=0.47
+[shot]   text title (8 chars) 0625..
+     wrote probe-text-1-title.png (336 x 104, 813 bytes)
+[shot]   text title-noparen (8 chars) 0625..
+     wrote probe-text-1-title-noparen.png (336 x 104, 813 bytes)
+[shot]   text detail (36 chars) 0645..
+     wrote probe-text-1-detail.png (336 x 104, 1907 bytes)
+[shot]   text detail-noparen (34 chars) 0645..
+     wrote probe-text-1-detail-noparen.png (336 x 104, 1807 bytes)
+     wrote probe-card-1.png (336 x 104, 4568 bytes)
+[shot] card 2 تخنة (Boom) action=2 f=285 sev=1.00
+[shot] card 2, detail removed
+     wrote probe-card2-0.png (336 x 104, 4423 bytes)
+[shot] card 2, title removed
+     wrote probe-card2-1.png (336 x 104, 6862 bytes)
+[shot] card 2, both removed
+     wrote probe-card2-2.png (336 x 104, 3403 bytes)
+[shot]   text title (11 chars) 062a..
+     wrote probe-text-2-title.png (336 x 104, 1103 bytes)
+[shot]   text title-noparen (9 chars) 062a..
+     wrote probe-text-2-title-noparen.png (336 x 104, 842 bytes)
+[shot]   text detail (77 chars) 0627..
+     wrote probe-text-2-detail.png (336 x 104, 3711 bytes)
+[shot]   text detail-noparen (75 chars) 0627..
+     wrote probe-text-2-detail-noparen.png (336 x 104, 3586 bytes)
+     wrote probe-card-2.png (336 x 104, 7848 bytes)
+[shot] card 3 عكارة (Mud) action=2 f=367.696 sev=1.00
+[shot]   text title (11 chars) 0639..
+     wrote probe-text-3-title.png (336 x 104, 1163 bytes)
+[shot]   text title-noparen (9 chars) 0639..
+     wrote probe-text-3-title-noparen.png (336 x 104, 1001 bytes)
+[shot]   text detail (45 chars) 0632..
+     wrote probe-text-3-detail.png (336 x 104, 2693 bytes)
+[shot]   text detail-noparen (43 chars) 0632..
+     wrote probe-text-3-detail-noparen.png (336 x 104, 2493 bytes)
+     wrote probe-card-3.png (336 x 104, 6773 bytes)
+[shot] card 4 صندوقية (Box) action=2 f=664.831 sev=1.00
+[shot]   text title (13 chars) 0635..
+     wrote probe-text-4-title.png (336 x 104, 1274 bytes)
+[shot]   text title-noparen (11 chars) 0635..
+     wrote probe-text-4-title-noparen.png (336 x 104, 1070 bytes)
+[shot]   text detail (44 chars) 0632..
+     wrote probe-text-4-detail.png (336 x 104, 2667 bytes)
+[shot]   text detail-noparen (42 chars) 0632..
+     wrote probe-text-4-detail-noparen.png (336 x 104, 2478 bytes)
+     wrote probe-card-4.png (336 x 104, 6882 bytes)
+[shot] card 5 رنين ثابت (غرفة/مايك) action=3 f=1208.16 sev=1.00
+[shot]   text title (21 chars) 0631..
+     wrote probe-text-5-title.png (336 x 104, 1547 bytes)
+[shot]   text title-noparen (19 chars) 0631..
+     wrote probe-text-5-title-noparen.png (336 x 104, 1396 bytes)
+[shot]   text detail (58 chars) 0031..
+     wrote probe-text-5-detail.png (336 x 104, 2853 bytes)
+[shot]   text detail-noparen (56 chars) 0031..
+     wrote probe-text-5-detail-noparen.png (336 x 104, 2790 bytes)
+     wrote probe-card-5.png (336 x 104, 7564 bytes)
+[shot] card 6 قصّ (Clipping) action=6 f=0 sev=1.00
+[shot]   text title (14 chars) 0642..
+     wrote probe-text-6-title.png (336 x 104, 1345 bytes)
+[shot]   text title-noparen (12 chars) 0642..
+     wrote probe-text-6-title-noparen.png (336 x 104, 1218 bytes)
+[shot]   text detail (51 chars) 0039..
+     wrote probe-text-6-detail.png (336 x 104, 2399 bytes)
+[shot]   text detail-noparen (51 chars) 0039..
+     wrote probe-text-6-detail-noparen.png (336 x 104, 2399 bytes)
+     wrote probe-card-6.png (336 x 104, 6410 bytes)
+[shot] card 7 أرضية تشويش عالية action=6 f=0 sev=1.00
+[shot]   text title (17 chars) 0623..
+     wrote probe-text-7-title.png (336 x 104, 1328 bytes)
+[shot]   text title-noparen (17 chars) 0623..
+     wrote probe-text-7-title-noparen.png (336 x 104, 1328 bytes)
+[shot]   text detail (59 chars) 0623..
+     wrote probe-text-7-detail.png (336 x 104, 2823 bytes)
+[shot]   text detail-noparen (57 chars) 0623..
+     wrote probe-text-7-detail-noparen.png (336 x 104, 2686 bytes)
+     wrote probe-card-7.png (336 x 104, 6518 bytes)
+[shot] done
