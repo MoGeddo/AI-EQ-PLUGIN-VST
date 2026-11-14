@@ -163,11 +163,15 @@ def evaluate(gate: Gate) -> tuple[str, str]:
     combined = (proc.stdout or "") + (proc.stderr or "")
     # A missing Python package or a missing corpus is the environment talking, not the
     # product failing.  Say which, loudly - silence is how a gate starts lying.
-    for marker, why in (("ModuleNotFoundError", "python package missing"),
+    # The reason carries the command that fixes it: "not checked here" is only useful if
+    # the next person knows what to run.  One line per marker, kept in this table so the
+    # excuse cannot drift from the fix.
+    for marker, why in (("ModuleNotFoundError", "python package missing: .venv/bin/pip install -r analysis/requirements.txt"),
                         ("cannot open", "input file missing"),
-                        ("no wav files", "corpus not present here"),
+                        ("no wav files", "his audio not on this machine: .venv/bin/python analysis/scripts/fetch_amir_audio.py"),
+                        ("not on this machine", "his audio not on this machine: .venv/bin/python analysis/scripts/fetch_amir_audio.py"),
                         ("no JUCE source at", "JUCE checkout not present here"),
-                        ("no audio in", "his audio not on this machine")):
+                        ("no audio in", "his audio not on this machine: .venv/bin/python analysis/scripts/fetch_amir_audio.py")):
         if marker in combined:
             return "UNAVAILABLE", why
     if gate.expect not in combined:
