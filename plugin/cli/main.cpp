@@ -381,6 +381,8 @@ int main(int argc, char** argv) {
         if (a == "--name")    refName = argv[i + 1];
         if (a == "--mode")    s.mode = (std::string(argv[i + 1]) == "match") ? 1 : 0;
         if (a == "--width")   s.compareWidthOct = std::atof(argv[i + 1]);
+        if (a == "--stable")  s.stabilizer = std::atof(argv[i + 1]);   // 0 takes the dynamic bank out
+        if (a == "--hpf")     s.hpfHz = std::atof(argv[i + 1]);        // 0 = decide from the take
     }
 
     aeq::RestoreCore core;
@@ -442,6 +444,22 @@ int main(int argc, char** argv) {
             for (int i = 0; i < n; ++i) { o.L[off + i] = L[i]; if (!o.R.empty()) o.R[off + i] = R[i]; }
         }
         saveWav(aeq::pathFromUtf8(argv[3]), o);
+        // The dynamic layers act on audio, so they cannot be read off the solved curve -
+        // and a layer that moves the voice without saying how far is the "unclear" the
+        // panel kept being reported for.  Same numbers the editor draws.
+        std::printf("--- dynamic layers after the pass ---\n");
+        std::printf("stabiliser       : %d bands", core.stabilizerBands());
+        if (core.stabilizerBands() > 0) std::printf("  (total %.2f dB)", core.stabilizerTotalDb());
+        std::printf("\n");
+        for (int i = 0; i < core.stabilizerBands(); ++i)
+            std::printf("  hold %7.0f Hz  target %6.1f dBFS  now %6.1f  gain %+5.2f dB\n",
+                        core.stabilizerHz(i), core.stabilizerTargetDb(i),
+                        core.stabilizerLevelDb(i), core.stabilizerGainDb(i));
+        std::printf("tracked          : %d bands\n", core.trackedCount());
+        for (int i = 0; i < core.trackedCount(); ++i)
+            std::printf("  track %7.0f Hz  level %6.1f dBFS  gain %+5.2f dB  slope %+.2f\n",
+                        core.trackedCentreHz(i), core.trackedLevelDb(i),
+                        core.trackedGainDb(i), core.trackedSlope(i));
         std::printf("wrote %s\n", argv[3]);
     }
 

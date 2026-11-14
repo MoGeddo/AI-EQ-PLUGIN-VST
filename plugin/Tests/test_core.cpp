@@ -120,13 +120,17 @@ static double levelAt(const std::vector<float>& x, double f, double bw = 0.06) {
 }
 
 static double rmsBand(const std::vector<float>& x, double lo, double hi) {
-    BiquadCascade c;
-    c.setBands({{BandType::Peak, std::sqrt(lo * hi), (std::sqrt(lo * hi)) / (hi - lo), 0.0}}, sr);
-    // crude band power via a pair of filters
-    Biquad hp = Biquad::highPass(lo, 0.707, sr);
-    Biquad lp = Biquad::lowPass(hi, 0.707, sr);
+    // 24 dB/octave on both edges, two sections each.  One 12 dB/octave section is not a
+    // band measurement: a low-pass at 80 Hz still passes -20 dB at 320 Hz, so "the energy
+    // between 30 and 80 Hz" was mostly energy the high-pass could not touch, and the
+    // number it produced depended on how steep the *other* filter happened to be.  That
+    // is how a gate came to demand 12 dB of sub-bass removal from a 24 dB/octave filter
+    // whose corner was 130 Hz - it was measuring a doubled slope from a shared filter
+    // state (see RestoreCore's hpf_ note), not the corner.
+    Biquad hp1 = Biquad::highPass(lo, 0.5412, sr), hp2 = Biquad::highPass(lo, 1.3066, sr);
+    Biquad lp1 = Biquad::lowPass(hi, 0.5412, sr),  lp2 = Biquad::lowPass(hi, 1.3066, sr);
     double acc = 0;
-    for (auto v : x) { double s = lp.process(hp.process(v)); acc += s * s; }
+    for (auto v : x) { double s = lp2.process(lp1.process(hp2.process(hp1.process(v)))); acc += s * s; }
     return 10 * std::log10(acc / std::max<size_t>(x.size(), 1) + 1e-24);
 }
 
@@ -482,6 +486,98 @@ int main() {
         double diff = 0.0;
         for (size_t i = 0; i < o1.size(); ++i) diff = std::max(diff, std::abs(double(o1[i] - o2[i])));
         check(diff < 1e-6, "two runs produce identical output", diff, 0.0, 1e-6);
+    }
+
+    // ---------------- G22: the stereo path is the mono path, twice --------
+    // The defect this test exists for: one HighPass24 (and one DeEsser) shared by both
+    // channels.  Its two integrators then advance twice per sample, so the filter runs on
+    // a stream at 2x the sample rate and every corner lands an octave high - the panel
+    // said 172 Hz and the file came back cut at ~340 Hz, 26 dB gone at 160 Hz.  Nothing
+    // in the project could see it, because every gate feeds a mono take through
+    // processBlock with a zero right channel.
+    //
+    // Two claims, both from audio and not from the drawing:
+    //   * a high-pass asked for 172 Hz takes ~3 dB at 172 Hz (not 9 dB, not 0 dB);
+    //   * identical left and right input produce identical left and right output - if one
+    //     filter state is shared, the right channel is filtered twice and the two diverge.
+    std::printf("\n[G22] the stereo path is the mono path, twice\n");
+    {
+        RestoreSettings s; s.learn = true; s.hpfHz = 172.0; s.stabilizer = 0.0;
+        auto core = makeCore();
+        core->prepare(sr, 512);
+        s.learn = false; s.settleSeconds = 0.0;
+        core->setSettings(s);
+        core->refresh();                     // adopt the corner before anything is measured
+        // 3 s of white noise in both channels, identical
+        std::vector<float> l(3 * int(sr)), r(3 * int(sr));
+        unsigned seed = 12345u;
+        for (auto& v : l) { seed = seed * 1664525u + 1013904223u; v = 0.15f * float((seed >> 9) & 1023) / 512.0f - 0.15f; }
+        r = l;
+        std::vector<float> outL, outR;
+        for (size_t off = 0; off + 512 <= l.size(); off += 512) {
+            core->processBlock(l.data() + off, r.data() + off, 512);
+            if (off >= 512 * 20) {                      // after the 150 ms fade-in
+                for (int i = 0; i < 512; ++i) { outL.push_back(l[off + i]); outR.push_back(r[off + i]); }
+            }
+        }
+        double diff = 0.0;
+        for (size_t i = 0; i < outL.size(); ++i) diff = std::max(diff, std::abs(double(outL[i] - outR[i])));
+        check(diff < 1e-9, "left and right are the same signal when the input is", diff, 0.0, 1e-9);
+
+        // the corner, measured on the output: energy at 172 Hz against 1 kHz.
+        //
+        // The learn pass runs on a *voiced* signal, because the analyser gates on voice:
+        // white noise never fills an active frame, `ready()` stays false, no decision is
+        // ever published and the corner never leaves settings - a test that cannot reach
+        // the code under test is a test that passes.  The correction itself is switched
+        // off (correctionAmount 0) so the only thing left in the path is the low cut.
+        auto toneThrough = [&] (double hz) {
+            auto c2 = makeCore();
+            RestoreSettings s2; s2.learn = true; s2.hpfHz = 172.0; s2.stabilizer = 0.0;
+            c2->prepare(sr, 512);
+            c2->setSettings(s2);
+            const auto learned = voice(220.0, 8.0, 11u);
+            std::vector<float> buf(512), r(512);
+            for (size_t off = 0; off + 512 <= learned.size(); off += 512) {
+                for (int i = 0; i < 512; ++i) { buf[i] = r[i] = learned[off + i]; }
+                c2->processBlock(buf.data(), r.data(), 512);
+                if ((off / 512) % 40 == 39) c2->refresh();
+            }
+            s2.learn = false; s2.correctionAmount = 0.0;
+            c2->setSettings(s2);
+            c2->refresh();
+            const size_t ns = size_t(sr) * 2;
+            std::vector<float> a(ns), b2(ns);
+            for (size_t i = 0; i < ns; ++i)
+                a[i] = b2[i] = 0.3f * float(std::sin(2.0 * kPi * hz * double(i) / sr));
+            for (size_t off = 0; off + 512 <= ns; off += 512) c2->processBlock(a.data() + off, b2.data() + off, 512);
+            double acc = 0.0; int n = 0;
+            for (size_t i = ns / 2; i < ns; ++i) { acc += double(a[i]) * a[i]; ++n; }
+            return 10.0 * std::log10(acc / std::max(n, 1) + 1e-24);
+        };
+        const double atCorner = toneThrough(172.0), atRef = toneThrough(1000.0);
+        const double cut = atCorner - atRef;
+        std::printf("       172 Hz is %.2f dB below 1 kHz through a 172 Hz 24 dB/oct high-pass\n", cut);
+        check(cut < -2.0 && cut > -6.0, "a 172 Hz corner takes about 3 dB at 172 Hz", cut, -3.0, 1.5);
+    }
+
+    // ---------------- G23: the give-back may not put the take over 0 dBFS -----
+    // The level match exists to undo what the curve took out of the voice, and on a take
+    // that is already close to full scale it can add 6 dB on top and hand the host a
+    // sample above 1.0.  The independent render of his own stems came back at 1.018, which
+    // is one sample of clipping in somebody else's master chain - not a level trick.
+    std::printf("\n[G23] the level match cannot push the output over full scale\n");
+    {
+        auto loud = voice(220.0, 6.0);
+        double p0 = 0.0;
+        for (auto v : loud) p0 = std::max(p0, std::abs(double(v)));
+        for (auto& v : loud) v = float(v / std::max(p0, 1e-9) * 0.97);   // -0.26 dBFS
+        RestoreSettings s; s.learn = true; s.maxGainDb = 6.0;
+        auto core = makeCore();
+        auto out = runPipeline(loud, *core, s);
+        double pk = 0.0;
+        for (auto v : out) pk = std::max(pk, std::abs(double(v)));
+        check(pk <= 1.0, "a take at -0.26 dBFS stays inside full scale", pk, 0.98, 0.02);
     }
 
     // ---------------- G7: no NaN / no runaway -------------------------

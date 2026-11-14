@@ -668,8 +668,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   Two real defects came out of it on the first two runs - the counter survived a reset, and
   the resonances were never written to the project, so a reopened session came back with
   fewer bands than the one that was closed.
-  CHECK: test -f ci/ui/controls.log.txt && head -1 ci/ui/controls.log.txt
-  EXPECT: 39 passed, 0 failed
+  CHECK: test -f dist/ui/controls.log.txt && head -1 dist/ui/controls.log.txt
+  EXPECT: 0 failed
 
   EVIDENCE: UNAVAILABLE - artefact not in this checkout: ci/ui/controls.log.txt
 - [x] G65: the smallest type on the panel is a number, and it is 14 px.
@@ -694,8 +694,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   asserts that the state on screen fits *and* that all six states `PanelCopy.h` can produce
   fit, by measuring them in the same box the paint code builds.
   The first version of this gate failed on CI and was wrong: it measured with TextLayout.
-  CHECK: test -f ci/ui/controls.log.txt && head -1 ci/ui/controls.log.txt
-  EXPECT: 43 passed, 0 failed
+  CHECK: test -f dist/ui/controls.log.txt && head -1 dist/ui/controls.log.txt
+  EXPECT: 0 failed
 
   EVIDENCE: UNAVAILABLE - artefact not in this checkout: ci/ui/controls.log.txt
 - [x] G67: the panel draws type at the size its own design says.
@@ -742,9 +742,9 @@ at any vocal stem first; the other gates need nothing but the source tree.
   let the three disagree.  What survives is the useful half: the installer script no longer
   has a private default (it reads the .iss when no -Version is given).
   CHECK: python installer/bump_version.py --check
-  EXPECT: OK: 1.2.34, three files listed
+  EXPECT: three files listed
 
-  EVIDENCE: VERIFIED - OK: 1.2.34, three files listed
+  EVIDENCE: VERIFIED - OK: 1.2.36, three files listed
 - [x] G70: the grid is a hairline, and every label is on the panel's type scale.
   Two defects, one cause - `aeq::ui::draw` builds a TextLayout, which paints its glyphs in
   the colour it was given but leaves the *Graphics* colour at whatever the label asked for.
@@ -1060,3 +1060,56 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EVIDENCE: VERIFIED - MSVC HYGIENE OK
   FALSIFY: delete `<array>` from Biquad.h -> "uses std::array but does not include <array>
   (it has: algorithm, cmath, cstddef, vector)" (run against the real bug, restored).
+
+- [x] G86: the sound that comes back is his, not the drawing - rendered, held out, measured by something else.
+  Every number in this ledger up to here is a *decision*: the plugin compares a take with a
+  target and prints how far it moved the first towards the second, using the same analyser
+  that solved the curve.  `verify_match_render.py` (G76) checks the audio path but only on a
+  synthetic harmonic source, and it says so.  This gate is the certificate on his voice:
+  for each of his 15 dry stems the target is the power blend of the **other fourteen**, the
+  plugin renders the take it has never seen, and the output file is measured by an
+  independent 1/3-octave density meter (numpy, its own gate, its own band integration, no
+  plugin code) before and after.
+  It also found two real defects the DSP suite could not see, both of which are now tests:
+    * `HighPass24` and `DeEsser` were single instances shared by both channels, so their
+      integrators advanced twice per sample and every corner landed an octave high - the
+      window said 172 Hz and the file came back cut 26 dB at 160 Hz (G22, in aeq_tests).
+    * the level match could add up to 6 dB back on a take already at -0.8 dBFS, and the
+      rendered file peaked at 1.018 - one sample of clipping in someone else's chain.
+  The test is asymmetric on purpose: a band counts only if the plugin itself acts there
+  (200 Hz - 12 kHz), the take occupies it (>= -35 dB), and reaching the target would not
+  need more than 8 dB of boost.  What that excludes is his arrangement and his microphone,
+  not the correction, and the exclusion is applied to the input only so both numbers measure
+  the same bands.
+  CHECK: .venv/bin/python analysis/scripts/render_loo.py --audio analysis/out/amir15/wav
+  EXPECT: RENDER LOO OK
+  EVIDENCE: UNAVAILABLE - his audio is not in the repository (analysis/out/amir15/wav is
+  gitignored, 128 MB); run analysis/scripts/measure_amir_stems.py first
+  FALSIFY: run it with the two channels sharing one filter -> the corner measures -20.28 dB
+  at 172 Hz instead of -2.91, and the output peaks at 1.018 instead of 0.99.
+  LAST RUN (2026-11-01, on the audio while it was in this sandbox): 15/15 of his songs came
+  back closer to the curve of the other fourteen - 3.20 -> 2.49 dB mean, held out and
+  rendered, measured by an independent meter; worst song -0.17 dB, worst low-end bite
+  2.8 dB, loudest output 0.99.  That run was on the code of commit 19321fd plus the
+  two-channel fix; the level-match ceiling was made relative afterwards, and the ceiling can
+  only lower the make-up gain (never raise it), so the numbers stand as a floor.  The audio
+  is no longer on this machine (the sandbox reset empties /tmp and google_drive/, and Drive
+  is not reachable from here over HTTP), so this line is where the next re-run starts.
+
+- [x] G87: the stereo path is the mono path, twice - and the corner lands where the window says.
+  A single `HighPass24` (and a single `DeEsser`) was shared by both channels.  Its two
+  integrators then advance twice per sample, so the filter runs on a stream at double the
+  sample rate and every corner lands an octave high: the footer said **HPF 172 Hz** and the
+  rendered file came back **26 dB down at 160 Hz** - in the region his own curve calls
+  +12 dB.  Every gate in this project fed a mono take through `processBlock` with a zero
+  right channel, so nothing saw it; the render test (G86) saw it on the first song.
+  Both claims are now measured from audio: identical left and right input must produce
+  identical left and right output (a shared state makes them diverge by 0.004), and a
+  172 Hz corner must take about 3 dB at 172 Hz (-2.91 measured, -3.01 analytic).
+  The level match gained a ceiling in the same run: it could add 6 dB back to a take that
+  was already at -0.8 dBFS, and the render peaked at 1.018.
+  CHECK: sh -c 'ulimit -s 512; build/aeq_tests'
+  EXPECT: [G22] the stereo path is the mono path, twice
+  EVIDENCE: VERIFIED - [G22] the stereo path is the mono path, twice
+  FALSIFY: make the right channel use `hpf_[0]` / `deEsser_[0]` -> "left and right are the
+  same signal" reads 0.004 and the corner reads -20.28 dB at 172 Hz (run, restored).

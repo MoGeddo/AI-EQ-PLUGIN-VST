@@ -9,7 +9,7 @@
 
 #define AppName "AEQ Restore"
 #ifndef AppVersion
-  #define AppVersion "1.2.35"
+  #define AppVersion "1.2.36"
 #endif
 #define FileVersion AppVersion + ".0"
 #define AppPublisher "AEQ"

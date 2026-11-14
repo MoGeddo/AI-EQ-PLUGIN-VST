@@ -299,8 +299,10 @@ public:
         analyzer_.prepare(fs_);
         learnStab_.prepare(fs_);
         beginLearnBank();
-        hpf_.set(80.0, fs_);
-        deEsser_.prepare(fs_);
+        // One filter per channel.  There used to be one of each, shared by both channels,
+        // and the note below explains what that did to the audio.
+        for (auto& h : hpf_) h.set(80.0, fs_);
+        for (auto& d : deEsser_) d.prepare(fs_);
         stab_.prepare(fs_);
         stab_.setAmount(settings_.stabilizer);
         eqLeft_.reset();
@@ -327,7 +329,8 @@ private:
     void resetDspNow() {
         applyGain_ = 0.0;
         eqLeft_.reset(); eqRight_.reset();
-        hpf_.reset(); deEsser_.reset();
+        for (auto& h : hpf_) h.reset();
+        for (auto& d : deEsser_) d.reset();
         for (auto& t : tracked_) { t.prepare(fs_); t.reset(); }
         trackedActive_ = 0;
         stab_.prepare(fs_);
@@ -447,6 +450,8 @@ public:
         // the core's own convergence gate (G5) caught exactly that as a pass that made
         // the take worse.
         double inSq = 0.0, outSq = 0.0;
+        double wetPeak = 0.0;          // peak of the corrected signal, before the level match
+        double dryPeak = 0.0;          // ... and of the same signal before the EQ touched it
         // outSq is taken on the *static* chain's output, not on the final signal: the
         // level match exists to give back what the curve took out of the voice, and a
         // dynamic layer is supposed to change the level of one harmonic - that is its
@@ -473,20 +478,24 @@ public:
             for (int i = 0; i < m; ++i) {
                 const int j = base + i;
                 const double dryL = left[j];
-                double l = hpf_.process(dryL);
+                double l = hpf_[0].process(dryL);
                 inSq += l * l;
+                dryPeak = std::max(dryPeak, std::abs(l));
                 l = eqLeft_.process(l);
-                l = deEsser_.process(l);
+                l = deEsser_[0].process(l);
+                wetPeak = std::max(wetPeak, std::abs(l));
                 l *= outGain_;
                 dryChL_[size_t(i)] = static_cast<float>(dryL);
                 outSq += l * l;
                 wetChL_[size_t(i)] = static_cast<float>(l);
                 if (right) {
                     const double dryR = right[j];
-                    double r = hpf_.process(dryR);
+                    double r = hpf_[1].process(dryR);
                     inSq += r * r;
+                    dryPeak = std::max(dryPeak, std::abs(r));
                     r = eqRight_.process(r);
-                    r = deEsser_.process(r);
+                    r = deEsser_[1].process(r);
+                    wetPeak = std::max(wetPeak, std::abs(r));
                     r *= outGain_;
                     dryChR_[size_t(i)] = static_cast<float>(dryR);
                     outSq += r * r;
@@ -565,6 +574,26 @@ public:
                 const double lossDb = 10.0 * std::log10(inAvg_ / outAvg_);
                 outGain_ = std::pow(10.0, std::clamp(lossDb, -6.0, 6.0) / 20.0);
             }
+        }
+        // ... and the give-back may not put the take over full scale.
+        //
+        // The level match exists to undo what the curve took out, and on a take that is
+        // already at -0.8 dBFS it will happily add 6 dB back and hand the host a signal
+        // above 1.0.  That is not a level trick, it is a clipper in someone else's master
+        // chain: the independent render of his own stems came back with a peak of 1.018,
+        // which is exactly one sample of something nobody asked for.
+        //
+        // The ceiling is RELATIVE, and the first version was not: an absolute 0.98 pulled
+        // a synthetic take that already peaked at 1.47 down by 3.5 dB, i.e. the plugin
+        // changed the level of material it had not been asked to change (aeq_damage caught
+        // it, which is what that gate is for).  The rule is: the output may go as loud as
+        // the input already was, and no further than full scale.
+        {
+            const double rel = 1.0 - std::exp(-double(n) / (fs_ * 0.3));
+            peakSm_ = std::max(wetPeak, peakSm_ + rel * (wetPeak - peakSm_));
+            dryPeakSm_ = std::max(dryPeak, dryPeakSm_ + rel * (dryPeak - dryPeakSm_));
+            const double ceiling = std::max(dryPeakSm_, 0.98);
+            if (peakSm_ > 1e-9) outGain_ = std::min(outGain_, ceiling / peakSm_);
         }
 
         // Loudness, smoothed over ~150 ms, published for the dynamic layers: they hold a
@@ -1127,9 +1156,11 @@ public:
             stabPubCount_.store(0, std::memory_order_relaxed);
             stabPubTotal_.store(0.0, std::memory_order_relaxed);
         }
-        hpf_.set(settled && pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
-        deEsser_.setEnabled(settled && pendingDeEssOn_);
-        if (settled) deEsser_.setParameters(pendingDeThr_, pendingDeGr_);
+        for (auto& h : hpf_) h.set(settled && pendingHpf_ > 0 ? pendingHpf_ : 70.0, fs_);
+        for (auto& d : deEsser_) {
+            d.setEnabled(settled && pendingDeEssOn_);
+            if (settled) d.setParameters(pendingDeThr_, pendingDeGr_);
+        }
         pendingSeen_.store(true, std::memory_order_release);
     }
 
@@ -1341,7 +1372,9 @@ private:
         const double r = f / corner;
         return -10.0 * std::log10(1.0 + std::pow(r, -4.0)) * 2.0;
     }
-    double deEssGainReduction() const { return deEsser_.currentGainReductionDb(); }
+    double deEssGainReduction() const {
+        return std::max(deEsser_[0].currentGainReductionDb(), deEsser_[1].currentGainReductionDb());
+    }
     double sampleRate() const { return fs_; }
 
 public:
@@ -1455,9 +1488,11 @@ private:
         lk.unlock();
         eqLeft_.setBands(bands.data(), count, fs_);
         eqRight_.setBands(bands.data(), count, fs_);
-        hpf_.set(hf > 0 ? hf : 70.0, fs_);
-        deEsser_.setEnabled(deMax > 0.05);
-        deEsser_.setParameters(deThr, deMax);
+        for (auto& h : hpf_) h.set(hf > 0 ? hf : 70.0, fs_);
+        for (auto& d : deEsser_) {
+            d.setEnabled(deMax > 0.05);
+            d.setParameters(deThr, deMax);
+        }
     }
 
     double fs_ = 48000.0;
@@ -1475,12 +1510,22 @@ private:
     bool measuredProfileValid_ = false;
     LiveSpectrum live_;
     Analyzer analyzer_;
-    HighPass24 hpf_;
+    // One state per channel.  A single shared instance is not a simplification: the two
+    // channels are then filtered by *one* set of integrators that is advanced twice per
+    // sample, so the filter operates on a stream at two samples per step and its corner
+    // lands at twice the frequency it was set to.  Measured on his own take: the panel
+    // said "HPF 172 Hz" and the file came back with the corner at ~340 Hz - 10.3 dB gone
+    // at 254 Hz, 26 dB at 160 Hz, in the range his own curve has +12 dB.  The corner
+    // number was right and the audio was an octave out, which is the shape of complaint
+    // that has no bug in it until someone measures the file.
+    std::array<HighPass24, 2> hpf_{};
     BiquadCascade eqLeft_, eqRight_;
-    DeEsser deEsser_;
+    std::array<DeEsser, 2> deEsser_{};
     std::array<TrackedBand, kTrackedMax> tracked_{};   // audio thread only
     TrackedSpec trackSpec_[kTrackedMax]{};
     int trackedActive_ = 0;
+    double peakSm_ = 0.0;
+    double dryPeakSm_ = 0.0;
     double loudSm_ = -30.0;
     std::atomic<double> loudPub_{-30.0};
     std::atomic<double> trackedPubLevel_[kTrackedMax];
