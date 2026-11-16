@@ -1194,7 +1194,9 @@ at any vocal stem first; the other gates need nothing but the source tree.
   sidebearing, so what reads as a space is about twice what the numbers suggest.
   CHECK: .venv/bin/python design/preview/check_wordmark.py
   EXPECT: wordmark ok:
-  EVIDENCE: UNAVAILABLE until the Windows shot of the 1.2.39 build is in dist/ui: python3 scripts/fetch_ci_ui.py
+  EVIDENCE: VERIFIED - wordmark ok: dist/ui/ui-empty-1240x800.png two words, 21 px apart
+  (min 4), ink/accent width 0.54 (min 0.45) - accent x24-118 (95 px), ink x140-190 (51 px),
+  rows 21-37  (the shot of the 1.2.40 Windows build, run 43927181563)
   FALSIFY: --shot docs/ui-1.2.37-wordmark-overlap.png -> "the ink word measures 30 px against
   the accent word's 95 (ratio 0.32, need 0.45) - the first glyph is not outside the accent
   word, it is drawn inside it"; --shot of 1.2.38's window -> "the two words are 1 px apart
