@@ -61,7 +61,7 @@ jobs:
         run: |
           # *>&1 merges Write-Host (the information stream) into the log: without
           # it the packaging step fails silently in CI
-          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.2.40 *>&1 |
+          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.2.41 *>&1 |
               Tee-Object -FilePath build.log -Append
           "`n=== installer exit: $LASTEXITCODE ===" | Tee-Object -FilePath build.log -Append
           if ($LASTEXITCODE -ne 0) {
@@ -212,7 +212,11 @@ jobs:
 
           $notes | Out-File -Encoding utf8 release-notes.md
 
-          gh release create "v$v" dist/*.exe dist/*.sha256 --title "Geddo AEQ $v" --notes-file release-notes.md
+          # --target is not decoration.  Without it, `gh release create` makes the tag on
+          # the repository's default branch, so v1.2.37..v1.2.40 all pointed at the initial
+          # commit while the notes said "built on $env:GITHUB_SHA": the release's source was
+          # a tree nobody built.  With it, the tag is the commit the installer came from.
+          gh release create "v$v" dist/*.exe dist/*.sha256 --target "$env:GITHUB_SHA" --title "Geddo AEQ $v" --notes-file release-notes.md
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
           Write-Host "published v$v"
 

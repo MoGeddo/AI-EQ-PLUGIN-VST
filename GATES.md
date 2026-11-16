@@ -1201,3 +1201,21 @@ at any vocal stem first; the other gates need nothing but the source tree.
   the accent word's 95 (ratio 0.32, need 0.45) - the first glyph is not outside the accent
   word, it is drawn inside it"; --shot of 1.2.38's window -> "the two words are 1 px apart
   (need 4)" (both run; both are shots CI actually produced).
+
+- [x] G92: a release points at the commit it was built from.
+  `gh release create vX` without `--target` makes the tag on the repository's **default
+  branch**, not on the commit CI built.  Nothing fails: the release page is right, the
+  installer downloads, the notes name the SHA - and the tag, which is what anyone clicks to
+  read the source of that version, opens a tree that was never compiled.  v1.2.37, .38, .39
+  and .40 all did exactly that; every one of them pointed at the initial commit (bb021cf),
+  and it was found by asking the API which commit each tag names, not by a test.
+  The bytes were never wrong, only the provenance.  The four tags are moved to the commits
+  that produced those installers (69e9572, f64ed4e, d1c4083, d077164 - no asset was
+  touched), and the release command now carries `--target "$env:GITHUB_SHA"`.
+  CHECK: python3 scripts/check_release_target.py
+  EXPECT: release target ok:
+  EVIDENCE: VERIFIED - release target ok: 1 release command(s), each tagged at the commit
+  it built (--target "$env:GITHUB_SHA"); and `gh api .../git/ref/tags/v1.2.40` now answers
+  d077164 where it answered bb021cf.
+  FALSIFY: remove `--target "$env:GITHUB_SHA"` from the release line -> "the tag would be
+  made on the default branch, not the built commit" (run, restored).
