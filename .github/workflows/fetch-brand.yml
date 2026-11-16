@@ -1,0 +1,66 @@
+name: fetch-brand
+
+# The logo lives on his own site, and this sandbox cannot reach it: the only hosts it can
+# open are GitHub and the package registries (the same wall that keeps his 15 stems on
+# Drive).  A GitHub runner has ordinary internet, so the runner fetches the asset and parks
+# it on the `ci/brand` branch, and the checkout pulls it from there - which is exactly how
+# the Windows screenshots already get out of CI.
+#
+# The files are written to `brand/` with the sha256 and the pixel size printed in the log, so
+# the picture that ends up in the plugin can be named by its bytes rather than by "the logo".
+#
+#   touch .github/brand-request/1 && git commit && git push     # one request per version
+on:
+  push:
+    paths:
+      - '.github/brand-request/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch the brand files from mostafageddo.com
+        run: |
+          set -euo pipefail
+          mkdir -p brand
+          fetch () {   # url, out
+            curl -fsSL --retry 3 --max-time 60 -A "Mozilla/5.0 (brand-fetch)" "$1" -o "$2"
+            echo "$2  $(stat -c%s "$2") bytes  $(sha256sum "$2" | cut -d' ' -f1)"
+          }
+          # the header logo on the site (index.html links it as images/logo.png)
+          fetch "https://mostafageddo.com/images/logo.png"                     brand/logo.png
+          # the app icon the site itself installs (site.webmanifest -> icons)
+          fetch "https://mostafageddo.com/images/icons/android-chrome-512x512.png" brand/icon-512.png
+          fetch "https://mostafageddo.com/images/og-image.jpg"                 brand/og-image.jpg
+          file brand/*
+          python3 - <<'PY'
+          import glob, struct
+          from pathlib import Path
+          for p in sorted(glob.glob('brand/*')):
+              b = Path(p).read_bytes()
+              if b[:8] == b'\x89PNG\r\n\x1a\n':
+                  w, h = struct.unpack('>II', b[16:24])
+                  print(f'{p}: PNG {w}x{h}')
+              elif b[:2] == b'\xff\xd8':
+                  print(f'{p}: JPEG (size read by the browser)')
+              else:
+                  print(f'{p}: UNKNOWN magic {b[:8]!r}')
+          PY
+
+      - name: Park it on ci/brand
+        run: |
+          set -euo pipefail
+          git config user.name  "brand-fetch"
+          git config user.email "brand-fetch@users.noreply.github.com"
+          git checkout -B ci/brand
+          git add -f brand
+          git commit -m "brand for run ${{ github.run_id }} from mostafageddo.com"
+          git push --force origin ci/brand
