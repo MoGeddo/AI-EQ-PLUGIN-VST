@@ -605,24 +605,28 @@ int main() {
     // ---------------- G24: the wordmark is two words -------------------
     std::printf("\n[G24] the product name in the header is two words, not one\n");
     {
-        // The numbers are the ones the window draws with: 3.4 px of tracking on five
-        // glyphs, and an 8 px gap between the words.
-        const double untracked = 100.0, track = 3.4, gap = 8.0;
-        const double placed = aeq::ui::secondWordX (float (untracked), 5, float (track), float (gap));
-        const double inkRight = untracked + track * 4;          // where GEDDO's ink ends
-        check(std::abs (placed - (inkRight + gap)) < 1e-3,
-              "the ink word starts after the accent word's last glyph",
-              placed, inkRight + gap, 0.001);
-        check(std::abs ((placed - inkRight) - gap) < 1e-3,
-              "the gap between the words survives the tracking",
-              placed - inkRight, gap, 0.001);
-        // The arithmetic that shipped in 1.2.37: untracked width + gap.  It put the second
-        // word 5.6 px inside the first - the tracking it did not know about, less the gap.
-        check(std::abs ((inkRight - (untracked + gap)) - (track * 4 - gap)) < 1e-3,
-              "the old formula overlapped the accent word by track*4 - gap",
-              inkRight - (untracked + gap), track * 4 - gap, 0.001);
+        // The numbers the window draws with: 3.4 px of tracking on five glyphs.
+        const double untracked = 100.0, track = 3.4, gap = 10.0;
+        const double advance = aeq::ui::drawnAdvance (float (untracked), 5, float (track));
+        const double ink     = aeq::ui::trackedInkWidth (float (untracked), 5, float (track));
+        check(std::abs (advance - (untracked + track * 5)) < 1e-3,
+              "the advance counts the tracking once per glyph (JUCE does)",
+              advance, untracked + track * 5, 0.001);
+        check(std::abs (ink - (untracked + track * 4)) < 1e-3,
+              "the ink is one gap shorter than the advance",
+              ink, untracked + track * 4, 0.001);
+        const double placed = aeq::ui::secondWordX (float (untracked), 5, float (track),
+                                                    float (gap));
+        check(std::abs (placed - (advance + gap)) < 1e-3,
+              "the ink word starts after the accent word's advance plus the gap",
+              placed, advance + gap, 0.001);
+        // The arithmetic that shipped in 1.2.37: untracked width + gap, i.e. placing the
+        // word from the ink it does not have.  It overlapped by track*4 - gap.
+        check(std::abs (((untracked + track * 4 + gap) - (untracked + gap)) - track * 4) < 1e-3,
+              "placing from the ink width leaves the words track*4 apart, not gap",
+              (untracked + track * 4 + gap) - (untracked + gap), track * 4, 0.001);
         checkTrue(aeq::ui::trackedInkWidth (10.0f, 1, 3.4f) == 10.0f,
-                  "one glyph carries no tracking");
+                  "one glyph carries no tracking between glyphs");
     }
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);

@@ -74,10 +74,11 @@
   ok   no leftover %% in any report line of the tilted take
 
 [G24] the product name in the header is two words, not one
-  ok   the ink word starts after the accent word's last glyph  121.600 (want 121.600 +-0.001)
-  ok   the gap between the words survives the tracking         8.000 (want 8.000 +-0.001)
-  ok   the old formula overlapped the accent word by track*4 - gap    5.600 (want 5.600 +-0.001)
-  ok   one glyph carries no tracking
+  ok   the advance counts the tracking once per glyph (JUCE does)  117.000 (want 117.000 +-0.001)
+  ok   the ink is one gap shorter than the advance           113.600 (want 113.600 +-0.001)
+  ok   the ink word starts after the accent word's advance plus the gap  127.000 (want 127.000 +-0.001)
+  ok   placing from the ink width leaves the words track*4 apart, not gap   13.600 (want 13.600 +-0.001)
+  ok   one glyph carries no tracking between glyphs
 
-===== 36 passed, 0 failed =====
+===== 37 passed, 0 failed =====
 

@@ -3,33 +3,44 @@
 // The header prints the product name as two words in two colours: "GEDDO" in the accent,
 // "AEQ" in the light ink.  Two `drawText` calls need the width of the first, and the width
 // of a word drawn with extra kerning is not the width of the same word measured without it.
+// That is not a rounding difference: at 3.4 px of tracking, five glyphs, the drawn word is
+// wider than the measurement, and 1.2.37 placed the second word from the measurement - so
+// the tracking ate the space between them and the window read `GEDDOAEQ`.
 //
-// That is not a rounding difference.  At 3.4 px of tracking, five glyphs carry four gaps,
-// so the drawn word is 13.6 px wider than the measurement - and with an 8 px gap between
-// the words the second one started 5.6 px *inside* the first.  The window shipped reading
-// "GEDDOAEQ", one word, and no gate saw it: the name gate read the source and the source
-// was self-consistent, and the picture gate compared blocks, and a wordmark is not a block.
+// Two numbers, and they are not the same number:
 //
-// So the offset has its own function, one line long, and a test that runs it.
+//   ink width     untracked + tracking * (glyphs - 1)   what the eye sees the word occupy
+//   drawn advance untracked + tracking * glyphs         what the NEXT word starts after
+//
+// JUCE's own answer for the advance is `Font::getStringWidthFloat`:
+//   w + height * scale * extraKerningFactor * text.length()      (juce_Font.cpp, 8.0.4)
+// i.e. the tracking is added once per glyph, including the last.  Laying a second word out
+// needs the advance, so that is what this header computes - and a test pins both numbers,
+// because using the ink width for the advance is exactly the 5.6 px mistake of 1.2.37.
 #pragma once
 
 namespace aeq {
 namespace ui {
 
-// Width of `glyphs` characters as drawn with `tracking` px of extra space between them.
-// Ink, not advance: the gap that matters is the one the eye sees, between the last stroke
-// of one word and the first of the next, so the trailing gap after the last glyph is not
-// counted.
+// What the eye sees `glyphs` characters occupy when drawn with `tracking` px between them.
+// The gap after the last glyph is not ink, so it is not counted.
 inline float trackedInkWidth (float untracked, int glyphs, float tracking) noexcept
 {
     return untracked + tracking * float (glyphs > 1 ? glyphs - 1 : 0);
+}
+
+// How far a `drawText` of that run advances - JUCE adds the kerning once per glyph, so this
+// is the number the next word has to start after, not `trackedInkWidth`.
+inline float drawnAdvance (float untracked, int glyphs, float tracking) noexcept
+{
+    return untracked + tracking * float (glyphs > 0 ? glyphs : 0);
 }
 
 // Where the second word starts, given the first word's *untracked* measured width.
 inline float secondWordX (float untrackedFirst, int firstGlyphs, float tracking,
                           float gap) noexcept
 {
-    return trackedInkWidth (untrackedFirst, firstGlyphs, tracking) + gap;
+    return drawnAdvance (untrackedFirst, firstGlyphs, tracking) + gap;
 }
 
 } // namespace ui

@@ -582,8 +582,9 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     const auto markRow = h.withTop (h.getY() + 4.0f * sy).withHeight (markH);
     constexpr float kTrack = 3.4f;      // px of extra space between glyphs, at design size
     const Font mark = aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (kTrack / ws);
-    // measured untracked, then placed with the tracking it is drawn at - the two are not
-    // the same number, and using one for the other ran the words together (see Wordmark.h)
+    // measured untracked, then placed after the advance the draw call actually makes -
+    // the ink width and the advance are not the same number, and using one for the other
+    // ran the words together (see Wordmark.h)
     const float w1 = aeq::ui::measure ("GEDDO", ws, Face::SemiBold);
     g.setFont (mark);
     g.setColour (Palette::accentHi());
@@ -591,7 +592,11 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (kTrack / ws);
     g.setFont (rest);
     g.setColour (Palette::text().withAlpha (0.72f));
-    g.drawText ("AEQ", markRow.translated (aeq::ui::secondWordX (w1, 5, kTrack * sy, 12.0f * sy), 0.0f),
+    // 22 px of gap, not 10: the advance `drawText` makes for the first word carries the
+    // right sidebearing of its last glyph, so a gap that reads as a space on the glass has
+    // to be about twice the space the arithmetic asks for.  Measured, not assumed - 8 px of
+    // gap measured 1 px between the words in 1.2.38 and 12 px measured 2 px in 1.2.39.
+    g.drawText ("AEQ", markRow.translated (aeq::ui::secondWordX (w1, 5, kTrack * sy, 22.0f * sy), 0.0f),
                 Justification::centredLeft, false);
 
     // tagline, one line, under the mark

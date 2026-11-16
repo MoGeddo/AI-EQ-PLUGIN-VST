@@ -1188,8 +1188,10 @@ at any vocal stem first; the other gates need nothing but the source tree.
   (at 1.2.38 the tracking had eaten the space and they were 1 px apart), and the ink word
   must be at least 0.45 of the accent word's width - "AEQ" against "GEDDO" is 0.54 in this
   face, and in 1.2.37 the ink word's first glyph was drawn *inside* the accent word, which
-  left 0.32 of it visible.  The gap went to 12 px in the source in the same change: 8 px of
-  intended space minus the accent word's sidebearing measured 1 px on the glass.
+  left 0.32 of it visible.  The gap is 22 px in the source because the glass disagrees with
+  the arithmetic: 8 px of gap measured 1 px between the words in 1.2.38, 12 px measured 2 px
+  in 1.2.39 - the advance `drawText` makes for the first word carries its last glyph's right
+  sidebearing, so what reads as a space is about twice what the numbers suggest.
   CHECK: .venv/bin/python design/preview/check_wordmark.py
   EXPECT: wordmark ok:
   EVIDENCE: UNAVAILABLE until the Windows shot of the 1.2.39 build is in dist/ui: python3 scripts/fetch_ci_ui.py
