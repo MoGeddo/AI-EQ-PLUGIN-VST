@@ -747,7 +747,7 @@ int main(int argc, char** argv) {
         juce::Image probe(juce::Image::ARGB, 480, 90, true);
         juce::Graphics pg(probe);
         pg.fillAll(aeq::ui::Palette::surface());
-        aeq::ui::draw(pg, juce::String::fromUTF8(u8"AEQ Restore — الخط العربي داخل الـplugin"),
+        aeq::ui::draw(pg, juce::String::fromUTF8(u8"Geddo AEQ — الخط العربي داخل الـplugin"),
                       probe.getBounds().toFloat().reduced(8.0f),
                       juce::Justification::centredLeft, 22.0f, juce::Colours::white);
         savePng(probe, dir.getChildFile("probe-font.png"));

@@ -19,8 +19,8 @@ cd <repo>
 3. يشغّل **Inno Setup** ويطلّع:
 
 ```
-dist\AEQ_Restore_Setup_1.0.0.exe          (~2–4 MB)
-dist\AEQ_Restore_Setup_1.0.0.sha256
+dist\Geddo_AEQ_Setup_1.0.0.exe          (~2–4 MB)
+dist\Geddo_AEQ_Setup_1.0.0.sha256
 ```
 
 محتاج حاجة واحدة زيادة على متطلبات البناء: **Inno Setup 6.3+**
@@ -49,16 +49,30 @@ winget install JRSoftware.InnoSetup
 
 | الحاجة | المكان |
 |---|---|
-| VST3 | `C:\Program Files\Common Files\VST3\AEQ Restore.vst3` |
-| Standalone + الملفات | `C:\Program Files\AEQ Restore\` |
+| VST3 | `C:\Program Files\Common Files\VST3\Geddo AEQ.vst3` |
+| Standalone + الملفات | `C:\Program Files\Geddo AEQ\` |
 | اختصارات | Start Menu + Desktop |
-| إزالة | Settings → Apps → AEQ Restore (أو الاختصار) |
+| إزالة | Settings → Apps → Geddo AEQ (أو الاختصار) |
 
 **سلوك مهم:** الـinstaller بيوقف الـDAW المفتوح لو البلجن محمّل جواه (`CloseApplications`)
 — لأن ويندوز مش بيسمح بكتابة فوق DLL مفتوح، وفشل التسطيب بنص رسالة غامضة أسوأ من سؤال
 "اقفل الـDAW؟".
 
 **Upgrade:** الـ`AppId` ثابت، فنسخة جديدة **بتستبدل** القديمة ومش بتتسطب جنبها.
+
+**الاسم اتغيّر في 1.2.37 (من `AEQ Restore` لـ`Geddo AEQ`)، والـ`AppId` ما اتغيرش.** اللي
+بيحصل بالظبط على جهاز فيه النسخة القديمة:
+
+| الحاجة | قبل | بعد التسطيب |
+|---|---|---|
+| البلجن في الـDAW | `VST3\AEQ Restore.vst3` | `VST3\Geddo AEQ.vst3` |
+| البلجن القديم | موجود | **بيتشال** (`[InstallDelete]` في الـ`.iss`) — مش هتلاقي اتنين بنفس الـID |
+| مشاريعك القديمة | بتفتح | بتفتح زي ما هي (الـ`PLUGIN_CODE` ما اتغيرش) |
+| الـStandalone | `Program Files\AEQ Restore\` | `Program Files\Geddo AEQ\` |
+
+سبب الـ`[InstallDelete]` مكتوب جوه الـ`.iss`: البلجن الـID بتاعه واحد، فلو القديم فضل
+في الفولدر الـDAW هيعرضه مرتين — والاسم القديم هو اللي هيفضل ظاهر في القايمة.
+
 **Uninstall:** بيشيل مجلد الـ`.vst3` كامل (مش بيسيب فولدرات فاضية)، وسايب مشاريعك في حالها.
 
 ---
@@ -110,7 +124,7 @@ More info → Run anyway.
 
 | الملف | إيه فيه |
 |---|---|
-| `installer/AEQ_Restore.iss` | سكربت Inno: الشاشات، المهام، المسارات، الـUninstall |
+| `installer/Geddo_AEQ.iss` | سكربت Inno: الشاشات، المهام، المسارات، الـUninstall |
 | `installer/build_installer.ps1` | أمر واحد: بناء → تجميع → installer → SHA256 |
 | `installer/make_assets.py` | بيولّد الأيقونة وصور الـwizard **من `presets/target_curve.csv`** نفسه |
 | `installer/aeq.ico` | أيقونة 7 مقاسات (16 → 256) — BMP داخلي، مقبول في كل ويندوز |
@@ -133,14 +147,14 @@ More info → Run anyway.
 **تنزيل الناتج:**
 
 - **الطريقة العادية:** افتح `Actions` في الريبو → آخر run ناجح → `Artifacts` →
-  `AEQ_Restore_Setup`. الملف جوّه zip.
+  `Geddo_AEQ_Setup`. الملف جوّه zip.
 
 - **لو الأرتيفاكت مش موصّل عندك:** اكتب `[exe]` في رسالة أي commit وارفع — الـworkflow
   هيلزق الـsetup على فرع `ci/artifacts`، وبعدها:
 
 ```bash
 git fetch origin ci/artifacts
-git show FETCH_ORIGIN_HEAD:ci-artifacts/AEQ_Restore_Setup_1.0.0.exe > AEQ_Restore_Setup_1.0.0.exe
+git show FETCH_ORIGIN_HEAD:ci-artifacts/Geddo_AEQ_Setup_1.0.0.exe > Geddo_AEQ_Setup_1.0.0.exe
 ```
 
 **ملاحظة مهمة عن المعمارية:** ملف التسطيب نفسه **32-bit** — ده عادي ومقصود،
@@ -160,10 +174,10 @@ Inno Setup بيطلّع installer 32-bit دايماً. **البلجن جوّاه
 python .\installer\make_assets.py
 
 # تسطيب صامت (للمختبرات أو السكربتات)
-.\dist\AEQ_Restore_Setup_1.0.0.exe /VERYSILENT /NORESTART /SUPPRESSMSGBOXES
+.\dist\Geddo_AEQ_Setup_1.0.0.exe /VERYSILENT /NORESTART /SUPPRESSMSGBOXES
 
 # إزالة صامتة
-"C:\Program Files\AEQ Restore\unins000.exe" /VERYSILENT
+"C:\Program Files\Geddo AEQ\unins000.exe" /VERYSILENT
 ```
 
 **قبل التوزيع:** جرّب التسطيب وإنت **مش admin**؟ لأ — التسطيب محتاج admin (بيعتمد)
@@ -228,20 +242,20 @@ https://github.com/MoGeddo/AI-EQ-PLUGIN-VST/releases/latest
 
 | الملف | إيه هو |
 |---|---|
-| `AEQ_Restore_Setup_<version>.exe` | الـinstaller (Next → Next → Install) |
-| `AEQ_Restore_Setup_<version>.sha256` | البصمة للتحقق إن الملف نزل سليم |
+| `Geddo_AEQ_Setup_<version>.exe` | الـinstaller (Next → Next → Install) |
+| `Geddo_AEQ_Setup_<version>.sha256` | البصمة للتحقق إن الملف نزل سليم |
 
 ### إزاي إصدار جديد ينزل «واحد ورا التاني»
 
-الـworkflow بيقرا رقم الإصدار من `installer/AEQ_Restore.iss`، ولو الإصدار ده
+الـworkflow بيقرا رقم الإصدار من `installer/Geddo_AEQ.iss`، ولو الإصدار ده
 **مش منشور قبل كده** بيعمله Release ويحط الملفات جواه، ومعه قائمة اللي اتغير من
 آخر tag. ولو الإصدار **موجود بالفعل** بيقف ويقول: "الإصدار ده منشور — كبّر الرقم".
 
 يعني الإصدارات **مابتتغيّرش من تحت** حد نزّلها. عشان تنزّل نسخة جديدة:
 
 1. غيّر الرقم في **مكانين** (لازم الاتنين يتطابقوا):
-   - `installer/AEQ_Restore.iss` → `#define AppVersion "1.2.0"`
-   - `plugin/CMakeLists.txt` → `project(AEQRestore VERSION 1.2.0 ...)`
+   - `installer/Geddo_AEQ.iss` → `#define AppVersion "1.2.0"`
+   - `plugin/CMakeLists.txt` → `project(GeddoAEQ VERSION 1.2.0 ...)`
    - `installer/build_installer.ps1` و`.github/workflows/build-windows.yml` بياخدوا
      الرقم من نفس الـworkflow
 2. ادفع الكوميت، والـCI هيبني، يشغّل الـ15 بوابة، ويعمل الـRelease.
@@ -249,6 +263,6 @@ https://github.com/MoGeddo/AI-EQ-PLUGIN-VST/releases/latest
 **التحقق بعد التنزيل** (PowerShell):
 
 ```powershell
-Get-FileHash .\AEQ_Restore_Setup_1.2.0.exe -Algorithm SHA256
+Get-FileHash .\Geddo_AEQ_Setup_1.2.0.exe -Algorithm SHA256
 # قارن بالـsha256 اللي في صفحة الـRelease
 ```

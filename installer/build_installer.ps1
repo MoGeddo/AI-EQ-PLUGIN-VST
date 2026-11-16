@@ -1,11 +1,11 @@
 # build_installer.ps1 - builds the plugin and wraps it in a normal Windows
-# installer: dist\AEQ_Restore_Setup_<version>.exe
+# installer: dist\Geddo_AEQ_Setup_<version>.exe
 #
 #   .\build_installer.ps1                    build the plugin, then the installer
 #   .\build_installer.ps1 -SkipBuild         reuse the existing plugin build
 #   .\build_installer.ps1 -Version 1.0.1     stamp a different version
 #
-# With no -Version it reads installer/AEQ_Restore.iss, which is the one place the version
+# With no -Version it reads installer/Geddo_AEQ.iss, which is the one place the version
 # is written.  It is not copied into this file: a copy is a thing that drifts, and the
 # workflow used to carry a third copy of the same number.
 #   .\build_installer.ps1 -Sign              also sign, if a certificate is set up
@@ -29,11 +29,11 @@ function Step($msg) { Write-Host ""; Write-Host "== $msg ==" -ForegroundColor Cy
 
 # ---------------------------------------------------------------- 1. the plugin
 if (-not $Version) {
-    $iss = Join-Path $here "AEQ_Restore.iss"
+    $iss = Join-Path $here "Geddo_AEQ.iss"
     $line = (Select-String -Path $iss -Pattern '#define AppVersion "(\d+\.\d+\.\d+)"').Matches
     if (-not $line) { Fail "cannot read the version from $iss" }
     $Version = $line[0].Groups[1].Value
-    Write-Host "version   : $Version (from AEQ_Restore.iss)"
+    Write-Host "version   : $Version (from Geddo_AEQ.iss)"
 }
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { Fail "version must look like 1.0.0 (got '$Version')" }
 
@@ -46,14 +46,14 @@ if (-not $SkipBuild) {
 }
 
 $build = Join-Path $root "plugin\build"
-$vst3 = Get-ChildItem -Path $build -Recurse -Directory -Filter "AEQ Restore.vst3" -ErrorAction SilentlyContinue |
-        Where-Object { Test-Path (Join-Path $_.FullName "Contents\x86_64-win\AEQ Restore.vst3") } |
+$vst3 = Get-ChildItem -Path $build -Recurse -Directory -Filter "Geddo AEQ.vst3" -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path (Join-Path $_.FullName "Contents\x86_64-win\Geddo AEQ.vst3") } |
         Select-Object -First 1
-if (-not $vst3) { $vst3 = Get-ChildItem -Path $build -Recurse -Directory -Filter "AEQ Restore.vst3" -ErrorAction SilentlyContinue | Select-Object -First 1 }
-if (-not $vst3) { Fail "no AEQ Restore.vst3 in $build - build the plugin first (drop -SkipBuild)" }
+if (-not $vst3) { $vst3 = Get-ChildItem -Path $build -Recurse -Directory -Filter "Geddo AEQ.vst3" -ErrorAction SilentlyContinue | Select-Object -First 1 }
+if (-not $vst3) { Fail "no Geddo AEQ.vst3 in $build - build the plugin first (drop -SkipBuild)" }
 
-$exe = Get-ChildItem -Path $build -Recurse -File -Filter "AEQ Restore.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $exe) { Fail "no AEQ Restore.exe (standalone) in $build - the same CMake target builds it, so this means the build is incomplete" }
+$exe = Get-ChildItem -Path $build -Recurse -File -Filter "Geddo AEQ.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $exe) { Fail "no Geddo AEQ.exe (standalone) in $build - the same CMake target builds it, so this means the build is incomplete" }
 
 Write-Host "   vst3      : $($vst3.FullName)"
 Write-Host "   standalone: $($exe.FullName)"
@@ -68,9 +68,9 @@ Copy-Item -Force $exe.FullName (Join-Path $staging "standalone")
 $stagedFiles = Get-ChildItem -Path $staging -Recurse -File
 Write-Host "   $($stagedFiles.Count) files, $([math]::Round(($stagedFiles | Measure-Object Length -Sum).Sum / 1MB, 1)) MB"
 
-$innerDll = Join-Path $staging "vst3\AEQ Restore.vst3\Contents\x86_64-win\AEQ Restore.vst3"
+$innerDll = Join-Path $staging "vst3\Geddo AEQ.vst3\Contents\x86_64-win\Geddo AEQ.vst3"
 if (-not (Test-Path $innerDll)) {
-    Write-Host "   warning: the bundle does not look like a Windows VST3 (no Contents\x86_64-win\AEQ Restore.vst3)" -ForegroundColor Yellow
+    Write-Host "   warning: the bundle does not look like a Windows VST3 (no Contents\x86_64-win\Geddo AEQ.vst3)" -ForegroundColor Yellow
 }
 
 # ------------------------------------------------------------------ 3. if any
@@ -130,11 +130,11 @@ if (-not $isccVersion -or $isccVersion -like "0.0.0*") {
 # ------------------------------------------------------------------ 5. compile
 Step "compiling the installer"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
-$iss = Join-Path $here "AEQ_Restore.iss"
+$iss = Join-Path $here "Geddo_AEQ.iss"
 & $iscc "/DAppVersion=$Version" $iss
-if ($LASTEXITCODE -ne 0) { Fail "ISCC failed - the error above names the line in AEQ_Restore.iss" }
+if ($LASTEXITCODE -ne 0) { Fail "ISCC failed - the error above names the line in Geddo_AEQ.iss" }
 
-$setup = Join-Path $dist "AEQ_Restore_Setup_$Version.exe"
+$setup = Join-Path $dist "Geddo_AEQ_Setup_$Version.exe"
 if (-not (Test-Path $setup)) { Fail "ISCC reported success but $setup is missing" }
 
 if ($Sign) {
@@ -154,7 +154,7 @@ Write-Host "installer : $setup" -ForegroundColor Green
 Write-Host "version   : $Version"
 Write-Host "size      : $size MB"
 Write-Host "sha256    : $hash"
-Set-Content -Path (Join-Path $dist "AEQ_Restore_Setup_$Version.sha256") -Value "$hash  AEQ_Restore_Setup_$Version.exe"
+Set-Content -Path (Join-Path $dist "Geddo_AEQ_Setup_$Version.sha256") -Value "$hash  Geddo_AEQ_Setup_$Version.exe"
 Write-Host ""
 Write-Host "Double-click it to test the whole flow on this machine. Uninstall from" -ForegroundColor Yellow
 Write-Host "Settings > Apps, then reinstall - an upgrade over an existing install must" -ForegroundColor Yellow

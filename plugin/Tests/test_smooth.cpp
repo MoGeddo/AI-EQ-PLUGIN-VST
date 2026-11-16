@@ -78,7 +78,7 @@ static void checkTrueF(bool ok, const char* fmt, double value) {
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - is the audio path smooth? =====\n\n");
+    std::printf("\n===== GEDDO AEQ - is the audio path smooth? =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     aeq::RestoreSettings s;

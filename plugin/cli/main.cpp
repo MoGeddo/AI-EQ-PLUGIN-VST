@@ -107,7 +107,7 @@ static void printReport(aeq::RestoreCore& core) {
     const auto m = core.measurements();
     if (!st.valid) { std::printf("not enough audio to analyse\n"); return; }
 
-    std::printf("\n================ AEQ RESTORE - REPORT ================\n");
+    std::printf("\n================ GEDDO AEQ - REPORT ================\n");
     std::printf("median F0        : %.0f Hz\n", st.measuredF0);
     std::printf("peak             : %.1f dBFS   dynamic range %.1f dB\n", m.peakDbfs, m.dynamicRange);
     std::printf("sibilance median : %.1f dB   p90 %.1f   p99 %.1f\n",

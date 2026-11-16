@@ -213,7 +213,7 @@ static void checkTiltTextIsFormatted() {
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // a crash must not swallow the log
-    std::printf("\n===== AEQ RESTORE - acceptance gates =====\n");
+    std::printf("\n===== GEDDO AEQ - acceptance gates =====\n");
 
     // ---------------- G1: biquad maths --------------------------------
     std::printf("\n[G1] biquad response\n");

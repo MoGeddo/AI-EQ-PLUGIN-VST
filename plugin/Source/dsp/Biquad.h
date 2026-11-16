@@ -1,4 +1,4 @@
-// Minimal, dependency-free audio primitives for AEQ Restore.
+// Minimal, dependency-free audio primitives for Geddo AEQ.
 // All maths is RBJ (Audio EQ Cookbook) in double precision -> the same curve is
 // reproducible in the Python reference implementation to < 0.01 dB.
 #pragma once

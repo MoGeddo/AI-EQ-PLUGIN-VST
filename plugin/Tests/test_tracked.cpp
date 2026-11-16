@@ -105,7 +105,7 @@ static double maxStep(const std::vector<float>& v, long a, long b) {
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - the band that follows the note =====\n\n");
+    std::printf("\n===== GEDDO AEQ - the band that follows the note =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     // ------------------------------------------------ the bell is really dB

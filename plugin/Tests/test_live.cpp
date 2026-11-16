@@ -47,7 +47,7 @@ static int bandAt(const aeq::LiveSpectrum& L, double f) {
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - does the analyser move? =====\n\n");
+    std::printf("\n===== GEDDO AEQ - does the analyser move? =====\n\n");
 
     auto corePtr = std::make_unique<aeq::RestoreCore>();
     auto& core = *corePtr;

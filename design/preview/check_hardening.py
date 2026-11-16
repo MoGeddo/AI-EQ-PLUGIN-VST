@@ -59,7 +59,7 @@ for p in PY:
 notes.append(f"{len(PY)} Python files: no shell and no string commands")
 
 ps1 = ROOT / "installer" / "build_installer.ps1"
-iss = ROOT / "installer" / "AEQ_Restore.iss"
+iss = ROOT / "installer" / "Geddo_AEQ.iss"
 if ps1.exists():
     s = ps1.read_text()
     if "Invoke-Expression" in s or re.search(r"\biex\b", s):

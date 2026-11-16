@@ -46,7 +46,7 @@ std::vector<float> makeVoice(int n, double f0 = 220.0) {
 
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);
-    std::printf("\n===== AEQ RESTORE - thread contract =====\n");
+    std::printf("\n===== GEDDO AEQ - thread contract =====\n");
 
     aeq::RestoreCore core;
     aeq::RestoreSettings s;

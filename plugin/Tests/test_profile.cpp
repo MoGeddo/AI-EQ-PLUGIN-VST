@@ -124,7 +124,7 @@ static std::vector<float> withShape(const std::vector<float>& dry) {
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - reference profiles =====\n\n");
+    std::printf("\n===== GEDDO AEQ - reference profiles =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     const auto flatP  = makeProfile("flat", flat);

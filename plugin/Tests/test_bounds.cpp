@@ -85,7 +85,7 @@ static void startWatchdog() {
 int main() {
     startWatchdog();
     std::setvbuf(stdout, nullptr, _IONBF, 0);
-    std::printf("\n===== AEQ RESTORE - hostile host =====\n");
+    std::printf("\n===== GEDDO AEQ - hostile host =====\n");
 
     aeq::RestoreSettings s;
     s.learn = true;

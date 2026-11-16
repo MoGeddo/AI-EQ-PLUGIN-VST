@@ -1,4 +1,4 @@
-// AEQ Restore core - no JUCE, no allocation in the audio path once prepared.
+// Geddo AEQ core - no JUCE, no allocation in the audio path once prepared.
 //
 // Signal chain (this is deliberately the FIRST insert in the chain):
 //    input trim -> DC/rumble -> adaptive 24 dB/oct HPF -> corrective EQ cascade

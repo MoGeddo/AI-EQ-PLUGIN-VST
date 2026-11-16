@@ -64,7 +64,7 @@ static aeq::Stabilizer::Band bandAt(double hz, double targetDb, double maxGr = 3
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - the stabiliser =====\n\n");
+    std::printf("\n===== GEDDO AEQ - the stabiliser =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     const double sr = 48000.0;
 

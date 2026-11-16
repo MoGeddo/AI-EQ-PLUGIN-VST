@@ -125,7 +125,7 @@ static RunResult playAuto(const std::vector<float>& take, double settleSeconds) 
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - does it do the job by itself? =====\n\n");
+    std::printf("\n===== GEDDO AEQ - does it do the job by itself? =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     // ---- 1. eight seconds of a dry vocal, nobody touches anything -------------

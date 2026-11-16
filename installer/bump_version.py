@@ -4,8 +4,8 @@ bump_version.py - change the version number in every place that carries it.
 
 The version lives in three files, and a release is only correct when all three agree:
 
-  installer/AEQ_Restore.iss              #define AppVersion "x.y.z"
-  plugin/CMakeLists.txt                  project(AEQRestore VERSION x.y.z ...)
+  installer/Geddo_AEQ.iss                #define AppVersion "x.y.z"
+  plugin/CMakeLists.txt                  project(GeddoAEQ VERSION x.y.z ...)
   .github/workflows/build-windows.yml    -Version x.y.z
 
 The installer script itself does NOT carry one: with no -Version it reads the .iss.
@@ -34,10 +34,10 @@ SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 
 # file -> (regex with the version in group 1, replacement template)
 SITES = [
-    (ROOT / "installer" / "AEQ_Restore.iss",
+    (ROOT / "installer" / "Geddo_AEQ.iss",
      re.compile(r'(#define AppVersion ")(\d+\.\d+\.\d+)(")')),
     (ROOT / "plugin" / "CMakeLists.txt",
-     re.compile(r"(project\(AEQRestore VERSION )(\d+\.\d+\.\d+)( LANGUAGES)")),
+     re.compile(r"(project\(GeddoAEQ VERSION )(\d+\.\d+\.\d+)( LANGUAGES)")),
     (ROOT / ".github" / "workflows" / "build-windows.yml",
      re.compile(r"(-Version )(\d+\.\d+\.\d+)( \*>&1)")),
 ]

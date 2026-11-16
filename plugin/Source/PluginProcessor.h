@@ -2,7 +2,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "../Source/dsp/RestoreCore.h"
 
-// AEQ Restore - VST3 wrapper.
+// Geddo AEQ - VST3 wrapper.
 //
 // The wrapper is deliberately thin: every risky decision lives in aeq::RestoreCore,
 // which is compiled and gated by Tests/test_core.cpp without JUCE in the way.
@@ -21,7 +21,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
-    const juce::String getName() const override { return "AEQ Restore"; }
+    const juce::String getName() const override { return "Geddo AEQ"; }
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }

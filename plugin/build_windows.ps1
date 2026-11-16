@@ -1,4 +1,4 @@
-# build_windows.ps1 - builds AEQ Restore as a VST3 (and a standalone) on Windows.
+# build_windows.ps1 - builds Geddo AEQ as a VST3 (and a standalone) on Windows.
 #
 #   .\build_windows.ps1              build + run the acceptance gates
 #   .\build_windows.ps1 -Install     ... and copy the plugin into the VST3 folder
@@ -199,8 +199,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # ----------------------------------------------------------------------- output
-$vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.vst3" | Select-Object -First 1
-$exe  = Get-ChildItem -Path $buildDir -Recurse -Filter "AEQ Restore.exe" | Select-Object -First 1
+$vst3 = Get-ChildItem -Path $buildDir -Recurse -Filter "Geddo AEQ.vst3" | Select-Object -First 1
+$exe  = Get-ChildItem -Path $buildDir -Recurse -Filter "Geddo AEQ.exe" | Select-Object -First 1
 
 Write-Host ""
 if ($vst3) {
@@ -215,7 +215,7 @@ if ($Install) {
     if (-not (Test-Path $dest)) { Fail "VST3 folder not found: $dest" }
     Write-Host "== installing to $dest ==" -ForegroundColor Cyan
     Copy-Item -Recurse -Force $vst3.FullName $dest
-    Write-Host "installed: $(Join-Path $dest 'AEQ Restore.vst3')" -ForegroundColor Green
+    Write-Host "installed: $(Join-Path $dest 'Geddo AEQ.vst3')" -ForegroundColor Green
 } else {
     Write-Host ""
     Write-Host "To install, either re-run with -Install, or copy that .vst3 folder to:" -ForegroundColor Yellow
@@ -224,4 +224,4 @@ if ($Install) {
 
 Write-Host ""
 Write-Host "Next: validate it with pluginval (strictness 5, then 10) before mixing:" -ForegroundColor Yellow
-Write-Host '  pluginval.exe --strictness-level 5 --validate "C:\Program Files\Common Files\VST3\AEQ Restore.vst3"'
+Write-Host '  pluginval.exe --strictness-level 5 --validate "C:\Program Files\Common Files\VST3\Geddo AEQ.vst3"'

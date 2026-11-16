@@ -8,7 +8,7 @@ A measurement-driven study of a 13-song vocal corpus, and the VST3 built on it.
 ## التنزيل (ويندوز)
 
 **[أحدث إصدار — Releases](https://github.com/MoGeddo/AI-EQ-PLUGIN-VST/releases/latest)**
-→ نزّل `AEQ_Restore_Setup_<version>.exe` → دوس **Next → Next → Install**.
+→ نزّل `Geddo_AEQ_Setup_<version>.exe` → دوس **Next → Next → Install**.
 
 كل إصدار بيتنشر لوحده مع قائمة اللي اتغيّر + بصمة `SHA-256`. النسخة مش موقّعة
 بشهادة، فويندوز هيقول «Unknown publisher» → **More info → Run anyway** (شرح كامل في
@@ -108,10 +108,10 @@ python3 analysis/scripts/analyze.py
 - [ ] **المرحلة 3 — بناء وتجربة على جهازك** (محتاج Visual Studio 2022 + JUCE)
 - [ ] **المرحلة 4 — بوابة G9:** اختبار استماع أعمى لضبط العتبات بالأذن
 
-### AEQ Restore — أداة التصحيح الأولى في السلسلة
+### Geddo AEQ — أداة التصحيح الأولى في السلسلة
 
 ```
-[الغناء الخام] -> AEQ Restore -> كومبريشن -> تلوين -> ريفيرب -> الميكس
+[الغناء الخام] -> Geddo AEQ -> كومبريشن -> تلوين -> ريفيرب -> الميكس
 ```
 
 بتسمع التيك من أوله لآخره، تفهم المشاكل بالأرقام، وتصلح قد ما المشكلة تستاهل —
@@ -130,7 +130,7 @@ cd plugin
 
 ```powershell
 winget install JRSoftware.InnoSetup        # مرة واحدة
-.\installer\build_installer.ps1            # -> dist\AEQ_Restore_Setup_1.0.0.exe
+.\installer\build_installer.ps1            # -> dist\Geddo_AEQ_Setup_1.0.0.exe
 ```
 
 التفاصيل والرخصة والتوقيع: `docs/12_INSTALLER_AR.md`.

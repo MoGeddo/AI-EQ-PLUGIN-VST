@@ -100,7 +100,7 @@ def main():
     # ---------------------------------------------------------------- header
     card((PAD, 15, PAD + 34, 49), ACCENT, ACCENT, 9)
     text((PAD + 17, 24), "EQ", 14, BG1, True, "ma")
-    text((PAD + 46, 16), "AEQ RESTORE", 15, TEXT, True)
+    text((PAD + 46, 16), "GEDDO AEQ", 15, TEXT, True)
     text((PAD + 46, 34), "أول EQ في السلسلة — المعيار: 15 ميكس لأمير محروس", 11, MUTED, rtl=True)
 
     cx = W - PAD - 86 - 10

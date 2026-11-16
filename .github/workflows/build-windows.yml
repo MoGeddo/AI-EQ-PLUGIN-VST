@@ -61,7 +61,7 @@ jobs:
         run: |
           # *>&1 merges Write-Host (the information stream) into the log: without
           # it the packaging step fails silently in CI
-          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.2.36 *>&1 |
+          & pwsh -NoProfile -File ./installer/build_installer.ps1 -SkipBuild -Version 1.2.37 *>&1 |
               Tee-Object -FilePath build.log -Append
           "`n=== installer exit: $LASTEXITCODE ===" | Tee-Object -FilePath build.log -Append
           if ($LASTEXITCODE -ne 0) {
@@ -98,7 +98,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: AEQ_Restore_Setup
+          name: Geddo_AEQ_Setup
           path: |
             dist/*.exe
             dist/*.sha256
@@ -128,7 +128,7 @@ jobs:
       # another.  A version is published exactly once: if v1.1.0 already exists and
       # the code changed, this step says so instead of silently replacing the file
       # under a version number people have already downloaded (bump
-      # installer/AEQ_Restore.iss and CMakeLists.txt to cut a new release).
+      # installer/Geddo_AEQ.iss and CMakeLists.txt to cut a new release).
       - name: Publish the release
         if: success()
         env:
@@ -137,9 +137,9 @@ jobs:
           $ErrorActionPreference = "Stop"
           # a native command that exits non-zero is data here, not an exception
           $PSNativeCommandUseErrorActionPreference = $false
-          $iss = Get-Content installer/AEQ_Restore.iss -Raw
+          $iss = Get-Content installer/Geddo_AEQ.iss -Raw
           $m = [regex]::Match($iss, 'AppVersion\s+"([0-9]+\.[0-9]+\.[0-9]+)"')
-          if (-not $m.Success) { throw "cannot read AppVersion from installer/AEQ_Restore.iss" }
+          if (-not $m.Success) { throw "cannot read AppVersion from installer/Geddo_AEQ.iss" }
           $v = $m.Groups[1].Value
           Write-Host "version: $v"
 
@@ -164,7 +164,7 @@ jobs:
           if (-not $changes) { $changes = "- (no commits listed)" }
 
           $notes = @"
-          ## AEQ Restore $v — ويندوز
+          ## Geddo AEQ $v — ويندوز
 
           installer واحد: VST3 + نسخة مستقلة. دوس **Next → Next → Install** وخلاص.
 
@@ -173,9 +173,9 @@ jobs:
 
           | | |
           |---|---|
-          | الملف | ``AEQ_Restore_Setup_$v.exe`` (``$size MB``) |
+          | الملف | ``Geddo_AEQ_Setup_$v.exe`` (``$size MB``) |
           | SHA-256 | ``$sha`` |
-          | مكان الـVST3 | ``C:\Program Files\Common Files\VST3\AEQ Restore.vst3`` |
+          | مكان الـVST3 | ``C:\Program Files\Common Files\VST3\Geddo AEQ.vst3`` |
 
           ### اللي اتغيّر في الإصدار ده
 
@@ -184,7 +184,7 @@ jobs:
           ### التحقق بعد التنزيل
 
           ```powershell
-          Get-FileHash .\AEQ_Restore_Setup_$v.exe -Algorithm SHA256
+          Get-FileHash .\Geddo_AEQ_Setup_$v.exe -Algorithm SHA256
           ```
 
           البناء والبوابات: [run $env:GITHUB_RUN_ID]($env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID)
@@ -192,7 +192,7 @@ jobs:
           "@
 
           $notes | Out-File -Encoding utf8 release-notes.md
-          gh release create "v$v" dist/*.exe dist/*.sha256 --title "AEQ Restore $v" --notes-file release-notes.md
+          gh release create "v$v" dist/*.exe dist/*.sha256 --title "Geddo AEQ $v" --notes-file release-notes.md
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
           Write-Host "published v$v"
 

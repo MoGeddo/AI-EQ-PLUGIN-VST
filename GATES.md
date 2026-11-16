@@ -730,7 +730,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   push that touched that file produced a CI run with **zero jobs** and the message
   "workflow file issue" - three release cycles' worth of confusion, a run that no `gh run
   view --log` can explain because there is no log.  The installer reads
-  installer/AEQ_Restore.iss now, the workflow passes no version, and the bump script writes
+  installer/Geddo_AEQ.iss now, the workflow passes no version, and the bump script writes
   two files (iss + CMakeLists) instead of four.
 
   **The copy had to come back.**  Two attempts to take the version out of the workflow (a
@@ -1131,3 +1131,25 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EVIDENCE: VERIFIED - 0/15 stems present in analysis/out/amir15/wav (state on this machine; the line proves the check runs and reads the manifest, not that the audio is here)
   FALSIFY: delete a line from drive_ids.json -> the count drops; point --from at an empty
   folder -> "the folder did not hold all 15 names" (both run).
+
+- [x] G89: the product has one name, and every file that spells it agrees.
+  The name changed to **Geddo AEQ** in 1.2.37.  A rename is the change that half-happens:
+  no compiler reads the installer, no test reads the workflow, and the first thing that
+  fails is a Windows build hours later with "no Geddo AEQ.vst3 in the build folder" -
+  a message about a missing file rather than about a wrong name.  Six files decide the
+  name (`PRODUCT_NAME`, `#define AppName`, `getName()`, the two words the editor draws,
+  the workflow's artifact and its `.iss` path) and two build scripts *find* the artefacts
+  by it; the gate reads all of them and compares them with each other instead of with a
+  literal, so a rename stays one edit in six places rather than a claim.
+  It also searches every text file for the old name.  Nine files are allowed to keep it
+  and each one is listed with its reason: the installer's `[InstallDelete]` (which must
+  name the old bundle to delete it - an upgrade that leaves both copies leaves the host
+  showing the plugin twice under the old name), and eight dated records (audit logs, the
+  captured corpus report, two archived renders, and the doc that documents the rename).
+  A record edited to say a name it never said is not a record.
+  CHECK: python3 scripts/check_name.py
+  EXPECT: name ok: Geddo AEQ
+  EVIDENCE: VERIFIED - name ok: Geddo AEQ - CMake, installer, getName(), header, workflow and build scripts all agree; 2/2 header words; 9 files still say the old name, each one listed with its reason
+  FALSIFY: set `PRODUCT_NAME` back to the old name -> 11 problems, and two of them are the
+  build scripts (they never mention the new bundle, so they would find nothing); change only
+  `OutputBaseFilename` -> 1 problem (both run, both restored).

@@ -1,19 +1,19 @@
-; AEQ Restore - Windows installer (Inno Setup 6.3+)
+; Geddo AEQ - Windows installer (Inno Setup 6.3+)
 ;
 ; Do not compile this by hand: run  installer\build_installer.ps1
 ; It builds the plugin, stages the artefacts into installer\staging\ and then
 ; calls ISCC with the version number.  The staging folder is what this script
 ; reads, so the wizard never depends on a build path that moves around.
 ;
-; Output: dist\AEQ_Restore_Setup_<version>.exe
+; Output: dist\Geddo_AEQ_Setup_<version>.exe
 
-#define AppName "AEQ Restore"
+#define AppName "Geddo AEQ"
 #ifndef AppVersion
-  #define AppVersion "1.2.36"
+  #define AppVersion "1.2.37"
 #endif
 #define FileVersion AppVersion + ".0"
-#define AppPublisher "AEQ"
-#define AppExe "AEQ Restore.exe"
+#define AppPublisher "Geddo"
+#define AppExe "Geddo AEQ.exe"
 #define RepoURL "https://github.com/MoGeddo/AI-EQ-PLUGIN-VST"
 
 [Setup]
@@ -40,7 +40,7 @@ DisableProgramGroupPage=yes
 DisableWelcomePage=no
 LicenseFile=LICENSE.txt
 OutputDir=..\dist
-OutputBaseFilename=AEQ_Restore_Setup_{#AppVersion}
+OutputBaseFilename=Geddo_AEQ_Setup_{#AppVersion}
 SetupIconFile=aeq.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName} {#AppVersion}
@@ -80,6 +80,17 @@ Source: "staging\vst3\{#AppName}.vst3\*"; DestDir: "{commonpf64}\VST3\{#AppName}
 Source: "staging\standalone\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion; Tasks: standalone
 Source: "..\presets\target_curve.csv"; DestDir: "{app}\reference"; Flags: ignoreversion; Tasks: reference
 Source: "QUICKSTART.txt"; DestDir: "{app}"; Flags: ignoreversion
+
+[InstallDelete]
+; The product was called "AEQ Restore" until 1.2.37.  The plugin's unique id did not change
+; (that is what keeps old projects loading), so an old bundle left in the VST3 folder is a
+; second copy of the same plugin under the old name - exactly the thing a host shows twice
+; and a user then uninstalls by hand.  These four lines delete only the old product's own
+; files, and only on an upgrade.
+Type: filesandordirs; Name: "{commonpf64}\VST3\AEQ Restore.vst3"
+Type: filesandordirs; Name: "{autoprograms}\AEQ Restore"
+Type: files; Name: "{autodesktop}\AEQ Restore.lnk"
+Type: filesandordirs; Name: "{autopf}\AEQ Restore"
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: standalone

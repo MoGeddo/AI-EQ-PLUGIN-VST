@@ -1,6 +1,6 @@
-=== AEQ Restore - acceptance gates (g++ -O2, no JUCE) ===
+=== Geddo AEQ - acceptance gates (g++ -O2, no JUCE) ===
 
-===== AEQ RESTORE - acceptance gates =====
+===== GEDDO AEQ - acceptance gates =====
 
 [G1] biquad response
   ok   peaking +6 dB at its centre                             6.000 (want 6.000 +-0.010)
@@ -17,28 +17,61 @@
   (injected: +8 dB Q12 @3150, +7 dB shelf below 150, +4 dB @2800)
   ok   detects the 3.15 kHz room resonance
   ok   detects the missing low cut
-  ok   detects the harsh 2-4 kHz region
+  ok   the harsh 2-4 kHz region is measured (+4 dB injected)    3.958 (want 4.000 +-1.500)
+  ok   and no fault is claimed for it - his own mixes span that range
        resonance reported at 3044 Hz, correction -4.9 dB
 
+[G16] every problem line has its numbers substituted
+       5 problems, 0 with a leftover format character
+  ok   the faulty take produced problems at all
+  ok   no leftover %% in any report line
+
+[G8] envelope removes the singer from the number
+       250-700 Hz: raw drifts 32.26 dB between F0 150 and 220 Hz
+                   envelope drifts 2.98 dB
+  ok   the raw spectrum moves with the singer in the low midrange
+  ok   the envelope stays within 3 dB across a 0.55-octave pitch change
+  ok   the envelope cuts that dependence by more than 3x
+       600-3000 Hz over 1.2 octaves: raw 0.67 dB, envelope 8.85 dB (both fine; the raw one is used there)
+  ok   envelope is deterministic
+
+[G18] a UI trim changes the applied EQ, never the measurement
+       band 1: proposal -2.50 dB -> -5.50 dB after a -3 dB trim
+  ok   the trim reaches the applied cascade                   -3.000 (want -3.000 +-0.010)
+  ok   the measurement is untouched by the trim                0.000 (want 0.000 +-0.000)
+  ok   clearing the trim restores the proposal                -2.500 (want -2.500 +-0.010)
+
 [G4] correction effectiveness
-  ok   resonance band reduced by >3 dB                         5.769 (want 8.000 +-5.000)
-  ok   sub energy reduced by >6 dB (HPF)                      17.930 (want 12.000 +-8.000)
+  ok   resonance band reduced by >3 dB                         9.099 (want 8.000 +-5.000)
+  ok   sub energy reduced by >6 dB (HPF)                      12.577 (want 12.000 +-8.000)
   ok   HPF corner stays in a sane range
        HPF 130 Hz, 3 corrective bands, 2 notches
 
 [G5] convergence over repeated passes
-       pass 1: proposes  24.50 dB, measured excess 14.91 dB RMS
-       pass 2: proposes  21.00 dB, measured excess 12.41 dB RMS
-       pass 3: proposes  23.36 dB, measured excess 10.54 dB RMS
+       pass 1: proposes  13.50 dB, measured excess 14.91 dB RMS
+       pass 2: proposes  10.00 dB, measured excess 14.34 dB RMS
+       pass 3: proposes   7.50 dB, measured excess 13.67 dB RMS
   ok   measured excess falls on every pass
-  ok   proposal never exceeds the configured caps             24.500 (want 31.500 +-31.500)
+  ok   proposal never exceeds the configured caps             13.500 (want 31.500 +-31.500)
 
 [G6] determinism
   ok   two runs produce identical output                       0.000 (want 0.000 +-0.000)
 
+[G22] the stereo path is the mono path, twice
+  ok   left and right are the same signal when the input is    0.000 (want 0.000 +-0.000)
+       172 Hz is -2.91 dB below 1 kHz through a 172 Hz 24 dB/oct high-pass
+  ok   a 172 Hz corner takes about 3 dB at 172 Hz             -2.914 (want -3.000 +-1.500)
+
+[G23] the level match cannot push the output over full scale
+  ok   a take at -0.26 dBFS stays inside full scale            0.810 (want 0.980 +-0.020)
+
 [G7] numerical safety
   ok   silence in -> finite output
-  ok   0 dBFS sine does not blow up                            1.145 (want 1.000 +-0.300)
+  ok   0 dBFS sine does not blow up                            0.999 (want 1.000 +-0.300)
 
-===== 18 passed, 0 failed =====
+[G21] the tilted take's report line carries numbers, not placeholders
+       8 problems, 1 low-end lines, 0 with a leftover format character
+  ok   no leftover %% in any report line of the tilted take
+
+===== 32 passed, 0 failed =====
 

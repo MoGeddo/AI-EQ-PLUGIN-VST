@@ -118,7 +118,7 @@ static double maxDiff(const std::vector<float>& a, const std::vector<float>& b) 
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - learn, stop, frozen =====\n\n");
+    std::printf("\n===== GEDDO AEQ - learn, stop, frozen =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     const auto take = dryVocal(196.0, 40.0, 24.0, 240.0);

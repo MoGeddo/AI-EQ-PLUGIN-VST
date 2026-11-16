@@ -7,7 +7,7 @@
 #include "ui/Theme.h"
 
 // ---------------------------------------------------------------------------
-// AEQ Restore - the window, v9.
+// Geddo AEQ - the window, v9.
 //
 // The panel is four blocks and nothing else, because five stacked bands of equal
 // weight is a form and this is an instrument:

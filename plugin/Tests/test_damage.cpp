@@ -195,7 +195,7 @@ static Processed play(const std::vector<float>& take, double settleSeconds) {
 }
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - does it damage the vocal? =====\n\n");
+    std::printf("\n===== GEDDO AEQ - does it damage the vocal? =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     const auto take = dryVocal(196.0, 20.0, 6.0, 240.0);   // clean: no sibilance

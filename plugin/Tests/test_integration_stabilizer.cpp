@@ -116,7 +116,7 @@ struct Rig {
 };
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - the stabiliser in the chain =====\n\n");
+    std::printf("\n===== GEDDO AEQ - the stabiliser in the chain =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     const auto take   = voice(196.0, 20.0, 0.0);     // what the plug-in listens to

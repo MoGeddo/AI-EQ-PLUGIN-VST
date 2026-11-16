@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(AEQRestore VERSION 1.2.36 LANGUAGES CXX)
+project(GeddoAEQ VERSION 1.2.37 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,12 +20,12 @@ else()
     FetchContent_MakeAvailable(JUCE)
 endif()
 
-juce_add_plugin(AEQRestore
-    COMPANY_NAME              "AEQ"
+juce_add_plugin(GeddoAEQ
+    COMPANY_NAME              "Geddo"
     PLUGIN_MANUFACTURER_CODE  "Aeqx"
     PLUGIN_CODE               "AeqR"
     FORMATS                   VST3 Standalone
-    PRODUCT_NAME              "AEQ Restore"
+    PRODUCT_NAME              "Geddo AEQ"
     IS_SYNTH                  FALSE
     NEEDS_MIDI_INPUT          FALSE
     NEEDS_MIDI_OUTPUT         FALSE
@@ -38,16 +38,16 @@ juce_add_plugin(AEQRestore
 # produced the tofu in 1.2.0: on a machine without the Arabic language pack the
 # lookup returns a font with no Arabic glyphs.  Cairo is SIL OFL 1.1, so it can be
 # redistributed; the licence travels with it in Source/assets.
-juce_add_binary_data(AEQRestoreFonts SOURCES
+juce_add_binary_data(GeddoAEQFonts SOURCES
     Source/assets/Cairo-Regular.ttf
     Source/assets/Cairo-SemiBold.ttf)
 
-target_sources(AEQRestore PRIVATE
+target_sources(GeddoAEQ PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
     Source/ui/ArabicText.cpp)
 
-target_include_directories(AEQRestore PRIVATE Source)
+target_include_directories(GeddoAEQ PRIVATE Source)
 
 # The interface is written in Arabic, so the source files contain non-ASCII
 # literals.  MSVC guesses the source encoding from the machine's code page unless
@@ -58,20 +58,20 @@ target_include_directories(AEQRestore PRIVATE Source)
 # narrow literals are UTF-8.  Belt and braces: the strings themselves are written as
 # \uXXXX escapes in UiStrings.h, which no code page can change.
 if (MSVC)
-    target_compile_options(AEQRestore PRIVATE /utf-8)
+    target_compile_options(GeddoAEQ PRIVATE /utf-8)
 else()
-    target_compile_options(AEQRestore PRIVATE -finput-charset=UTF-8 -fexec-charset=UTF-8)
+    target_compile_options(GeddoAEQ PRIVATE -finput-charset=UTF-8 -fexec-charset=UTF-8)
 endif()
 
-target_compile_definitions(AEQRestore PUBLIC
+target_compile_definitions(GeddoAEQ PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_STRICT_REFCOUNTEDPOINTER=1)
 
-target_link_libraries(AEQRestore PRIVATE
-    AEQRestoreFonts
+target_link_libraries(GeddoAEQ PRIVATE
+    GeddoAEQFonts
     juce::juce_audio_utils
     juce::juce_audio_processors
     juce::juce_dsp
@@ -120,7 +120,7 @@ target_compile_definitions(aeq_shot PRIVATE
     # product or it is measuring the wrong thing.
     JUCE_DIRECT2D=1)
 target_link_libraries(aeq_shot PRIVATE
-    AEQRestoreFonts
+    GeddoAEQFonts
     juce::juce_audio_utils juce::juce_audio_processors juce::juce_dsp
     juce::juce_gui_basics juce::juce_gui_extra
     juce::juce_recommended_config_flags)

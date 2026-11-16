@@ -12,7 +12,7 @@
 |---|---|
 | نواة DSP (`RestoreCore` + `Analyzer` + `EqSolver` + `ProblemDetector`) | **مبنية ومتحققة**: 18/18 بوابة، واشتغلت على 15 أغنية حقيقية (`docs/10`) |
 | الـCLI (`aeq_cli`) | مبني، بيعمل analyze و process على ملفات WAV |
-| **غلاف الـVST3** (`PluginProcessor` + `PluginEditor` + CMake/JUCE) | **اتبنى فعلاً على ويندوز** (MSVC 19.51 / VS 2026، GitHub Actions) — والـ18 بوابة عدّت هناك كمان. الـinstaller اتولّد: `dist\AEQ_Restore_Setup_1.0.0.exe` |
+| **غلاف الـVST3** (`PluginProcessor` + `PluginEditor` + CMake/JUCE) | **اتبنى فعلاً على ويندوز** (MSVC 19.51 / VS 2026، GitHub Actions) — والـ18 بوابة عدّت هناك كمان. الـinstaller اتولّد: `dist\Geddo_AEQ_Setup_1.0.0.exe` |
 
 يعني: الـDSP مضمون، والغلاف **مكتوب بس مش مجرَّب**. أي شغل VST3 لازم يبدأ من أول بناء،
 والأخطاء اللي هتظهر (لو ظهرت) هتكون أخطاء واجهة/API مش أخطاء صوت.
@@ -48,8 +48,8 @@ cd plugin
 **مكان الناتج:**
 
 ```
-plugin\build\AEQRestore_artefacts\Release\VST3\AEQ Restore.vst3
-plugin\build\AEQRestore_artefacts\Release\Standalone\AEQ Restore.exe
+plugin\build\GeddoAEQ_artefacts\Release\VST3\Geddo AEQ.vst3
+plugin\build\GeddoAEQ_artefacts\Release\Standalone\Geddo AEQ.exe
 ```
 
 الـStandalone مهم: تقدر تفتح ملف صوت وتحكم عليه **من غير DAW**، وده أسرع طريق للسماع.
@@ -125,8 +125,8 @@ NormalisableRange<float>(20.f, 220.f, 1.f), 0.f   // القيمة الافترا
 نزّل `pluginval` (من github: Tracktion/pluginval)، وشغّله:
 
 ```powershell
-pluginval.exe --strictness-level 5  --validate "C:\Program Files\Common Files\VST3\AEQ Restore.vst3"
-pluginval.exe --strictness-level 10 --validate "C:\Program Files\Common Files\VST3\AEQ Restore.vst3"
+pluginval.exe --strictness-level 5  --validate "C:\Program Files\Common Files\VST3\Geddo AEQ.vst3"
+pluginval.exe --strictness-level 10 --validate "C:\Program Files\Common Files\VST3\Geddo AEQ.vst3"
 ```
 
 بيختبر: فتح/قفل، تغيير sample rate (44.1/48/96/192)، أحجام بلوك مختلفة، mono/stereo،
@@ -150,7 +150,7 @@ pluginval.exe --strictness-level 10 --validate "C:\Program Files\Common Files\VS
 |---|---|---|
 | `configure failed` وأول سطر `fatal: unable to access` | مفيش نت لتحميل JUCE | استخدم `-JucePath` على نسخة JUCE 8.0.4 |
 | `MSB8020` / `cannot find vcvarsall` | الـC++ workload مش متثبّت | أعِد تشغيل مثبّت VS واختار Desktop development with C++ |
-| البلجن مش ظاهر في الـDAW | نسخة لمجلد غلط | تأكد: `C:\Program Files\Common Files\VST3\AEQ Restore.vst3` (مجلد، مش ملف) |
+| البلجن مش ظاهر في الـDAW | نسخة لمجلد غلط | تأكد: `C:\Program Files\Common Files\VST3\Geddo AEQ.vst3` (مجلد، مش ملف) |
 | الصوت بيتغيّر كل ثانية | نسخة قديمة من الـDSP | لازم يكون `Analyze first` موجود في الواجهة — لو مش موجود، البناء قديم |
 | الـDAW بيعمل crash عند الفتح | مشكلة buses/state | ده اللي pluginval بيمسكه قبل الـDAW |
 

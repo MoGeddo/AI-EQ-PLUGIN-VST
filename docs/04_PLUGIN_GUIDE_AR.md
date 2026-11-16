@@ -1,4 +1,4 @@
-# AEQ Restore — أداة التصحيح الأولى في السلسلة
+# Geddo AEQ — أداة التصحيح الأولى في السلسلة
 
 بلجِن VST3 (ويندوز) بيسمع الغناء من أوله لآخره، يفهم فيه إيه، ويصلح المشاكل —
 **قبل** أي ميكس أو ضغط أو تلوين.
@@ -94,7 +94,7 @@ cd plugin
 ```
 
 المخرجات:
-- `build\AEQRestore_artefacts\Release\VST3\AEQ Restore.vst3` → انسخه لـ
+- `build\GeddoAEQ_artefacts\Release\VST3\Geddo AEQ.vst3` → انسخه لـ
   `C:\Program Files\Common Files\VST3`
 - `build\Release\aeq_tests.exe` → بوابات القبول الـ18
 - `build\Release\aeq_cli.exe` → تحليل ملفات (بدون DAW)
@@ -116,7 +116,7 @@ g++ -std=c++17 -O2 -ISource cli/main.cpp    -o aeq_cli
 ## 4. الاستخدام في السلسلة
 
 ```
-[الغناء الخام] → AEQ Restore → (كومبريشن) → (تلوين) → (ريفيرب) → الميكس
+[الغناء الخام] → Geddo AEQ → (كومبريشن) → (تلوين) → (ريفيرب) → الميكس
 ```
 
 1. حطّه **أول insert**.

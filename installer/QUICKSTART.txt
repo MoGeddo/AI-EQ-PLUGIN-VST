@@ -1,4 +1,4 @@
-AEQ RESTORE - QUICK START
+GEDDO AEQ - QUICK START
 =========================
 
 ARABIC
@@ -33,9 +33,9 @@ reason.
 
 WHERE THINGS ARE
 ----------------
-Plugin : C:\Program Files\Common Files\VST3\AEQ Restore.vst3
-App    : C:\Program Files\AEQ Restore\
-Uninstall: Settings > Apps > AEQ Restore   (or the Start menu shortcut)
+Plugin : C:\Program Files\Common Files\VST3\Geddo AEQ.vst3
+App    : C:\Program Files\Geddo AEQ\
+Uninstall: Settings > Apps > Geddo AEQ   (or the Start menu shortcut)
 
 If the plugin does not show up in your DAW: close the DAW completely, open it
 again, and rescan plug-ins.

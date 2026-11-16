@@ -572,19 +572,22 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     // Two rows a side, placed from the header's own top edge rather than from its centre:
     // the type grew a step (1.2.26) and lines hung off the centre started overlapping the
     // moment one of them got taller - the tagline moved up into the wordmark.
-    // wordmark: "AEQ" in the accent, "RESTORE" in the light ink, both tracked
+    // wordmark: "GEDDO" in the accent, "AEQ" in the light ink, both tracked.  The name
+    // changed to Geddo AEQ in 1.2.37 and the panel is where it has to be true first: a
+    // product that is renamed in the installer and not on its own window has two names,
+    // and the one people read is the window.
     const float ws = kBody * sy;
     const float markH = ws * 1.15f;
     const auto markRow = h.withTop (h.getY() + 4.0f * sy).withHeight (markH);
     const Font mark = aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (3.4f / ws);
-    const float w1 = aeq::ui::measure ("AEQ", ws, Face::SemiBold);
+    const float w1 = aeq::ui::measure ("GEDDO", ws, Face::SemiBold);
     g.setFont (mark);
     g.setColour (Palette::accentHi());
-    g.drawText ("AEQ", markRow, Justification::centredLeft, false);
+    g.drawText ("GEDDO", markRow, Justification::centredLeft, false);
     const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (3.4f / ws);
     g.setFont (rest);
     g.setColour (Palette::text().withAlpha (0.72f));
-    g.drawText ("RESTORE", markRow.translated (w1 + 8.0f * sy, 0.0f),
+    g.drawText ("AEQ", markRow.translated (w1 + 8.0f * sy, 0.0f),
                 Justification::centredLeft, false);
 
     // tagline, one line, under the mark

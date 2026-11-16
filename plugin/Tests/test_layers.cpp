@@ -153,7 +153,7 @@ struct Run {
 };
 
 int main() {
-    std::printf("\n===== AEQ RESTORE - the layers that follow the note =====\n\n");
+    std::printf("\n===== GEDDO AEQ - the layers that follow the note =====\n\n");
     std::setvbuf(stdout, nullptr, _IONBF, 0);
 
     // ---- 1. the decision: does a real take produce a layer at all?
