@@ -12,6 +12,7 @@
 #include <memory>
 
 #include "../Source/dsp/RestoreCore.h"
+#include "../Source/ui/Wordmark.h"
 
 using namespace aeq;
 
@@ -600,6 +601,29 @@ int main() {
     }
 
     checkTiltTextIsFormatted();
+
+    // ---------------- G24: the wordmark is two words -------------------
+    std::printf("\n[G24] the product name in the header is two words, not one\n");
+    {
+        // The numbers are the ones the window draws with: 3.4 px of tracking on five
+        // glyphs, and an 8 px gap between the words.
+        const double untracked = 100.0, track = 3.4, gap = 8.0;
+        const double placed = aeq::ui::secondWordX (float (untracked), 5, float (track), float (gap));
+        const double inkRight = untracked + track * 4;          // where GEDDO's ink ends
+        check(std::abs (placed - (inkRight + gap)) < 1e-3,
+              "the ink word starts after the accent word's last glyph",
+              placed, inkRight + gap, 0.001);
+        check(std::abs ((placed - inkRight) - gap) < 1e-3,
+              "the gap between the words survives the tracking",
+              placed - inkRight, gap, 0.001);
+        // The arithmetic that shipped in 1.2.37: untracked width + gap.  It put the second
+        // word 5.6 px inside the first - the tracking it did not know about, less the gap.
+        check(std::abs ((inkRight - (untracked + gap)) - (track * 4 - gap)) < 1e-3,
+              "the old formula overlapped the accent word by track*4 - gap",
+              inkRight - (untracked + gap), track * 4 - gap, 0.001);
+        checkTrue(aeq::ui::trackedInkWidth (10.0f, 1, 3.4f) == 10.0f,
+                  "one glyph carries no tracking");
+    }
 
     std::printf("\n===== %d passed, %d failed =====\n\n", gPass, gFail);
     return gFail ? 1 : 0;

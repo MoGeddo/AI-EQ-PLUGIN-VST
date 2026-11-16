@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "ui/BandRow.h"
+#include "ui/Wordmark.h"
 #include "ui/PanelCopy.h"
 
 using namespace juce;
@@ -579,15 +580,18 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     const float ws = kBody * sy;
     const float markH = ws * 1.15f;
     const auto markRow = h.withTop (h.getY() + 4.0f * sy).withHeight (markH);
-    const Font mark = aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (3.4f / ws);
+    constexpr float kTrack = 3.4f;      // px of extra space between glyphs, at design size
+    const Font mark = aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (kTrack / ws);
+    // measured untracked, then placed with the tracking it is drawn at - the two are not
+    // the same number, and using one for the other ran the words together (see Wordmark.h)
     const float w1 = aeq::ui::measure ("GEDDO", ws, Face::SemiBold);
     g.setFont (mark);
     g.setColour (Palette::accentHi());
     g.drawText ("GEDDO", markRow, Justification::centredLeft, false);
-    const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (3.4f / ws);
+    const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (kTrack / ws);
     g.setFont (rest);
     g.setColour (Palette::text().withAlpha (0.72f));
-    g.drawText ("AEQ", markRow.translated (w1 + 8.0f * sy, 0.0f),
+    g.drawText ("AEQ", markRow.translated (aeq::ui::secondWordX (w1, 5, kTrack * sy, 8.0f * sy), 0.0f),
                 Justification::centredLeft, false);
 
     // tagline, one line, under the mark

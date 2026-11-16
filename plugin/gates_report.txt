@@ -73,5 +73,11 @@
        8 problems, 1 low-end lines, 0 with a leftover format character
   ok   no leftover %% in any report line of the tilted take
 
-===== 32 passed, 0 failed =====
+[G24] the product name in the header is two words, not one
+  ok   the ink word starts after the accent word's last glyph  121.600 (want 121.600 +-0.001)
+  ok   the gap between the words survives the tracking         8.000 (want 8.000 +-0.001)
+  ok   the old formula overlapped the accent word by track*4 - gap    5.600 (want 5.600 +-0.001)
+  ok   one glyph carries no tracking
+
+===== 36 passed, 0 failed =====
 
