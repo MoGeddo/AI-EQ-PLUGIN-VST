@@ -512,7 +512,7 @@ def draw_header(canvas):
     # got a pixel taller: the tagline moved up into the wordmark.
     # wordmark: light weight, wide tracking, left.  No pill in the middle (G50).
     caps(d, (x0, 14), "GEDDO", T_BODY, BRASS_HOT, 3.4, bold=True)
-    caps(d, (x0 + caps_w("GEDDO", T_BODY, 3.4, True) + 8, 14), "AEQ", T_BODY,
+    caps(d, (x0 + caps_w("GEDDO", T_BODY, 3.4, True) + 12, 14), "AEQ", T_BODY,
          LINE + (120,), 3.4)
 
     # tagline under the wordmark: the one line that says what this is

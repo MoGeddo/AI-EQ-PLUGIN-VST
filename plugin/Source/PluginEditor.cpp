@@ -591,7 +591,7 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (kTrack / ws);
     g.setFont (rest);
     g.setColour (Palette::text().withAlpha (0.72f));
-    g.drawText ("AEQ", markRow.translated (aeq::ui::secondWordX (w1, 5, kTrack * sy, 8.0f * sy), 0.0f),
+    g.drawText ("AEQ", markRow.translated (aeq::ui::secondWordX (w1, 5, kTrack * sy, 12.0f * sy), 0.0f),
                 Justification::centredLeft, false);
 
     // tagline, one line, under the mark

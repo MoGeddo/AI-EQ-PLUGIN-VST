@@ -1172,20 +1172,28 @@ at any vocal stem first; the other gates need nothing but the source tree.
   FALSIFY: place the second word with `w1 + 8` again -> "the ink word starts after the
   accent word's last glyph" reports 108.000 (want 121.600).
 
-- [x] G91: the wordmark the window draws is the wordmark the render approved.
-  G90 proves the arithmetic; the arithmetic is only worth something if the window uses it,
-  and the window is drawn by Windows - which is not on this machine, so the claim is read
-  from CI's own screenshot of the real editor.  The two words cannot be separated by colour
-  (the ink word is white at 72% over a purple plate, i.e. 0.2-0.3 saturation, which a
-  saturation cut cannot tell from the accent - tried, and it reported both words as
-  saturated in both pictures).  So the gate measures what the broken code got wrong: the
-  width of the wordmark's ink, taken from the first bright row run in the top-left of the
-  panel, and compared with the approved render scaled by the shot's height (the panel is
-  laid out from its height, 1240x800 vs 1180x700).  Tolerance 6 px on ~140: two renderers,
-  and the defect is 9.7 px, so the threshold sits between them rather than around them.
+- [x] G91: the two words in the header have a space between them, in the window itself.
+  G90 proves the arithmetic; the arithmetic is worth something only if the window uses it,
+  and the window is drawn by Windows, which is not on this machine - so the claim is read
+  from CI's own screenshot of the real editor, in that picture alone.  A comparison with
+  the Python render was tried first and abandoned: the two drawings use different type
+  stacks (the accent word is 95 px in the window and 74 px in the render at the same glyph
+  height), so any width they share is a coincidence, and a gate built on a coincidence is
+  a gate that will pass for the wrong reason.
+  The two words are also not separable by saturation - the ink word is white at 72% over a
+  purple plate, which lands at 0.2-0.3, the same band as the accent.  They are separable by
+  the sign of red-minus-blue (+0.09..+0.14 warm for the accent word, -0.02..-0.04 cool for
+  the ink word, on both renderers), and that is the only thing they disagree about.
+  Two conditions, because the defect had two shapes: the words must be at least 4 px apart
+  (at 1.2.38 the tracking had eaten the space and they were 1 px apart), and the ink word
+  must be at least 0.45 of the accent word's width - "AEQ" against "GEDDO" is 0.54 in this
+  face, and in 1.2.37 the ink word's first glyph was drawn *inside* the accent word, which
+  left 0.32 of it visible.  The gap went to 12 px in the source in the same change: 8 px of
+  intended space minus the accent word's sidebearing measured 1 px on the glass.
   CHECK: .venv/bin/python design/preview/check_wordmark.py
   EXPECT: wordmark ok:
-  EVIDENCE: UNAVAILABLE until the Windows shot of a fixed build is in dist/ui: python3 scripts/fetch_ci_ui.py
-  FALSIFY: design/preview/check_wordmark.py --shot docs/ui-1.2.37-wordmark-overlap.png
-  -> "wordmark ink is 132 px wide, the render's 124 px at 700 is 141.7 px at 800 (-9.7 px
-  apart, tolerance 6)" (the shot 1.2.37 shipped, kept in docs/ as the record).
+  EVIDENCE: UNAVAILABLE until the Windows shot of the 1.2.39 build is in dist/ui: python3 scripts/fetch_ci_ui.py
+  FALSIFY: --shot docs/ui-1.2.37-wordmark-overlap.png -> "the ink word measures 30 px against
+  the accent word's 95 (ratio 0.32, need 0.45) - the first glyph is not outside the accent
+  word, it is drawn inside it"; --shot of 1.2.38's window -> "the two words are 1 px apart
+  (need 4)" (both run; both are shots CI actually produced).

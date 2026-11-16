@@ -48,10 +48,14 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-RENDER = os.path.join(HERE, "ui_v9_neon_1180x700.png")
-DESIGN_H = 700
-TOL = 6            # px of wordmark width agreement, scaled to the shot's height
+
 BRIGHT = 0.70      # both words are the brightest ink on the plate
+WARM = 0.05        # accent word: red over blue (brass/pink)
+COOL = -0.01       # ink word: white at 72% over the purple plate, red under blue
+MIN_GAP = 4        # px at 1240x800: a space, not the sidebearing of a glyph
+MIN_RATIO = 0.45   # ink word / accent word width.  "AEQ" against "GEDDO" is 0.54 in this
+                   # face; if the ink word's first glyph is buried inside the accent word -
+                   # the 1.2.37 defect - the visible part measures 0.32
 LEFT = 0.30        # the wordmark is the left block; the right column holds the seal pill
 
 
@@ -64,12 +68,20 @@ def newest_shot():
 
 
 def wordmark(path):
-    """(width, rows, x0, x1) of the wordmark's ink, found from the picture."""
+    """(warm span, cool span, rows) of the header wordmark, found from the picture.
+
+    The two words are not separable by saturation - the ink word is white at 72% over a
+    purple plate, so it lands at 0.2-0.3, the same band as the accent.  They ARE separable
+    by the sign of red-minus-blue: +0.09..+0.14 for the accent word, -0.02..-0.04 for the
+    ink word, on both renderers.  That is the only thing the two words disagree about.
+    """
     a = np.asarray(Image.open(path).convert("RGB")).astype(np.float32) / 255.0
     h, w, _ = a.shape
     left = max(8, int(w * LEFT))
     top = max(24, int(h * 0.12))
-    bright = a.max(2)[:top, :left] > BRIGHT
+    mx = a.max(2)[:top, :left]
+    rb = (a[..., 0] - a[..., 2])[:top, :left]
+    bright = mx > BRIGHT
 
     runs, start = [], None
     for y in range(top):
@@ -84,18 +96,25 @@ def wordmark(path):
         runs.append((start, top))
     if not runs:
         return None
+    y0, y1 = runs[0]                          # the wordmark, not the tagline
 
-    y0, y1 = runs[0]
-    cols = np.nonzero(bright[y0:y1].any(0))[0]
-    if cols.size == 0:
+    warm = (bright & (rb > WARM))[y0:y1]
+    cool = (bright & (rb < COOL))[y0:y1]
+    wc = np.nonzero(warm.any(0))[0]
+    cc = np.nonzero(cool.any(0))[0]
+    if wc.size == 0 or cc.size == 0:
         return None
-    return (int(cols.max() - cols.min() + 1), (y0, y1), int(cols.min()), int(cols.max()))
+    after = cc[cc > wc.max()]                 # the ink word comes after the accent word
+    if after.size == 0:
+        return None
+    return (int(wc.min()), int(wc.max())), (int(after.min()), int(after.max())), (y0, y1)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=None, help="the screenshot (default: newest in dist/ui)")
-    ap.add_argument("--render", default=RENDER)
+    ap.add_argument("--shot", default=None, help="screenshot (default: newest in dist/ui)")
+    ap.add_argument("--render", default=None,
+                    help="also measure this picture (the approved render) and print it")
     args = ap.parse_args()
 
     shot = args.shot or newest_shot()
@@ -103,31 +122,38 @@ def main():
         print("UNAVAILABLE no window screenshot: python3 scripts/fetch_ci_ui.py")
         return 2
 
-    got = wordmark(shot)
-    want = wordmark(args.render)
-    if got is None or want is None:
-        print(f"FAIL no wordmark found (shot {bool(got)}, render {bool(want)})")
-        return 1
+    if args.render:
+        r = wordmark(args.render)
+        if r:
+            (a0, a1), (n0, n1), _ = r
+            print(f"render {os.path.relpath(args.render, ROOT)}: gap {n0 - a1 - 1} px")
 
-    sw, srows, sx0, sx1 = got
-    rw, rrows, rx0, rx1 = want
-    shot_h = Image.open(shot).size[1]
-    scale = shot_h / float(DESIGN_H)
-    expected = rw * scale
-    diff = sw - expected
+    found = wordmark(shot)
+    if found is None:
+        print(f"FAIL {os.path.basename(shot)}: no wordmark found in the header band")
+        return 1
+    (a0, a1), (n0, n1), (y0, y1) = found
+    gap = n0 - a1 - 1
     rel = os.path.relpath(shot, ROOT)
 
-    if abs(diff) > TOL:
-        print(f"FAIL {rel}: wordmark ink is {sw} px wide, the render's {rw} px at "
-              f"{DESIGN_H} is {expected:.1f} px at {shot_h} ({diff:+.1f} px apart, "
-              f"tolerance {TOL}).  Rows {srows[0]}-{srows[1]}, x{sx0}-{sx1}.  A wordmark "
-              f"that is short by the tracking is two words drawn as one.")
+    accent_w, ink_w = a1 - a0 + 1, n1 - n0 + 1
+    ratio = ink_w / float(accent_w)
+
+    if gap < MIN_GAP:
+        print(f"FAIL {rel}: the two words are {gap} px apart (need {MIN_GAP}) - "
+              f"accent x{a0}-{a1}, ink x{n0}-{n1}, rows {y0}-{y1}.  "
+              f"The second word was placed from a width measured without its tracking, "
+              f"so the tracking ate the space between them.")
+        return 1
+    if ratio < MIN_RATIO:
+        print(f"FAIL {rel}: the ink word measures {ink_w} px against the accent word's "
+              f"{accent_w} (ratio {ratio:.2f}, need {MIN_RATIO}) - the first glyph is not "
+              f"outside the accent word, it is drawn inside it.  Rows {y0}-{y1}.")
         return 1
 
-    print(f"wordmark ok: {rel} {sw} px vs render {rw} px at {DESIGN_H} -> "
-          f"{expected:.1f} px at {shot_h} ({diff:+.1f} px, tolerance {TOL}); "
-          f"rows {srows[0]}-{srows[1]} vs {rrows[0]}-{rrows[1]}, "
-          f"left edge x{sx0} vs {rx0:.1f}")
+    print(f"wordmark ok: {rel} two words, {gap} px apart (min {MIN_GAP}), ink/accent "
+          f"width {ratio:.2f} (min {MIN_RATIO}) - accent x{a0}-{a1} ({accent_w} px), "
+          f"ink x{n0}-{n1} ({ink_w} px), rows {y0}-{y1}")
     return 0
 
 
