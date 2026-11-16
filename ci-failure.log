@@ -1,0 +1,39 @@
+== checking prerequisites ==
+   cmake version 4.4.5
+   git ok (JUCE will be fetched on the first configure)
+   Visual Studio Enterprise 2026 (18.11.12328.437)
+== configure ==
+-- The CXX compiler identification is MSVC 19.51.36260.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- The C compiler identification is MSVC 19.51.36260.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+CMake Error at build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:605 (message):
+  Could not find icon file:
+  D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build/GeddoAEQ_artefacts/JuceLibraryCode/icon.ico
+Call Stack (most recent call first):
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:676 (_juce_check_icon_files_exist)
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:705 (_juce_generate_icon)
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:1455 (_juce_configure_bundle)
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:1597 (_juce_link_plugin_wrapper)
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:2190 (_juce_configure_plugin_targets)
+  CMakeLists.txt:23 (juce_add_plugin)
+
+
+-- Configuring incomplete, errors occurred!
+
+FAILED: configure failed (scroll up: the usual causes are no network for the JUCE fetch, a missing C++ workload, or a build folder made by a different generator - in that last case re-run with -Clean)
+
+=== plugin build exit: 1 ===
