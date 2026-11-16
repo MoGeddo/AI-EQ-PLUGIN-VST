@@ -1,0 +1,49 @@
+{
+ "note": "His logo, from his own site, with the hashes of the bytes it came from. The plugin does not redraw or re-letter it - it draws this picture.",
+ "source": "https://mostafageddo.com/images/logo.png",
+ "fetched_by": ".github/workflows/fetch-brand.yml (a runner with internet; this sandbox can only reach GitHub and the package registries)",
+ "files": [
+  {
+   "path": "docs/brand-logo.png",
+   "url": "https://mostafageddo.com/images/logo.png",
+   "bytes": 108840,
+   "sha256": "ebb54bca15ffe63f6ff0d26b2c6a960fddc7d51c7c1932c11f3755327181da6d",
+   "what": "the white-ink wordmark the site puts in its header"
+  },
+  {
+   "path": "docs/brand-icon-512.png",
+   "url": "https://mostafageddo.com/images/icons/android-chrome-512x512.png",
+   "bytes": 53122,
+   "sha256": "75d8b3a7143e7fef597f78ee31dbbe6274753f0c5c7626b31c87ed02f7163023",
+   "what": "the app icon the site installs (the same mark, black ink)"
+  }
+ ],
+ "derived": [
+  {
+   "path": "installer/aeq.ico",
+   "bytes": 44570,
+   "sha256": "667feba8b31f6d3402fc55eb034d2515dcaa74aa836e9a6dd93c7c98e827467d"
+  },
+  {
+   "path": "installer/wizard.png",
+   "bytes": 13073,
+   "sha256": "d86a17ef076b529e68b7ebd66198877033b73f4fe1f058258feeb10efeb89ee0"
+  },
+  {
+   "path": "installer/wizard_small.png",
+   "bytes": 3727,
+   "sha256": "d4493723d14e3f6af5b9b42d727a86115b57f3e5c1b707cc9b92b28ce11c374b"
+  },
+  {
+   "path": "plugin/Source/assets/geddo-mark.png",
+   "bytes": 17634,
+   "sha256": "17c65058ee3dd357ab6ff4265d37fc07b6f901dd9841e9bafcbe3fdcbb5f74f3"
+  },
+  {
+   "path": "plugin/Source/assets/geddo.ico",
+   "bytes": 44570,
+   "sha256": "667feba8b31f6d3402fc55eb034d2515dcaa74aa836e9a6dd93c7c98e827467d"
+  }
+ ],
+ "derived_note": "regenerate with installer/make_brand_assets.py from docs/brand-logo.png; G93 compares these hashes with the files"
+}

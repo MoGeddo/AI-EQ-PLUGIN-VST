@@ -501,6 +501,33 @@ def led(canvas, cx, cy, r=3, on=True):
                                      fill=(BRASS_HOT if on else mix(FAINT, INK_BOT, 0.45)) + (255,)))
 
 
+# ------------------------------------------------------------------ the mark
+_MARK_CACHE = {}
+
+
+def brand_mark(text_col, height=26):
+    """His logo, from his site, tinted - the same picture plugin/Source/ui/Logo.h draws.
+
+    docs/brand-logo.png is the file mostafageddo.com serves (parked by
+    .github/workflows/fetch-brand.yml); cropped to its ink and tinted here exactly the way
+    the plugin tints it, so the approved render and the window show one mark instead of two
+    approximations of one.
+    """
+    key = (text_col, height)
+    if key in _MARK_CACHE:
+        return _MARK_CACHE[key].copy()
+    src = pathlib.Path(__file__).resolve().parent.parent.parent / "docs" / "brand-logo.png"
+    im = Image.open(src).convert("RGBA")
+    bbox = im.getchannel("A").point(lambda v: 255 if v > 16 else 0).getbbox()
+    im = im.crop(bbox)
+    w = max(1, round(im.width * height / im.height))
+    im = im.resize((w, height), Image.LANCZOS)
+    tinted = Image.new("RGBA", im.size, tuple(text_col[:3]) + (0,))
+    tinted.putalpha(im.getchannel("A"))
+    _MARK_CACHE[key] = tinted
+    return tinted.copy()
+
+
 # ------------------------------------------------------------------ header
 def draw_header(canvas):
     d = ImageDraw.Draw(canvas)
@@ -510,13 +537,21 @@ def draw_header(canvas):
     # Two rows a side, on a fixed baseline grid.  The type grew a step and a header whose
     # lines were placed at "centre - 7" started overlapping itself the moment one of them
     # got a pixel taller: the tagline moved up into the wordmark.
-    # wordmark: light weight, wide tracking, left.  No pill in the middle (G50).
-    caps(d, (x0, 14), "GEDDO", T_BODY, BRASS_HOT, 3.4, bold=True)
-    caps(d, (x0 + caps_w("GEDDO", T_BODY, 3.4, True) + 10, 14), "AEQ", T_BODY,
+    #
+    # The mark is his logo from his site - the same picture the window draws (see
+    # plugin/Source/ui/Logo.h), at the same place and the same height.  The name follows it
+    # as words, because a picture cannot be searched for: the browser, the DAW list and the
+    # installer all have to read "Geddo AEQ".
+    mark = brand_mark(text_col=LINE, height=46)
+    canvas.alpha_composite(mark, (x0, 2))
+    mx = x0 + mark.width + 12
+
+    caps(d, (mx, 14), "GEDDO", T_BODY, BRASS_HOT, 3.4, bold=True)
+    caps(d, (mx + caps_w("GEDDO", T_BODY, 3.4, True) + 10, 14), "AEQ", T_BODY,
          LINE + (120,), 3.4)
 
     # tagline under the wordmark: the one line that says what this is
-    ar_text(d, (x0, 38), TAGLINE, T_CAP, SOFT)
+    ar_text(d, (mx, 38), TAGLINE, T_CAP, SOFT)
 
     # state: a pill at the right edge, and the seal LED
     label_w = ar_w(SEAL_STATE, T_CAP) + 40

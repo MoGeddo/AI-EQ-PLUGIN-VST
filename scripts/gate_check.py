@@ -171,7 +171,9 @@ def evaluate(gate: Gate) -> tuple[str, str]:
                         ("no wav files", "his audio not on this machine: .venv/bin/python analysis/scripts/fetch_amir_audio.py"),
                         ("not on this machine", "his audio not on this machine: .venv/bin/python analysis/scripts/fetch_amir_audio.py"),
                         ("no JUCE source at", "JUCE checkout not present here"),
-                        ("no audio in", "his audio not on this machine: .venv/bin/python analysis/scripts/fetch_amir_audio.py")):
+                        ("no audio in", "his audio not on this machine: .venv/bin/python analysis/scripts/fetch_amir_audio.py"),
+                        ("no window screenshot", "CI's screenshot not in this checkout: python3 scripts/fetch_ci_ui.py"),
+                        ("artefact not in this checkout", "artefact not in this checkout")):
         if marker in combined:
             return "UNAVAILABLE", why
     if gate.expect not in combined:

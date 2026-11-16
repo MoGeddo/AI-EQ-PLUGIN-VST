@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(GeddoAEQ VERSION 1.2.41 LANGUAGES CXX)
+project(GeddoAEQ VERSION 1.2.42 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,15 +32,27 @@ juce_add_plugin(GeddoAEQ
     IS_MIDI_EFFECT            FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD   FALSE
+    # his mark, on the window, the standalone .exe and the shortcut Windows makes for it
+    ICON_BIG                  Source/assets/geddo.ico
+    ICON_SMALL                Source/assets/geddo.ico
+    COMPANY_WEBSITE           "https://mostafageddo.com"
     VST3_CATEGORIES           "Fx" "EQ")
 
 # The UI font is shipped inside the binary.  Asking Windows for a typeface is what
 # produced the tofu in 1.2.0: on a machine without the Arabic language pack the
 # lookup returns a font with no Arabic glyphs.  Cairo is SIL OFL 1.1, so it can be
 # redistributed; the licence travels with it in Source/assets.
+#
+# The logo is his, from his own site (mostafageddo.com): the calligraphic wordmark the site
+# puts in its header.  It is embedded as the picture the site serves, cropped to its ink -
+# not redrawn, not re-lettered, not traced with a font, because a lookalike would be a
+# different mark and the point is that it is his.  docs/brand.json carries the source URL,
+# the sha256 of every byte and the exact crop, and G93 fails if the embedded picture drifts
+# from that record.
 juce_add_binary_data(GeddoAEQFonts SOURCES
     Source/assets/Cairo-Regular.ttf
-    Source/assets/Cairo-SemiBold.ttf)
+    Source/assets/Cairo-SemiBold.ttf
+    Source/assets/geddo-mark.png)
 
 target_sources(GeddoAEQ PRIVATE
     Source/PluginProcessor.cpp

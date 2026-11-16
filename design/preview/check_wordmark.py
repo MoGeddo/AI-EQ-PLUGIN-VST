@@ -83,20 +83,15 @@ def wordmark(path):
     rb = (a[..., 0] - a[..., 2])[:top, :left]
     bright = mx > BRIGHT
 
-    runs, start = [], None
-    for y in range(top):
-        on = bright[y].sum() >= 3
-        if on and start is None:
-            start = y
-        elif not on and start is not None:
-            if y - start >= 4:
-                runs.append((start, y))
-            start = None
-    if start is not None and top - start >= 4:
-        runs.append((start, top))
-    if not runs:
+    # The accent word's own rows are the band, found from the accent word itself: since
+    # 1.2.42 the header also carries his logo to the left of the words and a tagline under
+    # them, and a band taken from "the first bright run" would swallow both.  The accent
+    # word is the only warm ink in that corner; the logo is white and the tagline is dim.
+    warm_all = bright & (rb > WARM)
+    rows = np.nonzero (warm_all.sum(1) >= 3)[0]
+    if rows.size == 0:
         return None
-    y0, y1 = runs[0]                          # the wordmark, not the tagline
+    y0, y1 = int(rows.min()), int(rows.max()) + 1
 
     warm = (bright & (rb > WARM))[y0:y1]
     cool = (bright & (rb < COOL))[y0:y1]

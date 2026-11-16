@@ -33,6 +33,7 @@ cat > "$tmp/BinaryData.h" <<'HDR'
 namespace BinaryData {
     extern const char* CairoRegular_ttf;      extern const int CairoRegular_ttfSize;
     extern const char* CairoSemiBold_ttf;     extern const int CairoSemiBold_ttfSize;
+    extern const char* geddomark_png;         extern const int geddomark_pngSize;
 }
 HDR
 cat > "$tmp/tu.cpp" <<CPP

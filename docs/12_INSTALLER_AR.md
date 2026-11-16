@@ -126,16 +126,22 @@ More info → Run anyway.
 |---|---|
 | `installer/Geddo_AEQ.iss` | سكربت Inno: الشاشات، المهام، المسارات، الـUninstall |
 | `installer/build_installer.ps1` | أمر واحد: بناء → تجميع → installer → SHA256 |
-| `installer/make_assets.py` | بيولّد الأيقونة وصور الـwizard **من `presets/target_curve.csv`** نفسه |
-| `installer/aeq.ico` | أيقونة 7 مقاسات (16 → 256) — BMP داخلي، مقبول في كل ويندوز |
+| `installer/make_brand_assets.py` | بيقص **لوجو مصطفى جدو** (من `docs/brand-logo.png`) للأيقونة وصور الـwizard |
+| `installer/make_assets.py` | بيولّد نسخة الأيقونة القديمة من `presets/target_curve.csv` (اتسابت كمرجع، مش هي اللي بتستخدم) |
+| `installer/aeq.ico` | أيقونة 7 مقاسات (16 → 256) — اللوجو على بلاطة الأداة |
 | `installer/wizard.bmp` / `wizard_small.bmp` | صور شاشات التسطيب (BMP لتوافق مع كل نسخ Inno) |
 | `installer/LICENSE.txt` | نص الرخصة (نموذج) |
 | `installer/QUICKSTART.txt` | ورقة بدء سريع عربي/إنجليزي — بتتسطب مع البلجن |
 | `installer/staging/` | مجلد مؤقت بيتبني تلقائياً (مش في git) |
 | `dist/` | الـinstaller النهائي + الهاش (مش في git) |
 
-الأيقونة بتتولد من كيرف الهدف الحقيقي — يعني لو المعيار اتغيّر، الأيقونة بتتغيّر معاه
-(`python installer/make_assets.py`).
+الأيقونة بقت **لوجو مصطفى جدو** نفسه من موقعه (`mostafageddo.com/images/logo.png`)،
+مقصوص على الحبر وملوّن، على بلاطة الأداة. البصمات (sha256) والـcrop مكتوبين في
+`docs/brand.json`، و`python scripts/check_brand.py` بيفشل لو الصورة اتغيّرت من غير ما
+السجل يتغيّر — يعني مستحيل يحصل «حاجة شبه اللوجو».
+
+الملف بيوصل من موقعه عن طريق GitHub Actions (`.github/workflows/fetch-brand.yml`)، لأن
+الـsandbox هنا مش بيفتح غير GitHub ومسجّلات الحزم — نفس الحيطة اللي بتحجز الـ15 stem.
 
 ---
 
@@ -170,8 +176,9 @@ Inno Setup بيطلّع installer 32-bit دايماً. **البلجن جوّاه
 # إصدار جديد
 .\installer\build_installer.ps1 -Version 1.0.1
 
-# تجديد الأيقونة/الصور بعد تغيير الكيرف
-python .\installer\make_assets.py
+# تجديد الأيقونة/الصور من اللوجو (لو الصورة الأصلية اتغيّرت)
+.venv\Scripts\python -m pip install pillow
+python installer\make_brand_assets.py
 
 # تسطيب صامت (للمختبرات أو السكربتات)
 .\dist\Geddo_AEQ_Setup_1.0.0.exe /VERYSILENT /NORESTART /SUPPRESSMSGBOXES

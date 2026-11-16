@@ -112,6 +112,8 @@ STUB = {
         "    static const int CairoRegular_ttfSize = 0;\n"
         '    static const char* CairoSemiBold_ttf = "";\n'
         "    static const int CairoSemiBold_ttfSize = 0;\n"
+        '    static const char* geddomark_png = "";\n'
+        "    static const int geddomark_pngSize = 0;\n"
         "}\n"),
 }
 

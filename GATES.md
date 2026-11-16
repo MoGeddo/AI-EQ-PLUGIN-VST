@@ -1219,3 +1219,26 @@ at any vocal stem first; the other gates need nothing but the source tree.
   d077164 where it answered bb021cf.
   FALSIFY: remove `--target "$env:GITHUB_SHA"` from the release line -> "the tag would be
   made on the default branch, not the built commit" (run, restored).
+
+- [x] G93: the logo in the plugin is his logo, byte for byte from his own site.
+  "خلي اللوجو بتاعي من الموقع بتاعي" rules out a lookalike, and a lookalike is exactly what
+  this project would have grown on its own: the header already drew the name in type, and
+  tracing a calligraphic mark with a font is the natural next step for anyone who cannot
+  reach the original file.  So the mark is **his bytes**, cropped to the ink and tinted at
+  draw time (`Source/ui/Logo.h`), and the record travels with it: `docs/brand.json` names the
+  URL (`https://mostafageddo.com/images/logo.png`), its size, its sha256, the app icon the
+  site installs, the crop, and the sha256 of everything cut from them - the embedded mark,
+  the window/.exe icon, the installer icon and the two wizard images.
+  His site cannot be opened from this sandbox (only GitHub and the package registries are
+  reachable - the wall that also keeps his fifteen stems on Drive), so the file arrives on a
+  runner with ordinary internet: `.github/workflows/fetch-brand.yml` fetches it, prints the
+  size and hash of every byte, and parks them on the `ci/brand` branch.  That is written down
+  in the manifest instead of being implied, the same way the stems' manifest is.
+  CHECK: python3 scripts/check_brand.py
+  EXPECT: brand ok:
+  EVIDENCE: VERIFIED - brand ok: 7 files hash to what docs/brand.json records, the mark is
+  cut from https://mostafageddo.com/images/logo.png (108,840 bytes, sha256 ebb54bca15ff…)
+  and the window, the .exe and the installer all draw that same picture
+  FALSIFY: rotate the embedded mark by 1 degree (a lookalike, not the file) -> "sha256 is
+  c008d3bed742…, the manifest says 17c65058ee3d… - the picture changed without the record
+  changing" (run, restored).

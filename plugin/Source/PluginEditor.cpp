@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "ui/BandRow.h"
+#include "ui/Logo.h"
 #include "ui/Wordmark.h"
 #include "ui/PanelCopy.h"
 
@@ -573,35 +574,42 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     // Two rows a side, placed from the header's own top edge rather than from its centre:
     // the type grew a step (1.2.26) and lines hung off the centre started overlapping the
     // moment one of them got taller - the tagline moved up into the wordmark.
-    // wordmark: "GEDDO" in the accent, "AEQ" in the light ink, both tracked.  The name
-    // changed to Geddo AEQ in 1.2.37 and the panel is where it has to be true first: a
-    // product that is renamed in the installer and not on its own window has two names,
-    // and the one people read is the window.
+    //
+    // The mark is his: the calligraphic wordmark from mostafageddo.com, embedded as the
+    // picture his site serves and drawn tinted (Source/ui/Logo.h).  The name is the words
+    // beside it, so a browser, a DAW list and the installer all read "Geddo AEQ" - the
+    // picture cannot be searched for, and a plugin that only shows a mark is a plugin
+    // nobody can find.
+    const float hsel = h.getHeight() / 52.0f;    // the header row is 52 design px tall
+    const float markH = 46.0f * hsel;
+    const float markW = markH * aeq::ui::Logo::aspect();
+    const auto markBox = juce::Rectangle<float> (h.getX(), h.getY() + 3.0f * hsel, markW, markH);
+    aeq::ui::Logo::draw (g, markBox, Palette::text());
+
     const float ws = kBody * sy;
-    const float markH = ws * 1.15f;
-    const auto markRow = h.withTop (h.getY() + 4.0f * sy).withHeight (markH);
+    const float wordX = markBox.getRight() + 12.0f * hsel;
+    const auto markRow = h.withTop (h.getY() + 4.0f * sy).withHeight (ws * 1.15f);
     constexpr float kTrack = 3.4f;      // px of extra space between glyphs, at design size
-    const Font mark = aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (kTrack / ws);
     // measured untracked, then placed after the advance the draw call actually makes -
     // the ink width and the advance are not the same number, and using one for the other
     // ran the words together (see Wordmark.h)
     const float w1 = aeq::ui::measure ("GEDDO", ws, Face::SemiBold);
-    g.setFont (mark);
+    g.setFont (aeq::ui::font (ws, Face::SemiBold).withExtraKerningFactor (kTrack / ws));
     g.setColour (Palette::accentHi());
-    g.drawText ("GEDDO", markRow, Justification::centredLeft, false);
-    const Font rest = aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (kTrack / ws);
-    g.setFont (rest);
+    g.drawText ("GEDDO", markRow.translated (wordX, 0.0f), Justification::centredLeft, false);
+    g.setFont (aeq::ui::font (ws, Face::Regular).withExtraKerningFactor (kTrack / ws));
     g.setColour (Palette::text().withAlpha (0.72f));
     // 22 px of gap, not 10: the advance `drawText` makes for the first word carries the
     // right sidebearing of its last glyph, so a gap that reads as a space on the glass has
     // to be about twice the space the arithmetic asks for.  Measured, not assumed - 8 px of
     // gap measured 1 px between the words in 1.2.38 and 12 px measured 2 px in 1.2.39.
-    g.drawText ("AEQ", markRow.translated (aeq::ui::secondWordX (w1, 5, kTrack * sy, 22.0f * sy), 0.0f),
+    g.drawText ("AEQ", markRow.translated (wordX + aeq::ui::secondWordX (w1, 5, kTrack * sy, 22.0f * sy), 0.0f),
                 Justification::centredLeft, false);
 
     // tagline, one line, under the mark
-    const float tagY = h.getY() + 4.0f * sy + markH + 2.0f * sy;
-    arabic (g, kTagline, { h.getX(), tagY, h.getWidth() * 0.55f, kCap * sy * 1.35f },
+    const float tagY = h.getY() + 4.0f * sy + ws * 1.15f + 2.0f * sy;
+    arabic (g, kTagline, { markBox.getRight() + 10.0f * sy, tagY,
+                           h.getWidth() * 0.55f, kCap * sy * 1.35f },
             Palette::muted(), kCap * sy);
 
     // right cluster: master bypass, reset, the seal pill with its LED, and the promise.
