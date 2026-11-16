@@ -1242,3 +1242,19 @@ at any vocal stem first; the other gates need nothing but the source tree.
   FALSIFY: rotate the embedded mark by 1 degree (a lookalike, not the file) -> "sha256 is
   c008d3bed742…, the manifest says 17c65058ee3d… - the picture changed without the record
   changing" (run, restored).
+
+- [x] G94: his logo is on the window, and it is drawn bright.
+  `drawImage (..., fillAlphaChannelWithCurrentBrush = true)` takes its colour from the brush
+  that is current on the Graphics.  The first version of `Source/ui/Logo.h` left that to the
+  caller, so the mark was drawn in whatever dim colour the header had used last: measured on
+  1.2.42's own screenshot, **0 px above 0.85 luminance** and a peak of 0.78, i.e. a
+  calligraphic logo at about a third opacity.  It compiled, it rendered, and it looked, at a
+  glance, like a watermark someone had meant to put there.
+  The brush is now set inside `Logo::draw` (one place, next to the call that needs it) and
+  this gate reads the picture: left of the first accent ink, the header must carry at least
+  150 px above 0.85 luminance at 1240x800, scaled by the shot's area.
+  CHECK: .venv/bin/python design/preview/check_mark.py
+  EXPECT: mark ok:
+  EVIDENCE: UNAVAILABLE until the 1.2.43 Windows shot is in dist/ui: python3 scripts/fetch_ci_ui.py
+  FALSIFY: 1.2.42's screenshot -> "the mark has 0 px above 0.85 luminance (need 150 at
+  1240x800); peak 0.78" (run on the shot CI actually produced for that version).

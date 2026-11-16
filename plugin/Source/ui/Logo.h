@@ -32,6 +32,13 @@ public:
     }
 
     // Draw the mark centred in `box`, tinted, at the size that fits without stretching.
+    //
+    // `drawImage (..., fillAlphaChannelWithCurrentBrush = true)` fills the picture's alpha
+    // with the brush that is current *on the Graphics* - not with `setColour` on some other
+    // object, and not with the image's own RGB.  That is why the brush is set here, in one
+    // place: the first version of this function left the colour to the caller, and the mark
+    // came out in whatever dim colour the header had used last - his logo at 30% opacity is
+    // a smudge, and a smudge is the one thing a logo must not be.
     static void draw (juce::Graphics& g, juce::Rectangle<float> box, juce::Colour tint)
     {
         const auto& d = image();
@@ -40,21 +47,12 @@ public:
 
         const float scale = juce::jmin (box.getWidth() / float (d.getWidth()),
                                         box.getHeight() / float (d.getHeight()));
-        const float w = float (d.getWidth()) * scale;
-        const float h = float (d.getHeight()) * scale;
-        const auto target = juce::Rectangle<float> (w, h).withCentre (box.getCentre());
+        const auto target = juce::Rectangle<float> (float (d.getWidth()) * scale,
+                                                    float (d.getHeight()) * scale)
+                                .withCentre (box.getCentre());
 
-        // `drawImage` does not multiply by the current colour, so the tint is baked into a
-        // copy once per colour instead of pretending setColour does it.  One cache entry is
-        // enough: the mark is drawn in one colour per world, and a world change rebuilds it.
-        static juce::Image tinted;
-        static juce::uint32 tintedArgb = 0;
-        if (tintedArgb != tint.getARGB() || ! tinted.isValid())
-        {
-            tinted = makeTinted (d, tint);
-            tintedArgb = tint.getARGB();
-        }
-        g.drawImage (tinted, target, juce::RectanglePlacement::centred, true);
+        g.setColour (tint);
+        g.drawImage (d, target, juce::RectanglePlacement::centred, true);
     }
 
 private:
@@ -62,23 +60,6 @@ private:
     {
         static const juce::Image img = load();
         return img;
-    }
-
-    // The file is white ink on transparent ground: the shape is its alpha, so the tint is
-    // written into every pixel that has alpha and the alpha is kept as it arrived.
-    static juce::Image makeTinted (const juce::Image& src, juce::Colour tint)
-    {
-        juce::Image out (juce::Image::ARGB, src.getWidth(), src.getHeight(), true);
-        juce::Image::BitmapData s (src, juce::Image::BitmapData::readOnly);
-        juce::Image::BitmapData d (out, juce::Image::BitmapData::writeOnly);
-        for (int y = 0; y < src.getHeight(); ++y)
-            for (int x = 0; x < src.getWidth(); ++x)
-            {
-                const auto a = s.getPixelColour (x, y).getAlpha();
-                d.setPixelColour (x, y, a == 0 ? juce::Colours::transparentBlack
-                                               : tint.withAlpha (a));
-            }
-        return out;
     }
 
     static juce::Image load()
