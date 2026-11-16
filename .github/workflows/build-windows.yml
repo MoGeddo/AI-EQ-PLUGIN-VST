@@ -151,16 +151,21 @@ jobs:
           #   * a commit that DID touch plugin/ or installer/ under a version that already
           #     exists - an update nobody would ever receive, because this step will not
           #     overwrite a release.  That one stops here, with the file list.
-          $lastTag = (git describe --tags --abbrev=0 2>$null)
           gh release view "v$v" --json tagName 2>$null | Out-Null
           if ($LASTEXITCODE -eq 0) {
-            $touched = @()
-            if ($lastTag) { $touched = @(git diff --name-only "$lastTag..HEAD" -- plugin installer presets 2>$null) }
-            if ($touched.Count -eq 0) {
-              Write-Host "v$v is already published, and nothing under plugin/, installer/ or presets/ changed since $lastTag - nothing to publish"
+            # The tag that exists is v$v itself, so there is nothing to describe: compare
+            # this commit against the release's own tag.
+            $diff = git diff --name-only "v$v..HEAD" -- plugin installer presets 2>$null
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "v$v is already published and v$v is not in this checkout, so there is nothing to compare against - not publishing"
               exit 0
             }
-            throw "v$v is already published but $($touched.Count) product file(s) changed since $lastTag ($($touched -join ', ')) - a released version is never rebuilt. Bump the version."
+            $touched = @($diff)
+            if ($touched.Count -eq 0) {
+              Write-Host "v$v is already published, and nothing under plugin/, installer/ or presets/ changed since it - nothing to publish"
+              exit 0
+            }
+            throw "v$v is already published but $($touched.Count) product file(s) changed since it ($($touched -join ', ')) - a released version is never rebuilt. Bump the version."
           }
 
           # the .sha256 file is "<hash>  <filename>"; only the hash belongs in the notes
