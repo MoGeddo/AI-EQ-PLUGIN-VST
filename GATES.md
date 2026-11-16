@@ -1255,6 +1255,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   150 px above 0.85 luminance at 1240x800, scaled by the shot's area.
   CHECK: .venv/bin/python design/preview/check_mark.py
   EXPECT: mark ok:
-  EVIDENCE: UNAVAILABLE until the 1.2.43 Windows shot is in dist/ui: python3 scripts/fetch_ci_ui.py
+  EVIDENCE: VERIFIED - mark ok: dist/ui/ui-empty-1240x800.png his logo is on the window -
+  562 px above 0.85 luminance (need 150), peak 0.97, across 132x96 px left of the wordmark
+  (the shot of the 1.2.44 Windows build, run 43972542171)
   FALSIFY: 1.2.42's screenshot -> "the mark has 0 px above 0.85 luminance (need 150 at
   1240x800); peak 0.78" (run on the shot CI actually produced for that version).
