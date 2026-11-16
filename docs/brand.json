@@ -34,13 +34,13 @@
   {
    "path": "installer/wizard.bmp",
    "bytes": 154542,
-   "sha256": "c9db5d81aac7ae3cb764204f7e2abf1ea420e9188ea8b8ebb6fc9b17bb5b48e2",
+   "sha256": "968775b29e53257e6cb27e15143350254dd48e180a0716427c7ee88e1bdc8311",
    "from": "docs/brand-logo.png"
   },
   {
    "path": "installer/wizard.png",
-   "bytes": 13073,
-   "sha256": "d86a17ef076b529e68b7ebd66198877033b73f4fe1f058258feeb10efeb89ee0",
+   "bytes": 15402,
+   "sha256": "418012926b996fc3c62930ffd564f5581be418145e900150ab7c3ac51052f5ad",
    "from": "docs/brand-logo.png"
   },
   {

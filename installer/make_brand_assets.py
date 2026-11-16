@@ -92,6 +92,31 @@ def write_ico(path, images):
     open(path, "wb").write(header + entries + data)
 
 
+FONT_DIR = os.path.join(ROOT, "plugin", "Source", "assets")
+NAME = "GEDDO AEQ"
+
+
+def load_font(size):
+    """Cairo, the same face the plugin draws its own words in (SIL OFL, shipped with it)."""
+    from PIL import ImageFont
+    for f in ("Cairo-SemiBold.ttf", "Cairo-Regular.ttf"):
+        p = os.path.join(FONT_DIR, f)
+        if os.path.exists(p):
+            return ImageFont.truetype(p, size)
+    return ImageFont.load_default()
+
+
+def tracked(draw, xy, text, font, fill, tracking, anchor_center_x=None):
+    """Draw text with extra letter spacing - PIL has none, and the product's name is tracked."""
+    widths = [draw.textlength(ch, font=font) for ch in text]
+    total = sum(widths) + tracking * (len(text) - 1)
+    x = xy[0] if anchor_center_x is None else anchor_center_x - total / 2
+    for ch, w in zip(text, widths):
+        draw.text((x, xy[1]), ch, font=font, fill=fill)
+        x += w + tracking
+    return total
+
+
 def wizard_page(w=164, h=314):
     ss = 2
     W, H = w * ss, h * ss
@@ -108,7 +133,13 @@ def wizard_page(w=164, h=314):
     tinted.putalpha(m.getchannel("A"))
     page.alpha_composite(tinted, ((W - mw) // 2, int(H * 0.30)))
     d = ImageDraw.Draw(page)
-    y = int(H * 0.30) + mh + int(H * 0.05)
+    y = int(H * 0.30) + mh + int(H * 0.045)
+    # the name under his mark: the mark is a picture and cannot be searched for, and the
+    # installer is where somebody decides what they are installing
+    font = load_font(int(W * 0.075))
+    tracked(d, (0, y), NAME, font, INK + (255,), tracking=int(W * 0.012),
+            anchor_center_x=W / 2)
+    y += int(W * 0.13)
     d.line([(int(W * 0.12), y), (int(W * 0.88), y)], fill=(0xFF, 0xBA, 0xDC, 200),
            width=max(1, ss))
     return page.resize((w, h), Image.LANCZOS)
