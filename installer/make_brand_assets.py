@@ -128,6 +128,11 @@ def main():
 
     ico = os.path.join(ROOT, "plugin", "Source", "assets", "geddo.ico")
     write_ico(ico, [plate(s) for s in (16, 24, 32, 48, 64, 128, 256)])
+    # JUCE's build takes PNGs for the window/.exe icon (juceaide winicon) - the .ico above is
+    # for the installer, which wants a real multi-size icon file.
+    for s in (256, 32):
+        plate(s).save(os.path.join(ROOT, "plugin", "Source", "assets",
+                                   f"geddo-icon-{s}.png"), optimize=True)
 
     page = wizard_page()
     page.save(os.path.join(ROOT, "installer", "wizard.png"), optimize=True)
@@ -144,10 +149,14 @@ def main():
     brand = json.load(open(os.path.join(ROOT, "docs", "brand.json")))
     derived = {d["path"]: d for d in brand.get("derived", [])}
     for rel in ("plugin/Source/assets/geddo-mark.png", "plugin/Source/assets/geddo.ico",
+                "plugin/Source/assets/geddo-icon-256.png",
+                "plugin/Source/assets/geddo-icon-32.png",
                 "installer/wizard.png", "installer/wizard_small.png",
-                "installer/aeq.ico"):
+                "installer/wizard.bmp", "installer/wizard_small.bmp",
+                "installer/preview.png", "installer/aeq.ico"):
         derived[rel] = {"path": rel, "bytes": os.path.getsize(os.path.join(ROOT, rel)),
-                        "sha256": sha(os.path.join(ROOT, rel))}
+                        "sha256": sha(os.path.join(ROOT, rel)),
+                        "from": "docs/brand-logo.png"}
     brand["derived"] = [derived[k] for k in sorted(derived)]
     brand["derived_note"] = ("regenerate with installer/make_brand_assets.py from "
                              "docs/brand-logo.png; G93 compares these hashes with the files")

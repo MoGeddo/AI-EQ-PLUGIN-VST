@@ -1236,7 +1236,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   in the manifest instead of being implied, the same way the stems' manifest is.
   CHECK: python3 scripts/check_brand.py
   EXPECT: brand ok:
-  EVIDENCE: VERIFIED - brand ok: 7 files hash to what docs/brand.json records, the mark is
+  EVIDENCE: VERIFIED - brand ok: 12 files hash to what docs/brand.json records, the mark is
   cut from https://mostafageddo.com/images/logo.png (108,840 bytes, sha256 ebb54bca15ff…)
   and the window, the .exe and the installer all draw that same picture
   FALSIFY: rotate the embedded mark by 1 degree (a lookalike, not the file) -> "sha256 is

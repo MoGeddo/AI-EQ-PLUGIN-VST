@@ -32,9 +32,12 @@ juce_add_plugin(GeddoAEQ
     IS_MIDI_EFFECT            FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD   FALSE
-    # his mark, on the window, the standalone .exe and the shortcut Windows makes for it
-    ICON_BIG                  Source/assets/geddo.ico
-    ICON_SMALL                Source/assets/geddo.ico
+    # his mark, on the window, the standalone .exe and the shortcut Windows makes for it.
+    # PNG, not .ico: JUCE's juceaide winicon loads these with Drawable::createFromImageFile,
+    # which reads PNG/JPEG/GIF - handing it an .ico fails the configure step on Windows
+    # (found the first time it was tried, from CI's own error).
+    ICON_BIG                  Source/assets/geddo-icon-256.png
+    ICON_SMALL                Source/assets/geddo-icon-32.png
     COMPANY_WEBSITE           "https://mostafageddo.com"
     VST3_CATEGORIES           "Fx" "EQ")
 

@@ -22,27 +22,62 @@
   {
    "path": "installer/aeq.ico",
    "bytes": 44570,
-   "sha256": "667feba8b31f6d3402fc55eb034d2515dcaa74aa836e9a6dd93c7c98e827467d"
+   "sha256": "667feba8b31f6d3402fc55eb034d2515dcaa74aa836e9a6dd93c7c98e827467d",
+   "from": "docs/brand-logo.png"
+  },
+  {
+   "path": "installer/preview.png",
+   "bytes": 24916,
+   "sha256": "09e59c3ec248b14dd2c99b3f0740fb6099d96ec5966ff6590e005d7f02c6190b",
+   "from": "docs/brand-logo.png"
+  },
+  {
+   "path": "installer/wizard.bmp",
+   "bytes": 154542,
+   "sha256": "c9db5d81aac7ae3cb764204f7e2abf1ea420e9188ea8b8ebb6fc9b17bb5b48e2",
+   "from": "docs/brand-logo.png"
   },
   {
    "path": "installer/wizard.png",
    "bytes": 13073,
-   "sha256": "d86a17ef076b529e68b7ebd66198877033b73f4fe1f058258feeb10efeb89ee0"
+   "sha256": "d86a17ef076b529e68b7ebd66198877033b73f4fe1f058258feeb10efeb89ee0",
+   "from": "docs/brand-logo.png"
+  },
+  {
+   "path": "installer/wizard_small.bmp",
+   "bytes": 9294,
+   "sha256": "fbc41f5c1f113e4b4ebe65c9793067497a4d8e65d6f6415bdd82e36caf3e9209",
+   "from": "docs/brand-logo.png"
   },
   {
    "path": "installer/wizard_small.png",
    "bytes": 3727,
-   "sha256": "d4493723d14e3f6af5b9b42d727a86115b57f3e5c1b707cc9b92b28ce11c374b"
+   "sha256": "d4493723d14e3f6af5b9b42d727a86115b57f3e5c1b707cc9b92b28ce11c374b",
+   "from": "docs/brand-logo.png"
+  },
+  {
+   "path": "plugin/Source/assets/geddo-icon-256.png",
+   "bytes": 24916,
+   "sha256": "09e59c3ec248b14dd2c99b3f0740fb6099d96ec5966ff6590e005d7f02c6190b",
+   "from": "docs/brand-logo.png"
+  },
+  {
+   "path": "plugin/Source/assets/geddo-icon-32.png",
+   "bytes": 1512,
+   "sha256": "1feaed19d2c75434bad65510786c747243d05a44325feb3da50c5446412900b0",
+   "from": "docs/brand-logo.png"
   },
   {
    "path": "plugin/Source/assets/geddo-mark.png",
    "bytes": 17634,
-   "sha256": "17c65058ee3dd357ab6ff4265d37fc07b6f901dd9841e9bafcbe3fdcbb5f74f3"
+   "sha256": "17c65058ee3dd357ab6ff4265d37fc07b6f901dd9841e9bafcbe3fdcbb5f74f3",
+   "from": "docs/brand-logo.png"
   },
   {
    "path": "plugin/Source/assets/geddo.ico",
    "bytes": 44570,
-   "sha256": "667feba8b31f6d3402fc55eb034d2515dcaa74aa836e9a6dd93c7c98e827467d"
+   "sha256": "667feba8b31f6d3402fc55eb034d2515dcaa74aa836e9a6dd93c7c98e827467d",
+   "from": "docs/brand-logo.png"
   }
  ],
  "derived_note": "regenerate with installer/make_brand_assets.py from docs/brand-logo.png; G93 compares these hashes with the files"
