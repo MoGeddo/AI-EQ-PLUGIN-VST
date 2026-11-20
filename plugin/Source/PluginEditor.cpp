@@ -28,6 +28,9 @@ constexpr float kMicro = 15.0f, kCap = 17.0f, kBody = 20.0f, kValue = 26.0f;
 // line and the auto line).  One number, so the width a box reserves and the width that is
 // drawn cannot disagree.
 constexpr float kReadoutTrack = 1.1f;
+// and the slack in a readout's box: trackedText wraps by word, so a box that is a pixel
+// short of the layout's advance prints a second line - the 1.2.47 empty window did.
+constexpr float kReadoutSlack = 40.0f;
 
 // the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
 // the take strip is 494..520, and the caption row is 528..542.  These are y values,
@@ -441,7 +444,8 @@ Rectangle<int> AeqAudioProcessorEditor::layerReadout() const {
     // the tracked width, not the untracked one: a box narrower than the line it holds is
     // how a right-aligned label ends up hanging off its own left edge
     const int w = roundToInt (aeq::ui::measure (s, kMicro * sy, Face::SemiBold)
-                              + kReadoutTrack * float (jmax (0, s.length() - 1))) + 4;
+                              + kReadoutTrack * float (jmax (0, s.length() - 1))
+                              + kReadoutSlack * sy);
     return { row.getRight() - w, row.getY(), w, row.getHeight() };
 }
 
@@ -462,7 +466,7 @@ Rectangle<int> AeqAudioProcessorEditor::autoReadout() const {
     const auto f = panelFacts();
     const String s = autoReadoutText();
     const float w = aeq::ui::measure (s, kMicro * sy)
-                    + kReadoutTrack * float (jmax (0, s.length() - 1)) + 2.0f * sy;
+                    + kReadoutTrack * float (jmax (0, s.length() - 1)) + kReadoutSlack * sy;
     const auto pill = sealPill();
     return { pill.getRight() - roundToInt (w),
              pill.getBottom() + roundToInt (4.0f * sy), roundToInt (w),
@@ -965,8 +969,13 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     const float stripSize = kMicro * sy;
     const float stripW = aeq::ui::measure (scanStripText(), stripSize, Face::SemiBold)
                          + kReadoutTrack * float (jmax (0, scanStripText().length() - 1));
-    trackedText (g, scanStripText(), { caption.getX(), caption.getY(), stripW + 8.0f * sy,
-                                       caption.getHeight() },
+    // The box is the left 45 % of the row, not the measured width: trackedText lays out
+    // with AttributedString's default by-word wrap, so a box one pixel short of the
+    // advance turns "SCAN 0%  ·  0 s" into two lines (the shipped 1.2.47 shot of the empty
+    // window does exactly that).  The offset for the rest of the line still uses stripW.
+    trackedText (g, scanStripText(),
+                 { caption.getX(), caption.getY(), caption.getWidth() * 0.45f,
+                   caption.getHeight() },
                  Palette::take().brighter (0.25f), stripSize, kReadoutTrack,
                  Justification::centredLeft, Face::SemiBold);
 

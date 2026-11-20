@@ -1317,7 +1317,12 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EVIDENCE: VERIFIED - readouts ok: four readouts on the non-bidi funnel;
   ui-1240x800.png: strip 1053 px cyan, badge 758 px cyan, layer line 404 px accent;
   ui-empty-1240x800.png: strip 403 px cyan, badge 537 px cyan
-  FALSIFY: put one `aeq::ui::draw (g, scanStripText(), ...)` back -> "scanStripText() is not
-  drawn through trackedText ... is drawn through aeq::ui::draw - that prepends a
-  RIGHT-TO-LEFT MARK and reorders the line" (run, restored).  The window that produced the
-  defect is kept at `docs/ui-1.2.46-window-empty.png`.
+  FALSIFY: (1) put one `aeq::ui::draw (g, scanStripText(), ...)` back -> "scanStripText() is
+  not drawn through trackedText ... is drawn through aeq::ui::draw - that prepends a
+  RIGHT-TO-LEFT MARK and reorders the line" (run, restored).  (2) the next build fixed the
+  order and sized the strip's box from `measure()`, which is one word-wrap short of what
+  `trackedText`'s TextLayout advances: 1.2.47's empty shot printed "SCAN 0%  ·  0" and an
+  "s" on a second line, and this gate said "only 34 px of the scan strip's cyan in the
+  caption row (need 60) - the strip is not drawn" before any eye saw it (run, fixed by
+  giving the box the left 45 % of the row and every readout `kReadoutSlack`).  The window
+  that produced the first defect is kept at `docs/ui-1.2.46-window-empty.png`.
