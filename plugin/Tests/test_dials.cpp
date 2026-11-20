@@ -107,15 +107,16 @@ int main() {
         bool weight = true, seated = true, thick = true;
         for (const float box : boxes) {
             const auto m = knobMetrics (box);
-            weight = weight && m.body >= box * 0.32f;
+            weight = weight && m.body >= box * 0.30f;
             // the skirt is inside the seat, and the ring sits *outside* the skirt so the
             // knurling is never painted over - on the reference the arc clears the ridges
             seated = seated && m.seat >= m.knurlOut + 0.3f
-                     && m.groove - m.grooveStroke * 0.5f >= m.knurlOut;
+                     && m.groove - m.grooveStroke * 0.5f >= m.knurlOut
+                     && m.knurlOut - m.knurlIn >= 1.8f;      // the skirt is a visible band
             // the ring is the number on this dial: below ~2 px it stops being one
             thick = thick && m.grooveStroke >= 2.0f;
         }
-        check (weight, "the cap is at least 32 % of the box, so the dial keeps its weight");
+        check (weight, "the cap is at least 30 % of the box, so the dial keeps its weight");
         check (seated, "the skirt sits inside the seat, and the ring clears the skirt");
         check (thick, "the value ring is at least 2 px thick, i.e. readable as a value");
     }

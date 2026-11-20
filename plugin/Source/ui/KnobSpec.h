@@ -49,12 +49,12 @@ struct KnobMetrics
 constexpr KnobMetrics knobMetrics (float box) noexcept
 {
     KnobMetrics m {};
-    m.body         = box * 0.335f;
+    m.body         = box * 0.312f;
     m.knurlIn      = m.body * 1.00f;
-    m.knurlOut     = box * 0.356f;
-    m.knurlCount   = 40;
-    m.knurlStroke  = box * 0.0075f;
-    m.seat         = box * 0.372f;
+    m.knurlOut     = box * 0.354f;     // a 4 px band at 54 px: the ridges have to be *seen*
+    m.knurlCount   = 44;
+    m.knurlStroke  = box * 0.011f;
+    m.seat         = box * 0.371f;
     m.groove       = box * 0.390f;
     m.grooveStroke = box * 0.048f;    // the reference's ring is thick - it is the value read
     m.majorIn      = box * 0.434f;

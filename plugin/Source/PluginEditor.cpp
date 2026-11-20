@@ -192,7 +192,11 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     // At zero the lit arc is a zero-length stroke, i.e. one round dot on the ring's start -
     // on the 1.2.54 shot that read as a stray pink speck beside the knob.  A dial at zero
     // has nothing lit, so the start marker is drawn in the ring's own ink instead.
-    g.setColour (value < 0.02f ? Palette::hairline() : accent);
+    // A 3 px arc cannot carry the fill orange: #EC4F02 over a near-black plate reads brown
+    // (which is what the 1.2.59 shot shows on the auto-stop dial).  The reference's small
+    // knobs draw their ring in the *bright* end of their orange - #FF5100 on kit 01 - so the
+    // lit arc is the accent lifted toward its own highlight, at full alpha.
+    g.setColour (value < 0.02f ? Palette::hairline() : accent.interpolatedWith (hot, 0.55f));
     g.strokePath (arc, PathStrokeType (k.grooveStroke, PathStrokeType::curved,
                                        PathStrokeType::rounded));
 
@@ -221,18 +225,19 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
                 centre.x + box * 0.012f, centre.y + k.seat - box * 0.012f, 1.0f);
 
     // ---- needle, from the centre out: never a dot in the middle
-    const Point<float> tip (centre.x + std::sin (a) * r * 0.66f,
-                            centre.y - std::cos (a) * r * 0.66f);
-    g.setColour (Colours::black.withAlpha (0.50f));
-    g.drawLine (Line<float> (centre.translated (0.0f, 1.5f), tip.translated (0.0f, 1.5f)),
-                box * 0.075f);
+    // A pointer that starts *off* the centre, like the reference's: a line from the middle
+    // out, with a small round head - not a lollipop.  At 54 px the old 6 px head plus a
+    // 3.2 px shaft was half the cap's width and read as a stick with a bead on it.
+    const Point<float> tail (centre.x + std::sin (a) * r * 0.18f,
+                             centre.y - std::cos (a) * r * 0.18f);
+    const Point<float> tip (centre.x + std::sin (a) * r * 0.70f,
+                            centre.y - std::cos (a) * r * 0.70f);
+    g.setColour (Colours::black.withAlpha (0.55f));
+    g.drawLine (Line<float> (tail.translated (0.0f, 1.2f), tip.translated (0.0f, 1.2f)),
+                box * 0.055f);
     g.setColour (hot);
-    g.drawLine (Line<float> (centre, tip), box * 0.060f);
-    g.fillEllipse (centre.x - box * 0.045f, centre.y - box * 0.045f,
-                   box * 0.090f, box * 0.090f);
-    // the head of the pointer: where the dial is, read against the ring
-    g.fillEllipse (tip.x - box * 0.056f, tip.y - box * 0.056f,
-                   box * 0.112f, box * 0.112f);
+    g.drawLine (Line<float> (tail, tip), box * 0.044f);
+    g.fillEllipse (tip.x - box * 0.040f, tip.y - box * 0.040f, box * 0.080f, box * 0.080f);
 }
 
 } // namespace
