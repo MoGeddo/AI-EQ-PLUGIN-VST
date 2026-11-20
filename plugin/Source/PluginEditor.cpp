@@ -677,7 +677,7 @@ void AeqAudioProcessorEditor::paint (Graphics& g) {
     {
         // two blooms, both off the panel so only their light lands on it
         const auto accent = Palette::accent();
-        const auto second = Palette::take();
+        const auto second = Palette::takeInk();
         auto bloom = [&g, &bounds, sx, sy] (Colour c, float alpha, Point<float> centre, float radius) {
             ColourGradient gr (c.withAlpha (alpha), centre.x, centre.y,
                                c.withAlpha (0.0f), centre.x + radius, centre.y, true);
@@ -871,16 +871,16 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
         g.fillRoundedRectangle (br, kPillR * sy);
         g.setColour (Palette::take().withAlpha (0.20f + 0.40f * lit));
         g.drawRoundedRectangle (br.reduced (0.5f), kPillR * sy, 1.0f);
-        g.setColour (scanning ? Palette::take().brighter (0.25f)
-                              : Palette::take().withAlpha (0.55f));
+        g.setColour (scanning ? Palette::takeInk().brighter (0.15f)
+                              : Palette::takeInk().withAlpha (0.55f));
         g.fillEllipse (br.getX() + 9.0f * sy, br.getCentreY() - 2.5f * sy,
                        5.0f * sy, 5.0f * sy);
         // trackedText, like the other three readouts: see drawTake for why the RTL path
         // (aeq::ui::draw) is the wrong funnel for a Latin status word
         trackedText (g, scanBadgeText(),
                      br.translated (18.0f * sy, 0.0f).withTrimmedRight (6.0f * sy),
-                     scanning ? Palette::take().brighter (0.45f)
-                              : Palette::take().withAlpha (done ? 0.85f : 0.55f),
+                     scanning ? Palette::takeInk().brighter (0.30f)
+                              : Palette::takeInk().withAlpha (done ? 0.95f : 0.62f),
                      kCap * sy, kReadoutTrack, Justification::centredLeft, Face::SemiBold);
     }
 
@@ -1054,7 +1054,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     trackedText (g, scanStripText(),
                  { caption.getX(), caption.getY(), caption.getWidth() * 0.45f,
                    caption.getHeight() },
-                 Palette::take().brighter (0.25f), stripSize, kReadoutTrack,
+                 Palette::takeInk(), stripSize, kReadoutTrack,
                  Justification::centredLeft, Face::SemiBold);
 
     String learned = String (int (bands_.size())) + " BANDS" + dot + target;
@@ -1078,7 +1078,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     float rx = caption.getRight() - kWellInset * sx;
     const auto keys = std::array<std::pair<const char*, Colour>, 3> {
         std::make_pair (kDecisionKey, Palette::accent()),
-        std::make_pair (kMeasuredKey, Palette::take()),
+        std::make_pair (kMeasuredKey, Palette::takeInk()),
         std::make_pair (kReferenceKey, Palette::standard())
     };
     for (const auto& k : keys) {

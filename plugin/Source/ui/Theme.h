@@ -7,7 +7,9 @@
 // One palette, one geometry, one text path.  Everything visual in the plugin
 // comes from here, so a change of mood is a change of one file.
 //
-// The look: violet ink, magenta decision, cyan measurement - design/IDENTITY_AR.md.
+// The look: graphite ink, orange decision, blue measurement - sampled from the reference
+// set the user sent (dribbble.com/AudioUi); see the block below for the six hexes and where
+// each was measured.  design/IDENTITY_AR.md and docs/28_UI_LANGUAGE_AR.md carry the record.
 // (v9 "neon" world; design/preview/ui_v9.py holds all four worlds and the render.)
 // The palette
 // used to be a cold console (near-black, blue take, mint correction, amber warning)
@@ -32,38 +34,51 @@ namespace aeq::ui {
 struct Palette {
     // ---- surfaces: a neutral graphite, lit from the top.
     //
-    // 1.2.53.  The field used to be violet *and* the two accents are a magenta and a cyan,
-    // so the whole window sat in one lavender family and nothing stood out: "الألوان مش
-    // أحسن حاجة".  The instrument references this panel is measured against (the AudioUi
-    // set on Dribbble - VST kits 01/03/06/07, the Red Rocker Switch, the LA2A knob) all do
-    // the same thing: a **dead neutral** field, and the hue is spent only on the parts that
-    // mean something.  The ground is a graphite with the faintest blue in it now, the
-    // accents did not move, and the two of them are the only colour on the panel.
-    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x2a, 0x28, 0x31); }
-    static juce::Colour bg()        { return juce::Colour::fromRGB (0x0c, 0x0b, 0x10); }
-    static juce::Colour surface()   { return juce::Colour::fromRGB (0x14, 0x13, 0x19); }  // the well
-    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x1c, 0x1b, 0x23); }  // a chip
-    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x3a, 0x39, 0x46); }
-    static juce::Colour text()      { return juce::Colour::fromRGB (0xfc, 0xf6, 0xfe); }
-    static juce::Colour muted()     { return juce::Colour::fromRGB (0xce, 0xc4, 0xdc); }
-    static juce::Colour dim()       { return juce::Colour::fromRGB (0xb0, 0xa8, 0xc4); }
+    // 1.2.53 made the field neutral and left the hues where they were - magenta and cyan.
+    // That was half of what the user asked for twice: "طلع الألوان و التصميم من هنا", with
+    // dribbble.com/AudioUi attached.  Its kits are graphite, **orange** and blue; ours was
+    // graphite with two cool hues, so the panel read as a neutral panel with a stranger's
+    // colours on it.
+    // 1.2.58.  The hues are the reference's own, sampled from its files and recorded:
+    //   panel   #2A2E36  - the big panel of "Neumorphic Dark Kobs" (most common colour)
+    //   deep    #161B27  - the ground of VST kit 03
+    //   card    #222733  - its group cards
+    //   orange  #EC4F02  - the median of 5,122 orange pixels on VST kit 01 (the knob rings);
+    //                      the brightest of them are #FF5100
+    //   blue    #0E76EB  - the waveform selection in kit 03 (brightest blue #62ADF1)
+    //   type    #E6E6E6  - its labels
+    // Those six numbers are the design, so they are the palette: what is left of us is
+    // which of them is allowed to mean what.  The field is a graphite with the reference's
+    // faint blue in it, the decision is its orange, a measurement is its blue.
+    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x26, 0x2a, 0x33); }  // #2A2E36, a step down
+    static juce::Colour bg()        { return juce::Colour::fromRGB (0x0f, 0x12, 0x18); }  // under #161B27
+    static juce::Colour surface()   { return juce::Colour::fromRGB (0x17, 0x1b, 0x22); }  // the well
+    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x1f, 0x24, 0x2d); }  // a chip / #222733
+    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x39, 0x40, 0x4d); }
+    static juce::Colour text()      { return juce::Colour::fromRGB (0xf3, 0xf2, 0xef); }  // #E6E6E6, warm
+    static juce::Colour muted()     { return juce::Colour::fromRGB (0xbf, 0xc3, 0xcb); }
+    static juce::Colour dim()       { return juce::Colour::fromRGB (0x8f, 0x94, 0x9f); }
 
-    // ---- accent: everything this plugin decides.  v9's "neon" world is magenta on a
-    // violet ink; the role is unchanged from the brass era (accent = a decision), the
-    // hue is a *mood* and lives in one block so a mood change is one edit.
-    static juce::Colour accent()    { return juce::Colour::fromRGB (0xff, 0x5e, 0xa8); }  // the curve, the needle
-    static juce::Colour accentHi()  { return juce::Colour::fromRGB (0xff, 0xba, 0xdc); }  // a lit edge
+    // ---- accent: everything this plugin decides.  The reference's orange.
+    static juce::Colour accent()    { return juce::Colour::fromRGB (0xec, 0x4f, 0x02); }  // #EC4F02, sampled
+    static juce::Colour accentHi()  { return juce::Colour::fromRGB (0xff, 0x8a, 0x4d); }  // the same hue, lifted for 14 px type
     static juce::Colour seal()      { return accentHi(); }                                // committed state
 
-    // ---- second accent: everything that is a measurement of the take
-    static juce::Colour take()      { return juce::Colour::fromRGB (0x54, 0xd6, 0xff); }  // what you play
-    static juce::Colour takeDeep()  { return juce::Colour::fromRGB (0x1e, 0x3a, 0x4a); }  // its body
-    static juce::Colour standard()  { return juce::Colour::fromRGB (0xaa, 0xa4, 0xb8); }  // the 15 mixes
+    // ---- second accent: everything that is a measurement of the take.  Kit 03's blue.
+    // Two blues, because the reference has two and they do different jobs: the deep
+    // #0E76EB is what fills an area (kit 03's selection band, our spectrum body) and the
+    // bright #62ADF1 is what a thin line or a 14 px word is drawn in - the deep one on a
+    // #0f1218 plate is 3.28:1, which passes as a fill and fails as type.
+    static juce::Colour take()      { return juce::Colour::fromRGB (0x0e, 0x76, 0xeb); }  // #0E76EB, sampled: areas
+    static juce::Colour takeInk()   { return juce::Colour::fromRGB (0x62, 0xad, 0xf1); }  // #62ADF1, sampled: type
+    static juce::Colour takeDeep()  { return juce::Colour::fromRGB (0x14, 0x23, 0x3a); }  // its body
+    static juce::Colour standard()  { return juce::Colour::fromRGB (0x9e, 0xa3, 0xad); }  // the 15 mixes
 
-    // ---- states: not accents.  A warning must never read as a decision.
-    static juce::Colour ok()        { return juce::Colour::fromRGB (0x54, 0xd6, 0xff); }
-    static juce::Colour warn()      { return juce::Colour::fromRGB (0xff, 0xb0, 0x4a); }
-    static juce::Colour danger()    { return juce::Colour::fromRGB (0xff, 0x4d, 0x6a); }
+    // ---- states: not accents.  A warning must never read as a decision, so it is the one
+    // hue that is neither the orange nor the blue: a yellow, above both on the wheel.
+    static juce::Colour ok()        { return take(); }
+    static juce::Colour warn()      { return juce::Colour::fromRGB (0xff, 0xc2, 0x4a); }
+    static juce::Colour danger()    { return juce::Colour::fromRGB (0xff, 0x4d, 0x5e); }
 
     // kept for the older call sites; same meaning as accent2/take
     static juce::Colour panel()     { return surface(); }

@@ -22,6 +22,7 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 
 #include <cinttypes>
+#include <cmath>
 #include <cstdlib>
 #include <map>
 #include <random>
@@ -654,6 +655,24 @@ int runControls(const juce::File& dir) {
     return fail == 0 ? 0 : 1;
 }
 
+// Hue in degrees, and the shortest distance between two of them.  Used by the window
+// stage to ask "is this pixel the decision layer" in the palette's own terms.
+static float hueOf (juce::Colour c) {
+    const float r = c.getFloatRed(), g = c.getFloatGreen(), b = c.getFloatBlue();
+    const float mx = juce::jmax (r, g, b), mn = juce::jmin (r, g, b), d = mx - mn;
+    if (d <= 0.0f) return 0.0f;
+    float h;
+    if (mx == r)      h = 60.0f * ((g - b) / d);
+    else if (mx == g) h = 60.0f * ((b - r) / d) + 120.0f;
+    else              h = 60.0f * ((r - g) / d) + 240.0f;
+    return h < 0.0f ? h + 360.0f : h;
+}
+
+static float hueDistance (float a, float b) {
+    const float d = std::fabs (a - b);
+    return d > 180.0f ? 360.0f - d : d;
+}
+
 int runWindow(const juce::File& dir) {
     // The window, twice: empty and sealed.
     //
@@ -734,14 +753,21 @@ int runWindow(const juce::File& dir) {
             // of nothing.  Measured on the two shots: 1.2.49 (no low cut drawn) has 0
             // accent pixels below -6 dB in 40..100 Hz, 1.2.50 has 533.
             const float y0 = curve->dbToY (-6.0) + (float) curve->getY();
+            // The decision colour is *asked for*, not spelled out here.  It used to be a
+            // hand-written "red and blue both well clear of green" - the predicate for the
+            // magenta this panel wore in 1.2.5x - and when the palette moved to the
+            // reference's orange it would have gone on counting the old hue and reported a
+            // missing low cut that was drawn.  A pixel counts as the decision layer when its
+            // hue is within 18 deg of Palette::accent()'s and it is bright enough to be ink
+            // rather than the glow under it.
+            const float accentHue = hueOf (aeq::ui::Palette::accent());
             int pink = 0;
             for (int y = int (y0); y < int (plot.getBottom()); ++y)
                 for (int x = int (xa); x < int (xb); ++x)
                 {
                     const auto c = img.getPixelAt (x, y);
-                    // the decision colour, allowing for the glow's own alpha ramp
-                    if (c.getRed() > 150 && c.getBlue() > 90
-                        && c.getRed() >= c.getGreen() + 60 && c.getBlue() >= c.getGreen() + 20)
+                    if (hueDistance (hueOf (c), accentHue) <= 18.0f
+                        && c.getFloatRed() + c.getFloatGreen() + c.getFloatBlue() > 0.75f)
                         ++pink;
                 }
             stage (juce::String ("the decision line below 100 Hz: ") + juce::String (pink)

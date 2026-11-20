@@ -85,15 +85,21 @@ WORLDS = {
     # instrument set this panel is measured against (AudioUi's VST kits) spends its hue on
     # the parts that mean something and keeps the field a dead neutral graphite.  The
     # accents did not move; only the ink did.
-    "neon": dict(ink_top=(42, 40, 49), ink_bot=(12, 11, 16), text=(252, 246, 254),
-                 soft=(206, 202, 212), dim=(176, 172, 186), faint=(140, 138, 152),
-                 line=(246, 242, 248),
-                 accent=(255, 94, 168), accent_hot=(255, 186, 220),
-                 second=(84, 214, 255), second_hot=(186, 240, 255),
-                 chip=(28, 27, 35), blooms=((0.08, -0.28, 0.74, "accent", 44),
-                                            (0.97, 1.20, 0.68, "second", 40)),
-                 wells=((0.22, 0.68, 0.60, "second", 30), (0.80, 0.28, 0.56, "accent", 24)),
-                 knob="brass", knob_tint=(255, 94, 168)),
+    # 1.2.58: the world's hues are *sampled from the reference the user sent*
+    # (dribbble.com/AudioUi) instead of chosen - see Theme.h's Palette for the six hexes and
+    # where each was measured: panel #2A2E36, deep #161B27, card #222733, orange #EC4F02
+    # (median of 5,122 orange pixels in VST kit 01), blue #0E76EB (kit 03's waveform
+    # selection), type #E6E6E6.  The key keeps the name "neon" only because it is the name
+    # every earlier render and document refers to; nothing in it is neon any more.
+    "neon": dict(ink_top=(38, 42, 51), ink_bot=(15, 18, 24), text=(243, 242, 239),
+                 soft=(191, 195, 203), dim=(143, 148, 159), faint=(122, 128, 140),
+                 line=(60, 66, 78),
+                 accent=(236, 79, 2), accent_hot=(255, 138, 77),
+                 second=(98, 173, 241), second_hot=(156, 203, 250),
+                 chip=(31, 36, 45), blooms=((0.08, -0.28, 0.74, "accent", 30),
+                                            (0.97, 1.20, 0.68, "second", 34)),
+                 wells=((0.22, 0.68, 0.60, "second", 30), (0.80, 0.28, 0.56, "accent", 22)),
+                 knob="brass", knob_tint=(236, 79, 2)),
     # ink-teal, lime decision, coral measurement: the most cheerful pair and the one
     # that reads least "audio plugin".
     "citrus": dict(ink_top=(16, 24, 26), ink_bot=(6, 9, 11), text=(244, 250, 246),
