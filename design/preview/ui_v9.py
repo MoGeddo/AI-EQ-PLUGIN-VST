@@ -80,12 +80,17 @@ WORLDS = {
     # too dark in value - "ألوان مبهجة أكتر من كدة حاسه قديم اوي" is a complaint about
     # brightness, not about taste - so the field, the plate and the ambient blooms all
     # gain light.  The two accents do not move; the roles do not move.
-    "neon": dict(ink_top=(52, 33, 74), ink_bot=(17, 12, 30), text=(252, 246, 254),
-                 soft=(206, 196, 220), dim=(176, 168, 196), faint=(140, 134, 160),
-                 line=(246, 240, 250),
+    # 1.2.53: the field went neutral.  A violet field under a magenta accent and a cyan
+    # accent put the whole window in one lavender family - "الألوان مش أحسن حاجة" - and the
+    # instrument set this panel is measured against (AudioUi's VST kits) spends its hue on
+    # the parts that mean something and keeps the field a dead neutral graphite.  The
+    # accents did not move; only the ink did.
+    "neon": dict(ink_top=(42, 40, 49), ink_bot=(12, 11, 16), text=(252, 246, 254),
+                 soft=(206, 202, 212), dim=(176, 172, 186), faint=(140, 138, 152),
+                 line=(246, 242, 248),
                  accent=(255, 94, 168), accent_hot=(255, 186, 220),
                  second=(84, 214, 255), second_hot=(186, 240, 255),
-                 chip=(40, 30, 56), blooms=((0.08, -0.28, 0.74, "accent", 44),
+                 chip=(28, 27, 35), blooms=((0.08, -0.28, 0.74, "accent", 44),
                                             (0.97, 1.20, 0.68, "second", 40)),
                  wells=((0.22, 0.68, 0.60, "second", 30), (0.80, 0.28, 0.56, "accent", 24)),
                  knob="brass", knob_tint=(255, 94, 168)),

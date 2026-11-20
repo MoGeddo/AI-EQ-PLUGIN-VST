@@ -140,6 +140,24 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
                        MathConstants<float>::pi * 0.34f, true);
     g.strokePath (cap, PathStrokeType (1.2f));
 
+    // ---- the tick ring: 24 marks at the 11 positions a hand actually reads (every 10 %).
+    // A dial with a groove and a needle says "this moves"; a dial with a *scale* says "this
+    // is set".  Every hardware panel in the AudioUi set the panel is measured against has
+    // one, and ours had a bare groove.
+    {
+        const float tickR = r * 1.34f;
+        for (int i = 0; i <= 10; ++i) {
+            const float a = degreesToRadians (-135.0f + 27.0f * float (i));
+            const bool major = (i % 5 == 0);
+            const float inner = tickR - (major ? 4.5f : 3.0f);
+            const float dx = std::sin (a), dy = -std::cos (a);
+            g.setColour (Palette::hairline().withAlpha (major ? 0.95f : 0.55f));
+            g.drawLine (Line<float> (centre.translated (dx * inner, dy * inner),
+                                     centre.translated (dx * tickR, dy * tickR)),
+                        major ? 1.6f : 1.0f);
+        }
+    }
+
     // the value ring: a groove from -135 to +135, and the accent from the centre detent
     const float ringR = r * 1.19f;
     Path groove;
@@ -167,6 +185,8 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     g.setColour (Palette::accentHi());
     g.drawLine (Line<float> (centre, tip), 2.8f);
     g.fillEllipse (centre.x - 2.0f, centre.y - 2.0f, 4.0f, 4.0f);
+    // the head of the pointer, on the scale: where the dial is, read against the ticks
+    g.fillEllipse (tip.x - 2.6f, tip.y - 2.6f, 5.2f, 5.2f);
 }
 
 } // namespace
@@ -752,11 +772,28 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     // what "sealed" means on its own.
     const auto by = bypassHit();
     const bool bypassed = proc_.apvts().getRawParameterValue ("bypass")->load() > 0.5f;
-    aeq::ui::icon (g, Icon::Power, by.toFloat().reduced (by.getWidth() * 0.18f),
-                   bypassed ? Palette::warn() : Palette::muted(), 1.6f * sy);
     const auto rs = resetHit();
-    aeq::ui::icon (g, Icon::Reset, rs.toFloat().reduced (rs.getWidth() * 0.18f),
-                   Palette::muted(), 1.5f * sy);
+    // Two keys, not two floating glyphs: a recessed well, an icon, and an LED that says
+    // what the key is doing.  The reference set this panel is measured against puts every
+    // switch in a machined seat with its own lamp - and a bare glyph on a gradient is the
+    // thing the user called "أماكن الأزرار" (where the buttons are).
+    auto key = [&] (Rectangle<int> hit, Icon ic, bool lit, Colour lamp) {
+        const float k = float (getHeight()) / kDesignH;
+        const auto box = hit.toFloat().withSizeKeepingCentre (34.0f * k, 34.0f * k);
+        g.setColour (Palette::surface().darker (0.30f));
+        g.fillRoundedRectangle (box, 9.0f * k);
+        g.setColour (Colours::black.withAlpha (0.45f));
+        g.drawRoundedRectangle (box.reduced (0.5f), 9.0f * k, 1.0f);
+        g.setColour (Colours::white.withAlpha (0.06f));
+        g.drawLine (box.getX() + 8.0f * k, box.getBottom() - 1.0f,
+                    box.getRight() - 8.0f * k, box.getBottom() - 1.0f, 1.0f);
+        aeq::ui::icon (g, ic, box.reduced (9.0f * k), lit ? lamp : Palette::muted(), 1.7f * k);
+        g.setColour (lit ? lamp : Palette::hairline().withAlpha (0.8f));
+        const float d = 4.0f * k;
+        g.fillEllipse (box.getCentreX() - d * 0.5f, box.getBottom() - d - 3.0f * k, d, d);
+    };
+    key (by, Icon::Power, bypassed, Palette::warn());
+    key (rs, Icon::Reset, false, Palette::muted());
 
     const String sealText = String (aeq::copy::stateWord (panelFacts()));
     const Rectangle<float> pill = sealPill().toFloat();
@@ -1071,10 +1108,19 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         const bool hover = hoverChip_ == i;
         const bool hot = chip.tracked >= 0;
 
-        g.setColour (Palette::surfaceHi().withAlpha (0.92f));
+        // A recessed plate, not a floating card: the row is machined into the panel the way
+        // the reference kits recess their knob groups - a dark fill, a shadow along the top
+        // inner edge and a hairline along the bottom one, so the light falls into it.
+        g.setColour (Palette::surface().darker (0.25f));
         g.fillRoundedRectangle (r, kChipR * sy);
-        g.setColour (hot ? Palette::accent().withAlpha (0.58f)
-                         : Colours::white.withAlpha (hover ? 0.16f : 0.12f));
+        g.setColour (Colours::black.withAlpha (0.35f));
+        g.drawLine (r.getX() + kChipR * sy, r.getY() + 1.0f,
+                    r.getRight() - kChipR * sy, r.getY() + 1.0f, 1.0f);
+        g.setColour (Colours::white.withAlpha (0.05f));
+        g.drawLine (r.getX() + kChipR * sy, r.getBottom() - 1.0f,
+                    r.getRight() - kChipR * sy, r.getBottom() - 1.0f, 1.0f);
+        g.setColour (hot ? Palette::accent().withAlpha (0.55f)
+                         : Colours::white.withAlpha (hover ? 0.20f : 0.10f));
         g.drawRoundedRectangle (r.reduced (0.5f), kChipR * sy, 1.0f);
 
         // index, and what kind of thing this is
@@ -1159,8 +1205,16 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     const auto s0 = modeSegDraw (0).toFloat(), s1 = modeSegDraw (1).toFloat();
     const Rectangle<float> pill (s0.getX() - 4.0f * sx, s0.getY(),
                                  s1.getRight() - s0.getX() + 8.0f * sx, s0.getHeight());
-    g.setColour (Colours::white.withAlpha (0.05f));
+    // a recessed plate with two keys in it, so the pair reads as one switch rather than
+    // as two labels that happen to be adjacent
+    g.setColour (Palette::surface().darker (0.35f));
     g.fillRoundedRectangle (pill, kPillR * sy);
+    g.setColour (Colours::black.withAlpha (0.40f));
+    g.drawLine (pill.getX() + kPillR * sy, pill.getY() + 1.0f,
+                pill.getRight() - kPillR * sy, pill.getY() + 1.0f, 1.0f);
+    g.setColour (Colours::white.withAlpha (0.05f));
+    g.drawLine (pill.getX() + kPillR * sy, pill.getBottom() - 1.0f,
+                pill.getRight() - kPillR * sy, pill.getBottom() - 1.0f, 1.0f);
     const auto& seg = active == 0 ? s0 : s1;
     const auto segIn = seg.withTrimmedLeft (5.0f * sx).withTrimmedRight (5.0f * sx)
                           .withTrimmedTop (3.0f * sy).withTrimmedBottom (3.0f * sy);
@@ -1172,7 +1226,15 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     for (int i = 0; i < 2; ++i) {
         const auto r = i == 0 ? s0 : s1;
         const String s = aeq::ui::u8 (labels[i]);
-        aeq::ui::draw (g, s, r, Justification::centred, kCap * sy,
+        // the lamp sits inside the key, left of the word: the lit one says which mode is in
+        // the path at a glance, from across a desk
+        if (i == active) {
+            const float d = 5.0f * sy;
+            g.setColour (Palette::accentHi());
+            g.fillEllipse (r.getX() + 9.0f * sy, r.getCentreY() - d * 0.5f, d, d);
+        }
+        aeq::ui::draw (g, s, i == active ? r.withTrimmedLeft (8.0f * sy) : r,
+                       Justification::centred, kCap * sy,
                        i == active ? Palette::accentHi() : Palette::muted());
     }
 

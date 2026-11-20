@@ -30,16 +30,20 @@
 namespace aeq::ui {
 
 struct Palette {
-    // ---- surfaces: a violet ink, lit from the top.
-    // These are the exact stops of design/preview/ui_v9.py's "candy" world - ink_top,
-    // ink_bot, and the graph plate - so the port cannot drift from the render it is
-    // measured against.  The ground got lighter and more chromatic in v9: the panel
-    // being asked for is bright, not a warm black with two coloured lines on it.
-    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x34, 0x21, 0x4a); }
-    static juce::Colour bg()        { return juce::Colour::fromRGB (0x11, 0x0c, 0x1e); }
-    static juce::Colour surface()   { return juce::Colour::fromRGB (0x1d, 0x13, 0x2d); }  // the well
-    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x28, 0x1e, 0x38); }  // a chip
-    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x4a, 0x3a, 0x5c); }
+    // ---- surfaces: a neutral graphite, lit from the top.
+    //
+    // 1.2.53.  The field used to be violet *and* the two accents are a magenta and a cyan,
+    // so the whole window sat in one lavender family and nothing stood out: "الألوان مش
+    // أحسن حاجة".  The instrument references this panel is measured against (the AudioUi
+    // set on Dribbble - VST kits 01/03/06/07, the Red Rocker Switch, the LA2A knob) all do
+    // the same thing: a **dead neutral** field, and the hue is spent only on the parts that
+    // mean something.  The ground is a graphite with the faintest blue in it now, the
+    // accents did not move, and the two of them are the only colour on the panel.
+    static juce::Colour inkTop()    { return juce::Colour::fromRGB (0x2a, 0x28, 0x31); }
+    static juce::Colour bg()        { return juce::Colour::fromRGB (0x0c, 0x0b, 0x10); }
+    static juce::Colour surface()   { return juce::Colour::fromRGB (0x14, 0x13, 0x19); }  // the well
+    static juce::Colour surfaceHi() { return juce::Colour::fromRGB (0x1c, 0x1b, 0x23); }  // a chip
+    static juce::Colour hairline()  { return juce::Colour::fromRGB (0x3a, 0x39, 0x46); }
     static juce::Colour text()      { return juce::Colour::fromRGB (0xfc, 0xf6, 0xfe); }
     static juce::Colour muted()     { return juce::Colour::fromRGB (0xce, 0xc4, 0xdc); }
     static juce::Colour dim()       { return juce::Colour::fromRGB (0xb0, 0xa8, 0xc4); }
