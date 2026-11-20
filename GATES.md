@@ -1577,3 +1577,20 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 1
   EVIDENCE: VERIFIED - the 1.2.65 window, `docs/ui-1.2.65-window.png`; the geometry stays held
   by `aeq_controls` (6/0).
+
+- [x] G108: every part of the switch is its own number, and the preview is the review.
+  1.2.65's rocker shipped as a small "=" in a 34 px box: the paddle's height was derived as
+  `plate - 2*pad - lampD - lampGap`, which at 34 px is **7.5 px**.  Two fixes.
+  (1) `RockerMetrics` now gives every part its own fraction of the box - plate 86 %, paddle
+  40 %, lamp 9.5 %, travel 4.5 % - and `test_controls` asserts a stack relation
+  (`pad + paddle + gap + lamp + pad <= plate`) instead of a containment that a 7.5 px paddle
+  also satisfies; it also demands the paddle be >= 35 % of the box and the lamp >= 3 px at
+  the header's own size, which is the check that would have caught it.
+  (2) `design/preview/control_preview.py` draws the rocker (both states), the round button and
+  the band card at 4x from the numbers in `Controls.h` and the colours in `Theme.h`, parsed
+  from the source.  It is what showed the 7.5 px paddle in one second, after two CI rounds had
+  failed to.  The dial has had one of these since G104; now the switches do too.
+  CHECK: ./build/aeq_controls && .venv/bin/python design/preview/control_preview.py
+  EXPECT: controls-shapes: 6 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_controls` 6/0; the preview is `docs/preview-controls.png`; the
+  editor compiles against JUCE 8.0.4.

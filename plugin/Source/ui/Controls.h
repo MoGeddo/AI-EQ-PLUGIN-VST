@@ -14,26 +14,32 @@ namespace aeq::ui {
 struct RockerMetrics
 {
     float plate;      // the machined plate the rocker sits in
-    float pad;        // air between the plate and the paddle
-    float tilt;       // how far the paddle's leading edge travels, as a fraction of the box
+    float pad;        // air between the plate's edge and its parts
+    float paddleH;    // the paddle's height - a part of its own, not "the plate minus the lamp"
+    float tilt;       // how far the paddle travels, as a fraction of the box
     float lampD;      // the lamp's diameter
-    float lampGap;    // air between the plate's bottom edge and the lamp
+    float lampGap;    // air between the paddle and the lamp
 };
 
+// 1.2.66.  The first version derived the paddle's height as `plate - 2 * pad - lampD -
+// lampGap`, and at a 34 px header key that is 7.5 px: the switch shipped as a small "=" in a
+// box.  Every part is now its own fraction of the box, and the plate is 86 % of it - the box
+// a caller passes here is the *target*, and the part fills it.
 constexpr RockerMetrics rockerMetrics (float box) noexcept
 {
     RockerMetrics m {};
-    m.plate   = box * 0.5f;
-    m.pad     = box * 0.075f;
-    m.tilt    = box * 0.085f;
-    m.lampD   = box * 0.075f;
+    m.plate   = box * 0.86f;
+    m.pad     = box * 0.055f;
+    m.paddleH = box * 0.40f;
+    m.tilt    = box * 0.045f;
+    m.lampD   = box * 0.095f;
     m.lampGap = box * 0.055f;
     return m;
 }
 
-// The paddle is the plate less the padding; `tilt` is how far its top edge is pushed back
-// and its bottom edge forward when the switch is on.  On is a *travel*, not a colour: the
-// reference's rocker shows its state by leaning, and the lamp confirms it.
+// The paddle is the plate less the padding; `tilt` is how far it travels.  On and off are the
+// same distance in opposite directions: a switch that leans further one way than the other is
+// a switch that lies about its state.
 constexpr float rockerTiltFor (float box, bool on) noexcept
 {
     const auto m = rockerMetrics (box);
@@ -45,7 +51,7 @@ constexpr float rockerTiltFor (float box, bool on) noexcept
 constexpr float rockerExtent (float box) noexcept
 {
     const auto m = rockerMetrics (box);
-    return m.plate + m.lampGap + m.lampD;
+    return m.plate * 0.5f + m.pad;
 }
 
 struct CardMetrics

@@ -43,8 +43,10 @@ int main() {
         bool inside = true, symmetric = true;
         for (const float b : keyBoxes) {
             const auto m = rockerMetrics (b);
-            const float halfPaddle = m.plate - m.pad;
-            inside = inside && halfPaddle > 0.0f && m.tilt < halfPaddle;
+            // the paddle plus its travel has to fit inside the plate, and the lamp under it
+            const float stack = m.pad + m.paddleH + m.lampGap + m.lampD + m.pad;
+            inside = inside && stack <= m.plate + 0.5f
+                     && m.tilt * 0.55f < m.paddleH * 0.5f;
             symmetric = symmetric && std::fabs (rockerTiltFor (b, true)
                                                 + rockerTiltFor (b, false)) < 1e-6f;
         }
@@ -57,9 +59,9 @@ int main() {
         bool ok = true;
         for (const float b : keyBoxes) {
             const auto m = rockerMetrics (b);
-            ok = ok && m.lampD > 1.5f                       // a lamp you can see
-                 && rockerExtent (b) <= 0.75f * b           // and the whole thing in its box
-                 && rockerExtent (b) > m.plate;             // the lamp is outside the plate
+            ok = ok && m.lampD >= 3.0f                       // a lamp you can see at 34 px
+                 && rockerExtent (b) <= 0.55f * b            // and the whole thing in its box
+                 && m.paddleH >= 0.35f * b;                  // a paddle you can aim at, not a dash
         }
         check (ok, "the lamp sits outside the plate, inside the control's box");
     }
