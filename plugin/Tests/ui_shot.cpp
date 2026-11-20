@@ -651,7 +651,56 @@ int runWindow(const juce::File& dir) {
     stage("stopped; the seal should be where the user left it");
     for (const auto& s : sizes) shoot(s, s.sealed);
 
-    return 0;
+    // 3. the drawing has the low cut in it.
+    //
+    // The user asked "why does the line start at 100 and not from the start?".  Two things
+    // were true: the reference curve has no data below 100 Hz (a voice has nothing under its
+    // fundamental), and - the defect - the decision line left the low cut out, so the plugin
+    // drew itself doing nothing between 40 Hz and the first band while a 4th-order high pass
+    // at ~95 Hz was cutting there.  This counts the accent pixels below 0 dB in the plot's
+    // 40..100 Hz strip: a drawn high pass puts the curve through it, a missing one does not.
+    int windowFails = 0;
+    auto check = [&] (bool ok, const char* what) {
+        stage (juce::String (ok ? "  ok   " : "  FAIL ") + what);
+        if (! ok) ++windowFails;
+    };
+    {
+        juce::MessageManager::getInstance()->runDispatchLoopUntil(200);
+        aeq::ui::CurveView* curve = nullptr;
+        for (int i = 0; i < editor->getNumChildComponents() && curve == nullptr; ++i)
+            curve = dynamic_cast<aeq::ui::CurveView*> (editor->getChildComponent (i));
+        stage(curve != nullptr ? "the graph is a child of the panel" : "FAIL no graph child");
+        editor->setSize (1240, 800);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (400);
+        const auto img = editor->createComponentSnapshot (editor->getLocalBounds(), false, 1.0f);
+        if (curve != nullptr && img.isValid())
+        {
+            const auto plot = curve->plotArea().translated ((float) curve->getX(),
+                                                            (float) curve->getY());
+            const float xa = curve->freqToX (40.0) + (float) curve->getX();
+            const float xb = curve->freqToX (100.0) + (float) curve->getX();
+            const float y0 = curve->dbToY (0.0) + (float) curve->getY();
+            int pink = 0;
+            for (int y = int (y0); y < int (plot.getBottom()); ++y)
+                for (int x = int (xa); x < int (xb); ++x)
+                {
+                    const auto c = img.getPixelAt (x, y);
+                    // the decision colour, allowing for the glow's own alpha ramp
+                    if (c.getRed() > 150 && c.getBlue() > 90
+                        && c.getRed() >= c.getGreen() + 60 && c.getBlue() >= c.getGreen() + 20)
+                        ++pink;
+                }
+            stage (juce::String ("the decision line below 100 Hz: ") + juce::String (pink)
+                   + " accent px (a drawn low cut puts the curve through that strip)");
+            check (pink >= 40, "the low cut is drawn: the decision line runs below 100 Hz");
+        }
+        else
+        {
+            check (false, "the low cut is drawn: the decision line runs below 100 Hz");
+        }
+    }
+
+    return windowFails == 0 ? 0 : 1;
 }
 
 int runComponents(const juce::File& dir) {

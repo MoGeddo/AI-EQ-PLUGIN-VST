@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Theme.h"
+#include "DecisionCurve.h"
 #include "../../Source/dsp/RestoreCore.h"
 
 namespace aeq::ui {
@@ -34,7 +35,18 @@ public:
         bool settled = false;
         double analysedSeconds = 0.0;
         std::vector<double> liveDb, peakDb;   // the moving analyser, see setLive()
+        // the low cut in the path (0 = none yet: while it is learning nothing is applied).
+        // The decision line is the bands *plus* this section, because this is the one that
+        // acts below the lowest band - without it the drawing showed the plugin doing
+        // nothing from 40 Hz to 100 Hz while a 4th-order high pass was working there.
+        double hpfHz = 0.0;
     };
+
+    // The reference curve's own domain: EnvTargetCurve is defined from 100 Hz up (a
+    // monophonic voice has no energy below its fundamental, so the corpus cannot measure
+    // a target down there).  The plot starts at 40 Hz, and that gap is drawn and named
+    // rather than left as a line that begins in mid-air.
+    static constexpr double kRefFmin = 100.0;
 
     CurveView() { setWantsKeyboardFocus (false); }
 
@@ -43,6 +55,12 @@ public:
     // mixer will touch first, and "does dragging it change the sound" must be answered by a
     // test rather than by looking at a screenshot.
     int handleAt (juce::Point<float> p) const { return hitHandle (p); }
+    // The plot's own axes, so a test can ask about a pixel the way the drawing does instead
+    // of re-deriving the log scale and getting it subtly wrong.  `plotArea` is the rectangle
+    // paint() last used; empty until the component has been painted once.
+    juce::Rectangle<float> plotArea() const { return plot_; }
+    float freqToX (double f) const { return xOf (f); }
+    float dbToY (double db) const { return yOf (db); }
     int handleCount() const { return int (data_.bands.size()); }
     juce::Point<float> handleCentre (int i) const {
         if (i < 0 || i >= int (data_.bands.size())) return { -1.0f, -1.0f };
@@ -95,6 +113,7 @@ public:
         drawMeasured (g);
         drawEnvelope (g);
         drawCorrection (g);
+        drawDomainMarks (g);
         drawMarkers (g);
         drawHandles (g);
         if (! embedded_) drawLegend (g, legend);
@@ -409,16 +428,16 @@ private:
         // in a 44.1 kHz session is a different curve - by a couple of dB at the top, which
         // is exactly where the panel is claiming something.  It comes from the host now.
         const double fs = data_.sampleRate > 8000.0 ? data_.sampleRate : 48000.0;
+        // One vector of trims, then the tested sum: bands + the low cut, in that order and
+        // in one place (DecisionCurve.h).  The drawing and the test now run the same code.
+        std::vector<double> trims (data_.bands.size(), 0.0);
+        for (size_t b = 0; b < data_.bands.size(); ++b)
+            trims[b] = (b < data_.trims.size()) ? data_.trims[b] : 0.0;
         juce::Path p, fillDown;
         bool started = false;
         for (int i = 0; i <= 300; ++i) {
             const double f = kFmin * std::pow (kFmax / kFmin, i / 300.0);
-            double db = 0.0;
-            for (int b = 0; b < int (data_.bands.size()); ++b) {
-                auto band = data_.bands[size_t (b)];
-                band.gainDb = float (bandGainWithTrim (b));
-                db += aeq::bandMagDb (band, f, fs);
-            }
+            const double db = aeq::ui::decisionDb (data_.bands, trims, data_.hpfHz, f, fs);
             const float x = xOf (f), y = yOf (juce::jlimit (kDbMin, kDbMax, db));
             if (! started) { p.startNewSubPath (x, y); fillDown.startNewSubPath (x, yOf (0.0)); fillDown.lineTo (x, y); started = true; }
             else { p.lineTo (x, y); fillDown.lineTo (x, y); }
@@ -438,6 +457,46 @@ private:
         g.setColour (Palette::accent());
         g.strokePath (p, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved,
                                                juce::PathStrokeType::rounded));
+    }
+
+    // Two verticals the picture owes the reader, because without them a line that starts
+    // in the middle of the plot looks like a mistake rather than like a measurement:
+    //
+    //   the reference's lower bound   EnvTargetCurve is defined from 100 Hz up.  The white
+    //                                 line therefore begins there, and the 40-100 Hz gap is
+    //                                 labelled instead of left blank.
+    //   the low cut                   the section that acts *in* that gap, at its own Hz.
+    void drawDomainMarks (juce::Graphics& g) {
+        // ---- the reference's lower bound -------------------------------------------
+        if (aeq::EnvTargetCurve::definedAt (kRefFmin + 1.0)) {
+            const float x = xOf (kRefFmin);
+            for (float y = plot_.getY(); y < plot_.getBottom(); y += 9.0f)
+                g.setColour (Palette::standard().withAlpha (0.16f)),
+                g.drawVerticalLine (int (x), y, std::min (y + 5.0f, plot_.getBottom()));
+            // the label lives in the gap it explains, not under the curve it belongs to
+            const auto gap = juce::Rectangle<float> (plot_.getX() + 6.0f, plot_.getBottom() - 44.0f,
+                                                     x - plot_.getX() - 12.0f, 34.0f);
+            if (gap.getWidth() > 60.0f) {
+                label (g, "REFERENCE", gap.withHeight (16.0f).toNearestInt(),
+                       Palette::standard().withAlpha (0.75f), 13.0f);
+                label (g, "FROM 100 Hz", gap.withTop (gap.getY() + 15.0f).withHeight (16.0f).toNearestInt(),
+                       Palette::standard().withAlpha (0.55f), 13.0f);
+            }
+        }
+
+        // ---- the low cut -------------------------------------------------------------
+        if (data_.hpfHz > 0.0 && data_.hpfHz > kFmin) {
+            const float x = xOf (data_.hpfHz);
+            g.setColour (Palette::accent().withAlpha (0.35f));
+            g.drawVerticalLine (int (x), plot_.getY(), plot_.getBottom());
+            const auto text = "LOW CUT " + juce::String (int (std::lround (data_.hpfHz))) + " Hz";
+            const float w = aeq::ui::measure (text, 13.0f) + 14.0f;
+            const auto box = juce::Rectangle<float> (std::min (x + 6.0f, plot_.getRight() - w),
+                                                     plot_.getY() + 4.0f, w, 18.0f);
+            g.setColour (Palette::panel().withAlpha (0.85f));
+            g.fillRoundedRectangle (box, 4.0f);
+            label (g, text, box.toNearestInt(), Palette::accentHi(), 13.0f, juce::Justification::centred);
+        }
     }
 
     void drawMarkers (juce::Graphics& g) {

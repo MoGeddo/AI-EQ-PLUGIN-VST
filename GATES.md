@@ -1326,3 +1326,37 @@ at any vocal stem first; the other gates need nothing but the source tree.
   caption row (need 60) - the strip is not drawn" before any eye saw it (run, fixed by
   giving the box the left 45 % of the row and every readout `kReadoutSlack`).  The window
   that produced the first defect is kept at `docs/ui-1.2.46-window-empty.png`.
+
+- [x] G97: the decision line on the graph is the chain that is in the audio path.
+  The user asked "why does the white line start at 100 and not from the start?", and then
+  said the filter is still not complete.  Both were fair.  Three lines are drawn in the
+  well, and only one of them was named on the panel: the take (cyan, from 40 Hz), the
+  reference curve (white, from 100 Hz) and the decision (pink).  The white line starts at
+  100 Hz because `EnvTargetCurve` *is* defined from 100 Hz up - a monophonic voice has no
+  energy below its fundamental, so the corpus cannot measure a target there and the plugin
+  refuses to invent one - and nothing on screen said so.  Worse: the pink line was drawn as
+  the sum of the static bands **only**, so the one section that acts in that gap - the
+  4th-order low cut the solver had set at ~95 Hz - was in the audio path and absent from the
+  drawing.  The window showed the plugin doing nothing from 40 Hz to the first band.  (The
+  signed-off design render `design/preview/ui_v9.py` had it right all along: its
+  `correction_db()` adds `hpf_db()`; the window did not, so the two pictures had been
+  disagreeing about the bottom of the chain.)
+  Three changes, all testable: (1) `Source/ui/DecisionCurve.h` - plain C++, no JUCE - is now
+  the single shape of the decision line: every static band (peaks and shelves, with the
+  user's trim) **plus** the low cut's own magnitude, and `CurveView::drawCorrection()` calls
+  it; (2) the graph names the reference's lower bound (dashed marker + "REFERENCE / FROM
+  100 Hz" in the gap it explains), marks the low cut with its Hz, and the caption carries a
+  third key - `reference` - because the white line had no name at all; (3) the window test
+  counts accent pixels below 0 dB in the 40-100 Hz strip of the real shot: a drawn low cut
+  puts the curve through it, a missing one leaves the strip empty.
+  CHECK: ./build/aeq_chain
+  EXPECT: 0 failed
+  EVIDENCE: VERIFIED - 13 passed, 0 failed (one band at +3 dB reads +3.0 at its centre; with
+  no low cut the line is exactly the band sum; 95 Hz pulls 40 Hz to -12 dB or lower; the
+  same cut is flat at 1 kHz; the corner reads -3.0 dB, so it is the Butterworth pair and not
+  a shelf; 60 -> 95 Hz cuts 70 Hz by more than 3 dB more; no ripple below the corner; a -4 dB
+  trim on a +3 dB band reads -1.0; the +/-18 dB ceiling holds; finite 20 Hz-20 kHz at 44.1k
+  and 48k; a short trims vector is "no trim"; the reference has no value at 60 Hz and one at
+  100 Hz, which is where the panel now says it starts)
+  FALSIFY: drop the low cut from `decisionDb()` -> 11 passed, 2 failed (checks 2 and 5), and
+  the window test's accent count in the 40-100 Hz strip falls to the glow of nothing.

@@ -57,6 +57,9 @@ const char* kStop      = "STOP";               // the clamp at rest: this is whe
 const char* kStopHere  = "STOP HERE";          // ... and on hover, while listening
 const char* kRestart   = "learn again";
 const char* kMeasuredKey = "measured";
+// ... and the third line the graph draws, which had no name on the panel at all: the white
+// line that starts at 100 Hz is the reference curve, not the take
+const char* kReferenceKey = "reference";
 const char* kDecisionKey = "decision";
 const char* kStatic    = "STATIC";
 const char* kTracked   = "TRACKED";
@@ -1014,9 +1017,10 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
                  Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();
-    const auto keys = std::array<std::pair<const char*, Colour>, 2> {
+    const auto keys = std::array<std::pair<const char*, Colour>, 3> {
         std::make_pair (kDecisionKey, Palette::accent()),
-        std::make_pair (kMeasuredKey, Palette::take())
+        std::make_pair (kMeasuredKey, Palette::take()),
+        std::make_pair (kReferenceKey, Palette::standard())
     };
     for (const auto& k : keys) {
         const String s = aeq::ui::u8 (k.first);
@@ -1233,6 +1237,16 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
                        Justification::centredRight, kCap * sy,
                        proc_.core().stabilizerTotalDb() < -0.5 ? Palette::accent()
                                                                : Palette::dim());
+        // The de-esser is a section of the chain with its own gain reduction, and it was
+        // the one section with no number on the panel: it was folded into the moving total
+        // and nowhere else.  It says its own dB while it is working, and nothing when it
+        // is not - a permanent "0.0 dB" is a number nobody reads.
+        const double gr = std::abs (proc_.core().deEssGainReductionDb());
+        if (gr >= 0.05) {
+            const String de = "DE-ESS " + aeq::ui::num (gr, 1, 4) + " dB";
+            aeq::ui::draw (g, de, { k0.x - 190.0f * sy, cy + 11.0f * sy, 110.0f * sy, kCap * sy },
+                           Justification::centredRight, kCap * sy, Palette::accent().withAlpha (0.9f));
+        }
     }
 }
 
@@ -1518,6 +1532,9 @@ void AeqAudioProcessorEditor::timerCallback() {
     d.settled = state_.settled;
     d.sampleRate = proc_.getSampleRate() > 8000.0 ? proc_.getSampleRate() : 48000.0;
     d.analysedSeconds = state_.analyzedSeconds;
+    // the low cut is a section of the decision and the only one that acts below the lowest
+    // band; the graph draws it with the bands now (Source/ui/DecisionCurve.h)
+    d.hpfHz = state_.hpfHz;
     curve_.setData (std::move (d));
 
     // only the parts of the window that show live state are repainted by this timer
