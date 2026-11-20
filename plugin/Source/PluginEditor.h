@@ -62,6 +62,10 @@ public:
     // The footer's sentence and the box it has to live in: asserted by the screenshot test,
     // because "the claim does not fit the panel" is a defect no screenshot reviewer sees and
     // every user does.
+    // The two mode keys, measured: the word is centred in its key and has to clear the
+    // key's own border.  Asserted, because a word that overlaps a 1 px border still draws.
+    float modeWordInk (int i) const;
+    bool  modeWordFits() const;
     juce::Rectangle<float> footerCopyBox() const;
     bool footerCopyFits() const;                       // the sentence the panel is saying
     bool footerCopyFits (const juce::String&) const;   // ... and any sentence it could say

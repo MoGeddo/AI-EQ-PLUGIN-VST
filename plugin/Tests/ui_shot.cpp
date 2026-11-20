@@ -611,6 +611,26 @@ int runControls(const juce::File& dir) {
                         ? "the bypass key sits inside the panel's corner"
                         : "the reset key sits inside the panel's corner"));
         }
+
+        // ---- and the mode words fit inside their keys --------------------------
+        // RESTORE crossed the border of its own key twice (1.2.53 with a lamp in the key,
+        // 1.2.54 with the lamp's gutter) and both times every assertion on this panel
+        // passed, because a 1 px border under a letter still draws.  Three sizes, because
+        // the key is 90 design px and the type scales with the height while the key scales
+        // with the width: the two only agree at 1180x700.
+        const int sizes[][2] = { { 1240, 800 }, { 1024, 700 }, { 940, 620 } };
+        for (const auto& sz : sizes) {
+            ed->setSize (sz[0], sz[1]);
+            pump();
+            check (ed->modeWordFits(),
+                   (juce::String ("RESTORE and MATCH fit inside their keys at ")
+                    + juce::String (ed->getWidth()) + "x" + juce::String (ed->getHeight()))
+                       .toRawUTF8());
+        }
+        ed->setSize (1240, 800);
+        pump();
+        check (ed->modeWordInk (0) > ed->modeWordInk (1),
+               "RESTORE is the wider mode word, which is what the layout assumes");
     }
 
     stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)

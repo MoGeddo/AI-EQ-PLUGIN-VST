@@ -1235,20 +1235,15 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     const char* labels[] = { kModeRestore, kModeMatch };
     for (int i = 0; i < 2; ++i) {
         const auto r = i == 0 ? s0 : s1;
-        const String s = aeq::ui::u8 (labels[i]);
-        // the lamp sits inside the key, left of the word: the lit one says which mode is in
-        // the path at a glance, from across a desk
-        // The lamp marks the active key from its own gutter, and the word is centred in
-        // what is left of the key: at 3.4 px of tracking RESTORE fills its segment, and a
-        // lamp inside the same box put a dot through the R (the 1.2.53 shot reads "R̶ESTORE").
-        const float gutter = 14.0f * sy;
-        if (i == active) {
-            const float d = 5.0f * sy;
-            g.setColour (Palette::accentHi());
-            g.fillEllipse (r.getX() + 6.0f * sy, r.getCentreY() - d * 0.5f, d, d);
-        }
-        aeq::ui::draw (g, s, i == active ? r.withTrimmedLeft (gutter) : r.withTrimmedLeft (gutter * 0.4f),
-                       Justification::centred, kCap * sy,
+        // The word is centred in its own key and nothing else is drawn inside it.  For this
+        // pair the lit fill and its border *are* the lamp - a dot on top of a lit key is
+        // decoration, and here it also cost 5 px of a 90 px key.  Two goes at a lamp inside
+        // this box failed visibly: at a 14 px gutter the dot printed through the R (the
+        // 1.2.53 shot reads "R̶ESTORE"), and at 40 px the word was pushed past its own
+        // border (1.2.54).  RESTORE is the widest word on the panel: at kMicro its advance
+        // is ~66 design px inside an 80 px inner key, 7 px clear of the border on each side,
+        // and `modeWordFits()` is asserted against these exact numbers in the gate.
+        aeq::ui::draw (g, aeq::ui::u8 (labels[i]), r, Justification::centred, kMicro * sy,
                        i == active ? Palette::accentHi() : Palette::muted());
     }
 
@@ -1353,6 +1348,28 @@ aeq::copy::Facts AeqAudioProcessorEditor::panelFacts() const {
 
 String AeqAudioProcessorEditor::verdictLine() const {
     return String (aeq::copy::verdict (panelFacts()));
+}
+
+// The mode words, measured out of the same box the paint fills.  RESTORE is the widest
+// word on the panel and it has crossed its own key's border twice (a lamp gutter in 1.2.53
+// and again in 1.2.54), both times with every pixel assertion passing: a border is a 1 px
+// line and a word that touches it still "renders".  The gate asks this instead.
+float AeqAudioProcessorEditor::modeWordInk (int i) const {
+    const float sy = float (getHeight()) / kDesignH;
+    return aeq::ui::measure (aeq::ui::u8 (i == 0 ? kModeRestore : kModeMatch), kMicro * sy);
+}
+
+bool AeqAudioProcessorEditor::modeWordFits() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const float sx = float (getWidth()) / kDesignW;
+    // the inner key: the accent fill is inset 5 px a side, and a word needs 6 px of air
+    // inside that or the border reads as struck through the last letter
+    const float air = 6.0f * jmin (sx, sy);
+    for (int i = 0; i < 2; ++i) {
+        const float inner = float (modeSegDraw (i).getWidth()) - 10.0f * sx;
+        if (modeWordInk (i) + air > inner) return false;
+    }
+    return true;
 }
 
 Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {

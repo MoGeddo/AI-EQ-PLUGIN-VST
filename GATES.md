@@ -1401,3 +1401,24 @@ at any vocal stem first; the other gates need nothing but the source tree.
   the grid with no shared height; craft ok (targets at the 40 px floor, radii on the declared
   set, the row reads as one unit) - plus `controls: 60 passed, 0 failed` on the real window
   and a 1240x800 shot whose ground measures neutral.
+
+- [x] G99: a key's word stays inside the key, measured, at every window size.
+  The 1.2.54 shot was read at 4x and the header's two halves were fine, but the mode pair
+  read "RESTORE" with its final E on the border of its own key.  The cause was the 1.2.53
+  fix for G98: the lamp was given a 14 px gutter inside a 90 px key and the word was centred
+  in the remaining 76, which is 10 px narrower than the word; the E left the key.  Two goes
+  at a lamp inside this key have now failed visibly (the dot through the R in 1.2.53, the E
+  through the border in 1.2.54), so the lamp is gone from this pair: the lit fill and border
+  *are* the switch's state, and a dot on top of a lit key is decoration paying 5 px of a
+  90 px key for itself.  The word is centred in the whole key at kMicro (15 px), where
+  RESTORE's advance is 66 design px inside an 80 px inner key: 7 px of air to the border on
+  each side, at 1240x800, at 1024x700 and at 940x620.
+  This is asserted rather than eyeballed, because both failures shipped with every pixel
+  assertion green: `modeWordInk(i)` measures with the same font the paint draws, and
+  `modeWordFits()` compares it against the key's inner width minus 6 px of air.  `ui_shot`
+  checks it at three sizes (1240x800, 1024x700, 940x620) and checks that RESTORE really is
+  the wider of the two words, since the layout's whole margin depends on that.
+  CHECK: .venv/bin/python design/preview/check_craft.py
+  EXPECT: craft ok
+  EVIDENCE: VERIFIED - craft ok, the editor and the harness compile against JUCE 8.0.4, and
+  `controls` reports **62 passed, 0 failed** on 1.2.54 plus the new size sweep on 1.2.55.
