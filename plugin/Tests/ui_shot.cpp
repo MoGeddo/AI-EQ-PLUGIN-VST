@@ -514,6 +514,88 @@ int runControls(const juce::File& dir) {
         check(fits == 6, "and so do all six states the copy module can be in");
     }
 
+    // ---- 13. the scan is on screen, and so is what runs by itself ---------------
+    // The user's question, in his words: "how do I know it scanned, and is the tool
+    // automatic and dynamic - or static?".  Four sentences answer it now (the badge, the
+    // strip, the layer line and the auto line).  A sentence nobody can see answers
+    // nothing, so this checks that each one follows the state *and* that the boxes do not
+    // sit on each other or on another control.  The pass is ended the way a person ends
+    // it - a click on the clamp - so the words are the words the panel would really say.
+    {
+        proc.relearn();
+        analyse(proc, true);
+        pump();
+        const auto badgeRun = ed->scanBadgeText();
+        const auto stripRun = ed->scanStripText();
+        check(badgeRun.startsWith("SCANNING"),
+              ("while it listens the header says it is scanning, with a number: "
+               + badgeRun).toRawUTF8());
+        check(stripRun.startsWith("SCAN ") && stripRun.contains(" s"),
+              ("and the take bar says how far and how much: " + stripRun).toRawUTF8());
+        check(ed->layerReadoutText().isEmpty(),
+              "nothing is committed yet, so there is no layer line to read");
+
+        {   // the clamp, pressed the way the window presses it
+            auto src = juce::Desktop::getInstance().getMainMouseSource();
+            const auto pos = ed->controlBounds(AeqAudioProcessorEditor::Control::Clamp)
+                                .getCentre().toFloat();
+            juce::MouseEvent down(src, pos, juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                  ed, ed, juce::Time::getCurrentTime(), pos,
+                                  juce::Time::getCurrentTime(), 1, false);
+            ed->mouseDown(down);
+            juce::MouseEvent up(src, pos, juce::ModifierKeys(), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                ed, ed, juce::Time::getCurrentTime(), pos,
+                                juce::Time::getCurrentTime(), 1, false);
+            ed->mouseUp(up);
+            pump();
+        }
+        check(proc.isFrozen(), "and the pass is sealed where it was stopped");
+        check(ed->scanBadgeText() == "SCANNED",
+              ("so the header says SCANNED, not SCANNING: "
+               + ed->scanBadgeText()).toRawUTF8());
+        check(ed->scanStripText().startsWith("SCANNED "),
+              ("and how much of the pass it kept: " + ed->scanStripText()).toRawUTF8());
+        const auto layer = ed->layerReadoutText();
+        check(layer.contains("STATIC") && layer.contains("DYNAMIC"),
+              ("the panel answers static-or-dynamic in one line: " + layer).toRawUTF8());
+        const auto autos = ed->autoReadoutText();
+        check(autos.contains("AUTO") && autos.contains("GAIN") && autos.contains("STOP"),
+              ("and says what runs without a hand: " + autos).toRawUTF8());
+        check(autos.contains("STOP BY YOU"),
+              ("a pass this one ended by hand does not claim the dial ended it: "
+               + autos).toRawUTF8());
+
+        // the dial, once it is armed and the pass is open again, is what the line names
+        if (auto* p = proc.apvts().getParameter("auto_stop")) {
+            p->setValueNotifyingHost(p->convertTo0to1(90.0f));
+            ed->keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
+            pump();
+            check(ed->autoReadoutText().contains("STOP AT 90 s"),
+                  ("with the auto-stop dial at 90 s the line says so: "
+                   + ed->autoReadoutText()).toRawUTF8());
+        }
+
+        // ---- and the boxes are on the panel, not under each other ---------------
+        const auto badge = ed->scanBadge();
+        const auto name = ed->wordmarkInk();
+        const auto line = ed->taglineInk();
+        const auto ref = ed->controlBounds(AeqAudioProcessorEditor::Control::Reference);
+        check(badge.getRight() <= ref.getX(),
+              "the scan badge sits left of the reference pill, not under it");
+        check(float (badge.getX()) >= name.getRight() + 8.0f,
+              "and right of the name, with room to breathe");
+        check(! badge.toFloat().intersects(line),
+              "and above the tagline, not through it");
+        const auto autosBox = ed->autoReadout().toFloat();
+        check(! autosBox.intersects(line) && ! autosBox.intersects(badge.toFloat()),
+              "the automatic line does not run into the tagline or the badge");
+        const auto layerBox = ed->layerReadout();
+        check(! layerBox.intersects(ed->controlBounds(AeqAudioProcessorEditor::Control::Clamp)),
+              "the static/dynamic line does not sit under the clamp you press");
+        check(layerBox.getRight() <= ed->getWidth(),
+              "and it stays inside the window");
+    }
+
     stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)
           + " failed");
     // a log line the gate reads, and an exit code the build reads

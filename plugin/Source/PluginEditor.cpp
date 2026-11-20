@@ -57,6 +57,10 @@ const char* kEmptyChip = "EMPTY";
 const char* kOff       = "OFF";        // a band the user has handed back
 const char* kModeRestore = "RESTORE";
 const char* kModeMatch   = "MATCH";
+// "· " as UTF-8 bytes spelled out, not a character in the source file: the shipped
+// 1.2.26 window reads "CONSENSUS Â· AUTO GAIN" because a literal was at the mercy of the
+// build's source encoding.  One copy, used by every line that separates two facts.
+const char* kMidDot    = "  \xc2\xb7  ";
 const char* kStrength  = "strength";
 const char* kAutoStop  = "auto-stop";
 const char* kStabiliser = "stabiliser";
@@ -352,6 +356,110 @@ Rectangle<int> AeqAudioProcessorEditor::referenceHit() const {
     return r;
 }
 
+// The seal pill, answerable from outside paint(): the scan badge is placed against it,
+// and the sub-line is placed against its bottom edge.
+Rectangle<int> AeqAudioProcessorEditor::sealPill() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const auto hd = blocks().header;
+    const String sealText = String (aeq::copy::stateWord (panelFacts()));
+    const float textW = aeq::ui::measure (sealText, kCap * sy);
+    const float pillW = textW + 44.0f * sy;
+    const auto rs = resetHit();
+    return { roundToInt (float (rs.getX()) - pillW - 10.0f * sy),
+             hd.getY() + roundToInt (4.0f * sy), roundToInt (pillW), roundToInt (30.0f * sy) };
+}
+
+// The tagline's ink (not the 625 px box it is laid out in): a line placed to the right of
+// this can be proven not to run into the one sentence that names the product.
+Rectangle<float> AeqAudioProcessorEditor::taglineInk() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const auto h = blocks().header.toFloat();
+    const float hsel = h.getHeight() / 52.0f;
+    const float markW = 46.0f * hsel * aeq::ui::Logo::aspect();
+    const float markRight = h.getX() + markW;
+    const float ws = kBody * sy;
+    // 8 px under the name, not 2: the scan badge sits on the name/pill row, and the tagline
+    // starts below the badge's bottom edge (34*sy) at every window size.  Two rows that can
+    // collide at one aspect ratio are two rows that will collide at one aspect ratio.
+    const float tagY = h.getY() + 4.0f * sy + ws * 1.15f + 8.0f * sy;
+    return { markRight + 10.0f * sy, tagY,
+             aeq::ui::measure (kTagline, kCap * sy) + 2.0f * sy, kCap * sy * 1.35f };
+}
+
+// The ink of "GEDDO AEQ": the two words of the name, from the mark's right edge to the
+// end of the second word's advance.  The scan badge has to sit right of this and left of
+// the reference pill, and "it looked fine on my screen" is not a measurement.
+Rectangle<float> AeqAudioProcessorEditor::wordmarkInk() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const auto h = blocks().header.toFloat();
+    const float hsel = h.getHeight() / 52.0f;
+    const float markW = 46.0f * hsel * aeq::ui::Logo::aspect();
+    const float ws = kBody * sy;
+    constexpr float kTrack = 3.4f;
+    const float wordX = h.getX() + markW + 12.0f * hsel;
+    const float w1 = aeq::ui::measure ("GEDDO", ws, Face::SemiBold);
+    const float x2 = wordX + aeq::ui::secondWordX (w1, 5, kTrack * sy, 22.0f * sy);
+    const float w2 = aeq::ui::measure ("AEQ", ws, Face::Regular) + 5.0f * kTrack * sy;
+    return { wordX, h.getY() + 4.0f * sy, x2 + w2 - wordX, ws * 1.15f };
+}
+
+// ---- the scan, and what runs by itself --------------------------------------
+// Four readouts, in the order a person asks: has it scanned (header badge), how much
+// (the strip in the caption), what is frozen and what moves (the row above the take),
+// and what happens without a hand (the line under the seal).
+String AeqAudioProcessorEditor::scanBadgeText() const {
+    return String (aeq::copy::scanWord (panelFacts()));
+}
+
+Rectangle<int> AeqAudioProcessorEditor::scanBadge() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const float sx = float (getWidth()) / kDesignW;
+    const auto hd = blocks().header;
+    // the LED, the word, and the padding either side of them
+    const float w = 18.0f * sy + aeq::ui::measure (scanBadgeText(), kCap * sy) + 12.0f * sy;
+    return { referenceHit().getX() - roundToInt (w) - roundToInt (14.0f * sx),
+             hd.getY() + roundToInt (4.0f * sy), roundToInt (w), roundToInt (30.0f * sy) };
+}
+
+String AeqAudioProcessorEditor::scanStripText() const {
+    return String (aeq::copy::scanLine (panelFacts()));
+}
+
+String AeqAudioProcessorEditor::layerReadoutText() const {
+    return String (aeq::copy::layerLine (panelFacts()));
+}
+
+Rectangle<int> AeqAudioProcessorEditor::layerReadout() const {
+    const String s = layerReadoutText();
+    if (s.isEmpty()) return {};
+    const float sy = float (getHeight()) / kDesignH;
+    const auto row = heroRow (kStopTop, kStopBottom);
+    const int w = roundToInt (aeq::ui::measure (s, kMicro * sy)) + 4;
+    return { row.getRight() - w, row.getY(), w, row.getHeight() };
+}
+
+String AeqAudioProcessorEditor::autoReadoutText() const {
+    const auto f = panelFacts();
+    // Before there is a take, there is nothing that runs: the line is the invitation.
+    // After one exists it is the answer to "automatic?" in one sentence, and only that:
+    // "curve frozen  ·  AUTO: ..." put two clauses on one line whose right edge is the
+    // seal pill, and at the window's taller-than-design aspect ratios the pair ran into
+    // the tagline by a handful of pixels.  The frozen half still has a home - the
+    // footer's verdict says it, in the sentence the user already reads there.
+    if (! f.haveData) return String (aeq::copy::stateSub (f));
+    return String (aeq::copy::autoLine (f, stopSettingShown()));
+}
+
+Rectangle<int> AeqAudioProcessorEditor::autoReadout() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const auto f = panelFacts();
+    const float w = aeq::ui::measure (autoReadoutText(), kMicro * sy) + 2.0f * sy;
+    const auto pill = sealPill();
+    return { pill.getRight() - roundToInt (w),
+             pill.getBottom() + roundToInt (4.0f * sy), roundToInt (w),
+             roundToInt (kMicro * sy * 1.35f) };
+}
+
 // The clamp is the stop button.  It sits on the seal, and the hit area is the part
 // plus a thumb's worth of slack, so it is a 40 px target and not a hairline.
 Rectangle<int> AeqAudioProcessorEditor::clampHit() const {
@@ -606,11 +714,9 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     g.drawText ("AEQ", markRow.translated (wordX + aeq::ui::secondWordX (w1, 5, kTrack * sy, 22.0f * sy), 0.0f),
                 Justification::centredLeft, false);
 
-    // tagline, one line, under the mark
-    const float tagY = h.getY() + 4.0f * sy + ws * 1.15f + 2.0f * sy;
-    arabic (g, kTagline, { markBox.getRight() + 10.0f * sy, tagY,
-                           h.getWidth() * 0.55f, kCap * sy * 1.35f },
-            Palette::muted(), kCap * sy);
+    // tagline, one line, under the mark - drawn in its own ink box, which is the same
+    // rectangle the scan badge and the sub-line are proven not to run into
+    arabic (g, kTagline, taglineInk(), Palette::muted(), kCap * sy);
 
     // right cluster: master bypass, reset, the seal pill with its LED, and the promise.
     // The pill's words come from panelFacts() now, so this function no longer decides
@@ -624,10 +730,7 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
                    Palette::muted(), 1.5f * sy);
 
     const String sealText = String (aeq::copy::stateWord (panelFacts()));
-    const float textW = aeq::ui::measure (sealText, kCap * sy);
-    const float pillW = textW + 44.0f * sy;
-    const Rectangle<float> pill (float (rs.getX()) - pillW - 10.0f * sy,
-                                 h.getY() + 4.0f * sy, pillW, 30.0f * sy);
+    const Rectangle<float> pill = sealPill().toFloat();
     g.setColour (Palette::accent().withAlpha (0.10f));
     g.fillRoundedRectangle (pill, kPillR * sy);
     g.setColour (Palette::accent().withAlpha (0.45f));
@@ -665,11 +768,42 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
                        have ? Palette::accentHi() : Palette::muted());
     }
 
-    // 13 px type in a 12 px box is a clipped line: the box is measured from the type now
-    arabic (g, String (aeq::copy::stateSub (panelFacts())).toRawUTF8(),
-            { pill.getRight() - 250.0f * sy, pill.getBottom() + 4.0f * sy,
-              250.0f * sy, kMicro * sy * 1.35f },
-            Palette::dim(), kMicro * sy, Justification::centredRight);
+    // The scan badge: does a pass exist, and how far has it got - in the header, where a
+    // glance lands.  Match EQ makes its captured curve impossible to miss and smart:EQ
+    // keeps a progress meter on screen for the same reason: "did it scan?" was a question
+    // this panel only answered with a number that quietly went up.  Cyan, because the
+    // scan is a measurement and the pink is the decision it produces.
+    {
+        const auto f = panelFacts();
+        const bool scanning = f.haveData && ! aeq::copy::sealed (f);
+        const bool done = aeq::copy::sealed (f);
+        const float lit = scanning ? 1.0f : (done ? 0.72f : 0.0f);
+        const auto br = scanBadge().toFloat();
+        g.setColour (Palette::take().withAlpha (0.05f + 0.10f * lit));
+        g.fillRoundedRectangle (br, kPillR * sy);
+        g.setColour (Palette::take().withAlpha (0.20f + 0.40f * lit));
+        g.drawRoundedRectangle (br.reduced (0.5f), kPillR * sy, 1.0f);
+        g.setColour (scanning ? Palette::take().brighter (0.25f)
+                              : Palette::take().withAlpha (0.55f));
+        g.fillEllipse (br.getX() + 9.0f * sy, br.getCentreY() - 2.5f * sy,
+                       5.0f * sy, 5.0f * sy);
+        aeq::ui::draw (g, scanBadgeText(),
+                       br.translated (18.0f * sy, 0.0f).withTrimmedRight (6.0f * sy),
+                       Justification::centredLeft, kCap * sy,
+                       scanning ? Palette::take().brighter (0.45f)
+                                : Palette::take().withAlpha (done ? 0.85f : 0.55f),
+                       Face::SemiBold);
+    }
+
+    // The sub-line under the seal: what runs without a hand.  The sentence it replaces
+    // said "nothing moves on its own", which was the opposite of the truth and the exact
+    // thing the user asked about ("اوتوماتيك ودايناميك ولا ستاتيك؟").
+    {
+        const auto box = autoReadout().toFloat();
+        aeq::ui::draw (g, autoReadoutText(), box, Justification::centredRight, kMicro * sy,
+                       panelFacts().haveData ? Palette::accentHi().withAlpha (0.88f)
+                                             : Palette::dim());
+    }
 }
 
 void AeqAudioProcessorEditor::drawWell (Graphics& g, Rectangle<int> hero) {
@@ -769,7 +903,12 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
         // clamped inside the ribbon: the clamp rides towards the right edge as the take
         // grows, and a label that hangs off the end is unreadable at exactly the moment
         // it matters
-        const float lx = jlimit (rib.getX(), jmax (rib.getX(), rib.getRight() - stopW),
+        // ... and it stops short of the layer readout on the right, which is the answer
+        // to "static or dynamic" and must never be the thing a label covers up
+        const auto readout = layerReadout();
+        const float limit = readout.isEmpty() ? rib.getRight()
+                                              : float (readout.getX()) - 12.0f * sx;
+        const float lx = jlimit (rib.getX(), jmax (rib.getX(), limit - stopW),
                                  clamp.getCentreX() - stopW / 2.0f);
         g.setColour (Colours::black.withAlpha (0.82f));
         g.fillRoundedRectangle ({ lx, stopRow.getY(), stopW, stopRow.getHeight() }, 4.0f * sy);
@@ -777,15 +916,23 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
         g.drawRoundedRectangle ({ lx, stopRow.getY(), stopW, stopRow.getHeight() }, 4.0f * sy, 1.0f);
         aeq::ui::draw (g, stopLabel, { lx, stopRow.getY(), stopW, stopRow.getHeight() },
                        Justification::centred, kMicro * sy, Palette::accentHi(), Face::SemiBold);
+
+        // What is frozen and what moves, with the dB the moving layers are taking right
+        // now.  One line, on the same row as the stop mark, because the two facts belong
+        // together: here is where the pass ended, and here is what has run since.
+        if (! readout.isEmpty())
+            aeq::ui::draw (g, layerReadoutText(), readout.toFloat(),
+                           Justification::centredRight, kMicro * sy,
+                           Palette::accentHi().withAlpha (0.92f), Face::SemiBold);
     }
 
     // the caption row, inside the well: what was learnt (left) and the keys (right)
     const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
     const auto st = proc_.core().state();
-    // The separators are UTF-8 bytes spelled out, not a character in the source file:
-    // "· " in a literal is at the mercy of the build's source encoding, and the shipped
-    // 1.2.26 window reads "AMIR 15 + 13-TAKE CONSENSUS Â· AUTO GAIN" because of it.
-    const String dot = String::fromUTF8 ("  \xc2\xb7  ");
+    // The separators are UTF-8 bytes spelled out (kMidDot), not a character in the
+    // source file: a literal "·" is at the mercy of the build's source encoding, and the
+    // shipped 1.2.26 window reads "AMIR 15 + 13-TAKE CONSENSUS Â· AUTO GAIN" because of it.
+    const String dot = String::fromUTF8 (kMidDot);
     // What the curve is aiming at, named by the thing that decided it - not formatted
     // here from three guesses.  Match aims at Amir's own curve unless a reference is
     // loaded; Restore keeps the family average.  A panel that claims "13-take consensus"
@@ -796,8 +943,18 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
         const String n = String (proc_.core().referenceName());
         target = n.isNotEmpty() ? ("REFERENCE " + n.toUpperCase()) : String ("REFERENCE");
     }
-    String learned = "HEARD " + String (st.analyzedSeconds, 1) + " S" + dot
-                   + String (int (bands_.size())) + " BANDS" + dot + target;
+    // The strip leads the caption: "did it scan, and how much" in cyan, then what the
+    // scan produced.  The old line opened with "HEARD 21.4 S", which was true and told
+    // nobody whether the pass had finished or was still going.
+    const String strip = scanStripText();
+    const float stripSize = kMicro * sy;
+    const float stripW = aeq::ui::measure (strip, stripSize, Face::SemiBold);
+    aeq::ui::draw (g, strip, { caption.getX(), caption.getY(), stripW + 2.0f * sy,
+                               caption.getHeight() },
+                   Justification::centredLeft, stripSize, Palette::take().brighter (0.25f),
+                   Face::SemiBold);
+
+    String learned = String (int (bands_.size())) + " BANDS" + dot + target;
     // the level match runs by itself, so it is a number on the panel rather than a fudge
     // in the dark: how much gain it is holding to keep the take where it was
     if (proc_.isFrozen() || proc_.isCommitted())
@@ -811,7 +968,9 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
             learned += dot + "MATCH " + aeq::ui::num (s2.gapBeforeDb, 1, 4) + ">"
                      + aeq::ui::num (s2.gapAfterDb, 1, 4) + " DB";
     }
-    trackedText (g, learned, caption, Palette::muted(), kMicro * sy, 1.1f);
+    trackedText (g, learned, caption.withLeft (roundToInt (caption.getX() + stripW
+                                                          + 30.0f * sx)),
+                 Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();
     const auto keys = std::array<std::pair<const char*, Colour>, 2> {
@@ -1053,6 +1212,11 @@ aeq::copy::Facts AeqAudioProcessorEditor::panelFacts() const {
     f.bands      = int (bands_.size());
     f.heardSeconds = st.heardSeconds;
     f.trustSeconds = st.needSeconds;
+    // the moving layer, from the core: the stabiliser's own ten bands, the de-esser's
+    // gain reduction and the pitch-tracked layers, counted as "doing something" at
+    // 0.3 dB.  The frozen curve is deliberately not in this number - it cannot move.
+    f.dynamicLayers = proc_.core().movingLayersNow();
+    f.movingDb = proc_.core().movingDbNow();
     return f;
 }
 

@@ -74,6 +74,32 @@ public:
         return (i >= 0 && i < int (chips_.size())) ? chips_[size_t (i)].src : -1;
     }
 
+    // ---- the scan, and what runs by itself --------------------------------------
+    // The user asked for a scan he can read like Ozone's Match EQ or smart:EQ: a word
+    // that says a pass exists and how far it has got, the seconds it covered, the split
+    // between the frozen curve and the moving layers with the dB they are taking right
+    // now, and one line that says what happens without a hand.  Four questions, four
+    // answers, each with its own rectangle - a screenshot cannot prove a sentence is on
+    // screen, and a gate that cannot see the words cannot catch them being pushed under
+    // the clamp.
+    juce::String scanBadgeText() const;      // SCANNED / SCANNING 42% / READY TO SCAN
+    juce::Rectangle<int> scanBadge() const;  // the header pill that carries that word
+    juce::String scanStripText() const;      // SCAN 42% · 9 s / SCANNED 9 s OF 21 s · COARSE
+    juce::String layerReadoutText() const;   // STATIC 3 · DYNAMIC 2 · 0.8 dB
+    juce::Rectangle<int> layerReadout() const;
+    juce::String autoReadoutText() const;    // curve frozen · AUTO: GAIN + DYNAMIC + ...
+    juce::Rectangle<int> autoReadout() const;
+    // The ink of the two things the badge has to clear: the name, and the tagline under
+    // it.  A sentence that "looks fine" at one window size is not a measurement, and the
+    // two rows that hold these have collided once before (1.2.26).
+    juce::Rectangle<float> wordmarkInk() const;
+    juce::Rectangle<float> taglineInk() const;
+    // The stop setting the panel is telling the truth about: 0 when the user ended this
+    // pass by hand, because "STOP AT 45 s" beside "STOPPED BY YOU" is two stories.
+    double stopSettingShown() const {
+        return (proc_.isFrozen() && stoppedByUser_) ? 0.0 : double (settleKnob_.getValue());
+    }
+
 private:
     // ---- the four blocks, as fractions of the window so a resize is proportional
     struct Blocks {
@@ -106,6 +132,9 @@ private:
     // The reference: the record Match is aiming at.  Left of the seal, because it is a
     // caption on the decision ("aim here"), not a transport control.
     juce::Rectangle<int> referenceHit() const;
+    // The seal pill: its words come from the copy module and its box is answerable from
+    // outside paint(), so the scan badge and the sub-line can be placed against it.
+    juce::Rectangle<int> sealPill() const;
     int chipAt (juce::Point<int>) const;
 
     void timerCallback() override;

@@ -279,6 +279,17 @@ public:
     // number, because ten numbers moving is not a readout, it is decoration.
     double stabilizerTotalDb() const { return stabPubTotal_.load(std::memory_order_relaxed); }
 
+    // ---- the whole moving layer, as two numbers -------------------------------
+    // "Is it static or dynamic?" is not a mood, it is these two readings: how many layers
+    // are moving the signal right now, and by how much in total.  The frozen curve is
+    // deliberately not in either number - it is the part that cannot move.
+    double movingDbNow() const { return movingPubDb_.load(std::memory_order_relaxed); }
+    int    movingLayersNow() const { return movingPubCount_.load(std::memory_order_relaxed); }
+    double deEssGainReductionDb() const { return deEssPubGr_.load(std::memory_order_relaxed); }
+
+    // The de-esser's static setting: the most it may take off (0 = not engaged at all).
+    double deEssMaxGr() const { return state_.deEssMaxGrDb; }
+
     double trackedCentreHz(int i) const {
         return (i >= 0 && i < kTrackedMax) ? trackedPubHz_[size_t(i)].load(std::memory_order_relaxed) : 0.0;
     }
@@ -532,6 +543,29 @@ public:
                 }
                 stabPubCount_.store(stabActive_, std::memory_order_relaxed);
                 stabPubTotal_.store(stab_.totalGainDb(), std::memory_order_relaxed);
+            }
+
+            // What the *moving* layers did in this block, published as two numbers for
+            // the panel: the total dB they are taking off right now, and how many of them
+            // are actually doing something.  The frozen curve is not in here - it cannot
+            // move - and that distinction is the answer to "is it static or dynamic".
+            {
+                double move = std::abs (stabPubTotal_.load (std::memory_order_relaxed))
+                              + std::abs (deEsser_[0].currentGainReductionDb());
+                int doing = 0;
+                const int nb = stabPubCount_.load (std::memory_order_relaxed);
+                for (int i = 0; i < nb; ++i)
+                    if (std::abs (stabPubGain_[size_t(i)].load (std::memory_order_relaxed)) >= 0.3) ++doing;
+                if (std::abs (deEsser_[0].currentGainReductionDb()) >= 0.3) ++doing;
+                for (int i = 0; i < trackedActive_; ++i)
+                {
+                    const double g = std::abs (trackedPubGain_[size_t(i)].load (std::memory_order_relaxed));
+                    move += g;
+                    if (g >= 0.3) ++doing;
+                }
+                deEssPubGr_.store (deEsser_[0].currentGainReductionDb(), std::memory_order_relaxed);
+                movingPubDb_.store (move, std::memory_order_relaxed);
+                movingPubCount_.store (doing, std::memory_order_relaxed);
             }
 
             // 4. crossfade, not a gain ramp: `dry + a*(wet - dry)` is dry at a = 0,
@@ -1543,6 +1577,9 @@ private:
     int pendingStabCount_ = 0;
     std::atomic<int> stabPubCount_{0};
     std::atomic<double> stabPubTotal_{0.0};
+    std::atomic<double> deEssPubGr_{0.0};
+    std::atomic<double> movingPubDb_{0.0};
+    std::atomic<int>    movingPubCount_{0};
     std::atomic<double> stabPubHz_[Stabilizer::kMaxBands];
     std::atomic<double> stabPubGain_[Stabilizer::kMaxBands];
     std::atomic<double> stabPubLevel_[Stabilizer::kMaxBands];

@@ -300,8 +300,8 @@ int main() {
         f.settled = true;
         const std::string sealed = aeq::copy::verdict (f);
         checkTrue (sealed.rfind ("Sealed at 3 bands.", 0) == 0
-                     && has (sealed, "does not move on its own"),
-                   "6d. a sealed take says sealed, once");
+                     && has (sealed, "curve is frozen"),
+                   "6d. a sealed take says sealed, once - and says what froze");
 
         f.bands = 0;
         checkTrue (has (aeq::copy::verdict (f), "nothing to correct"),
@@ -327,6 +327,77 @@ int main() {
             if (! has (v, "Sealed") && aeq::copy::stateWord (g) == "SEALED") oneStory = false;
         }
         checkTrue (oneStory, "6f. every state says exactly one thing, and the pill agrees with it");
+    }
+
+    // ---- 7. the scan is a thing you can see happened, and the layers are named -----
+    // "خاصية اسكان الصوت عاوزها تبقا زي ozone match eq او smart eq ... علشان ابقا فاهم اني
+    // عملت اسكان وهل الاداة بتبقا شغالة اوتوماتيك ودايناميك ولا ستاتيك؟" - three questions
+    // in one sentence, and each one has a number behind it.
+    {
+        aeq::copy::Facts f;
+        f.haveData = false;
+        f.trustSeconds = 21.4;
+        checkTrue (aeq::copy::scanWord (f) == "READY TO SCAN",
+                   "8a. before a pass the header says it is ready to scan, not that it scanned");
+
+        // 9 s into a 21.4 s threshold: the percentage is against the threshold, because
+        // that is the end the user is waiting for - the safety cap is a different number
+        f.haveData = true;
+        f.heardSeconds = 9.0;
+        const int p42 = aeq::copy::scanPercent (f);
+        checkTrue (p42 == 42, "8b. 9 s of a 21.4 s threshold reads 42%, against the threshold");
+        checkTrue (aeq::copy::scanWord (f) == "SCANNING 42%", "8c. and the header says SCANNING 42%");
+        const std::string live = aeq::copy::scanLine (f);
+        checkTrue (has (live, "SCAN 42%") && has (live, "9 s"),
+                   "8d. the take bar carries how far and how much, together");
+
+        // the cap is not progress: past the threshold the percentage stops at 100
+        f.heardSeconds = 40.0;
+        checkTrue (aeq::copy::scanPercent (f) == 100,
+                   "8e. past the threshold the percentage stops at 100 - it cannot read 187%");
+
+        // stopped early: the receipt says what was scanned and that it was coarse
+        f.heardSeconds = 9.0; f.frozen = true; f.committed = true; f.bands = 3;
+        const std::string early = aeq::copy::scanLine (f);
+        checkTrue (has (early, "SCANNED 9 s") && has (early, "COARSE") && has (early, "21 s"),
+                   "8f. a pass stopped early says what it scanned, and calls the numbers coarse");
+        checkTrue (! has (early, "%"),
+                   "8g. and a finished pass does not print a percentage as if it were running");
+
+        f.heardSeconds = 21.4;
+        checkTrue (! has (aeq::copy::scanLine (f), "COARSE"),
+                   "8h. a full pass says SCANNED without the caveat");
+
+        // ---- static or dynamic: two counts, never summed into one lie -------------
+        aeq::copy::Facts g;
+        g.committed = false;
+        checkTrue (aeq::copy::layerLine (g).empty(),
+                   "8i. nothing committed: no layer line, because there are no layers yet");
+
+        g.committed = true; g.bands = 3; g.dynamicLayers = 0; g.movingDb = 0.0;
+        const std::string still = aeq::copy::layerLine (g);
+        checkTrue (has (still, "STATIC 3") && has (still, "DYNAMIC 0") && has (still, "STILL"),
+                   "8j. a decision with nothing moving says so, in that word");
+
+        g.dynamicLayers = 4; g.movingDb = 1.44;
+        const std::string moving = aeq::copy::layerLine (g);
+        checkTrue (has (moving, "STATIC 3") && has (moving, "DYNAMIC 4") && has (moving, "1.4 dB"),
+                   "8k. a moving layer is named, counted and given the dB it is taking now");
+
+        // ---- what runs by itself -------------------------------------------------
+        checkTrue (has (aeq::copy::autoLine (g, 0.0), "STOP BY YOU")
+                     && has (aeq::copy::autoLine (g, 21.0), "STOP AT 21 s"),
+                   "8l. the automatic parts are named: gain, dynamic, and how the pass ends");
+        checkTrue (has (aeq::copy::autoLine (g, 0.0), "DYNAMIC"),
+                   "8m. once committed, the dynamic layer is part of what runs by itself");
+
+        // ---- the sentence that was the opposite of the truth ---------------------
+        const std::string sub = aeq::copy::stateSub (f);
+        checkTrue (has (sub, "curve frozen") && ! has (sub, "nothing moves")
+                     && ! has (sub, "dynamics live"),
+                   "8n. a sealed take says the curve is frozen and leaves the moving layer "
+                   "to autoLine's '+ DYNAMIC' - the old line said 'nothing moves on its own', "
+                   "which is the opposite");
     }
 
     // ---- 7. a chip addresses the band it shows ---------------------------------

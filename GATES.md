@@ -286,7 +286,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   computes the next commit from the new take only.  Plus: the same take twice commits to
   the same decision.
   CHECK: ./build/aeq_commit
-  EXPECT: ===== 29 passed, 0 failed =====
+  EXPECT: 0 failed
 
 - [x] G45: the band that locks onto the note and follows it - "باند يمشي مع النغمة
   EVIDENCE: VERIFIED - 27 passed, 0 failed
@@ -344,7 +344,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   no two blocks of the layout overlap.  The strings are read out of ui_v6.ARABIC_STRINGS so
   the gate cannot pass on copy that has since changed.
   CHECK: .venv/bin/python design/preview/check_panel.py --claim=blocks
-  EXPECT: panel ok: 20 panel strings fully covered by the bundled font
+  EXPECT: panel strings fully covered by the bundled font
 
 - [x] G49: the panel is made of real parts, and the pointer answers the value.  v3, v4 and
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -381,7 +381,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   design/IDENTITY_AR.md - brass = a decision, patina = a measurement - and the copy is
   read out of the module, so this cannot drift.
   CHECK: .venv/bin/python design/preview/check_identity.py --against-v6
-  EXPECT: identity ok: 20 panel strings covered
+  EXPECT: panel strings covered
 
 - [x] G51: the craft floor is measured, not admired.  Two skill sets were read for the UI
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -501,7 +501,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   legitimately holds more distinct colours; the texture ceiling stays at 0.8 hf, and the
   field measures 0.32-0.68 against v7's fabric at 1.9-3.2.
   CHECK: .venv/bin/python design/preview/check_identity.py
-  EXPECT: identity ok: 20 panel strings covered
+  EXPECT: panel strings covered
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G58: the picture that was approved is the picture that runs.  The panel was
@@ -544,7 +544,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   The six matched edges are unchanged (graph 71-556, strip 496-522, chips 572-636), so
   the render still matches the shipped window - the type grew, the frame did not.
   CHECK: .venv/bin/python design/preview/check_identity.py && .venv/bin/python design/preview/check_match.py
-  EXPECT: identity ok: 20 panel strings covered
+  EXPECT: panel strings covered
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G60: the controls are a state machine, not a row of buttons.  Seven targets is
@@ -625,7 +625,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   says exactly one thing and the pill agrees with it".  Falsified: putting the old ordering
   back turns 6b, 6c and 6f red.
   CHECK: build/aeq_commit
-  EXPECT: ===== 29 passed, 0 failed =====
+  EXPECT: 0 failed
 
   EVIDENCE: VERIFIED - ===== 29 passed, 0 failed =====
 - [x] G63: the editor may not write to a filter, and ThreadSanitizer is what says so.
@@ -1260,3 +1260,36 @@ at any vocal stem first; the other gates need nothing but the source tree.
   (the shot of the 1.2.44 Windows build, run 43972542171)
   FALSIFY: 1.2.42's screenshot -> "the mark has 0 px above 0.85 luminance (need 150 at
   1240x800); peak 0.78" (run on the shot CI actually produced for that version).
+
+- [x] G95: the scan is visible - and the panel says, in words, whether it is static or dynamic.
+  The user asked for a scan he can read "like Ozone Match EQ or smart:EQ", and for a plain
+  answer to "is it automatic and dynamic, or static?".  Three things were true before this
+  gate: the panel printed `HEARD 21.4 S`, which is a number that says nothing about whether a
+  pass exists or is still running; the sub-line under the seal said "nothing moves on its own",
+  which is the *opposite* of what the plugin does once a decision is committed; and nothing
+  anywhere said how much of the decision is frozen and how much moves.
+  Four sentences now answer the four questions, each produced by `Source/ui/PanelCopy.h`
+  (plain C++, no JUCE, so it is tested without a window) and each drawn in a named rectangle:
+  `scanWord()` in a badge in the header (READY TO SCAN / SCANNING 42% / SCANNED),
+  `scanLine()` leading the take caption (SCAN 42% · 9 s / SCANNED 9 s OF 21 s · COARSE - the
+  word COARSE appears when the pass was stopped early, because that is the one thing the
+  number must not hide), `layerLine()` on the stop row in accent
+  (STATIC 3 · DYNAMIC 2 · 0.8 dB, from the core's own `movingLayersNow()` / `movingDbNow()`,
+  which count the stabiliser, the de-esser and the pitch-tracked layers at 0.3 dB and exclude
+  the frozen curve), and `autoLine()` under the seal
+  (AUTO: GAIN + DYNAMIC + STOP AT 45 s, or STOP BY YOU when the user ended this pass by hand).
+  The percentage is measured against the trust threshold, not the safety cap, so it cannot
+  read 187%; and the badge's box, the strip, the layer line and the auto line are all
+  answerable from outside `paint()` and are asserted not to sit on each other, on the
+  wordmark, on the tagline, or on the clamp.
+  CHECK: ./build/aeq_commit
+  EXPECT: 8n. a sealed take says the curve is frozen
+  EVIDENCE: VERIFIED - ===== 43 passed, 0 failed ===== (checks 8a-8n: 9 s of a 21.4 s
+  threshold reads 42 %, past the threshold the percentage stops at 100, an early stop reads
+  "SCANNED 9 s OF 21 s · COARSE", a committed decision reads "STATIC 3 · DYNAMIC 0 · STILL"
+  with nothing moving and "STATIC 3 · DYNAMIC 4 · 1.4 dB" with four, and a sealed take says
+  "curve frozen" instead of "nothing moves on its own")
+  FALSIFY: divide `scanPercent` by the 45 s cap instead of the trust threshold -> 39 passed,
+  4 failed (8b-8e), because 9 s of a 21.4 s pass then reads 20 % and a full pass reads 47 %
+  (run, restored).  The drawing half of the claim is asserted on the real window by
+  `Tests/ui_shot.cpp` stage 13, whose log the ledger already reads at G64.

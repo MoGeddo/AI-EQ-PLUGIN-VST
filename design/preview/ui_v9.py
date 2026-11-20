@@ -167,7 +167,14 @@ MEASURED_KEY = "measured"
 DECISION_KEY = "decision"
 BAND_MODES = ("STATIC", "STATIC", "DYNAMIC", "TRACKED")
 MODE_SEGMENTS = ("RESTORE", "MATCH")
-FOOTER_SEAL = "nothing moves on its own"
+# The four readouts the window wears now (G95): the scan is a thing you can see, and the
+# answer to "automatic - dynamic or static?" is a sentence, not an inference.  They are
+# the same strings Source/ui/PanelCopy.h produces, so the signed-off render and the
+# window say the same words in the same places.
+SCAN_BADGE = "SCANNED"                      # READY TO SCAN / SCANNING 42% / SCANNED
+SCAN_STRIP = "SCANNED 24.9 s"               # SCAN 42%  ·  9 s while it runs
+LAYER_LINE = "STATIC 4  ·  DYNAMIC 3  ·  1.6 dB"
+FOOTER_SEAL = "AUTO: GAIN + DYNAMIC + STOP AT 45 s"
 # The sentence is the one the window draws in the same state, and it is drawn the way the
 # window draws it: wrapped, in a box that stops short of the two dials and their labels.
 # A short report here made the render look calm and hid the fact that at the panel's true
@@ -182,7 +189,8 @@ FOLLOWING = "TRACKED 600 Hz"
 # Every string the panel draws, so a gate can check the inventory rather than trust it.
 PANEL_STRINGS = (TAGLINE, SEAL_STATE, TAKE_LABEL, STOP_MARK, REMAINING, MEASURED_KEY,
                  DECISION_KEY, *BAND_MODES, *MODE_SEGMENTS, FOOTER_SEAL, FOOTER_REPORT,
-                 *KNOB_LABELS, CHIP_UNIT, CHIP_HZ, FOLLOWING)
+                 *KNOB_LABELS, CHIP_UNIT, CHIP_HZ, FOLLOWING,
+                 SCAN_BADGE, SCAN_STRIP, LAYER_LINE)
 ARABIC_STRINGS = PANEL_STRINGS          # kept for the older gates: nothing is Arabic now
 
 CENTRED_PILL = False
@@ -550,8 +558,21 @@ def draw_header(canvas):
     caps(d, (mx + caps_w("GEDDO", T_BODY, 3.4, True) + 10, 14), "AEQ", T_BODY,
          LINE + (120,), 3.4)
 
-    # tagline under the wordmark: the one line that says what this is
-    ar_text(d, (mx, 38), TAGLINE, T_CAP, SOFT)
+    # tagline under the wordmark: the one line that says what this is.  It sits 7 px lower
+    # than it used to because the scan badge lives on the row above it - the two rows have
+    # collided once before (1.2.26), so they do not share a baseline any more.
+    ar_text(d, (mx, 45), TAGLINE, T_CAP, SOFT)
+
+    # the scan: a badge on the name/pill row, left of the state pill.  A scan you cannot
+    # see is the complaint this answers (Ozone's Match EQ and smart:EQ both keep one).
+    scan_w = caps_w(SCAN_BADGE, T_CAP, 1.1) + 30
+    scan_x = mx + caps_w("GEDDO AEQ", T_BODY, 3.4, True) + 40
+    over(canvas, lambda dd: dd.rounded_rectangle(
+        [scan_x, 14, scan_x + scan_w, 44], radius=SMALL_R,
+        fill=PATINA + (34,), outline=PATINA + (150,)))
+    d = ImageDraw.Draw(canvas)
+    led(canvas, scan_x + 10, 29, 2)
+    caps(d, (scan_x + 20, 21), SCAN_BADGE, T_CAP, PATINA_HOT, 1.1)
 
     # state: a pill at the right edge, and the seal LED
     label_w = ar_w(SEAL_STATE, T_CAP) + 40
@@ -801,18 +822,29 @@ def draw_take(canvas):
     # one strip under the ribbon: learned (left), the stop (centre), the keys (right).
     # Nothing is stacked, and nothing sits over the clamp itself.
     # under the band: what was learnt (left, Arabic) and the keys (right).
-    caps(d, (x0, y1 + 12), "HEARD 24.9 S  ·  4 BANDS  ·  AMIR 15 + 13-TAKE CONSENSUS"
-                          "  ·  AUTO GAIN -1.8 DB", T_MICRO, DIM, 1.1)
+    # the scan first, in patina (a measurement), then what it produced
+    strip_w = caps_w(SCAN_STRIP, T_MICRO, 1.1, True)
+    caps(d, (x0, y1 + 12), SCAN_STRIP, T_MICRO, PATINA_HOT, 1.1, bold=True)
+    caps(d, (x0 + strip_w + 30, y1 + 12),
+         "4 BANDS  ·  AMIR 15 + 13-TAKE CONSENSUS  ·  AUTO GAIN -1.8 DB",
+         T_MICRO, DIM, 1.1)
     # The clamp's own label.  It is a chip in the row above the ribbon, clamped inside
     # it, because the clamp rides towards the right edge as the take grows - and it is
     # the only control that starts and stops the pass, so it always says its verb.
     mark_w = ar_w(STOP_MARK, T_MICRO) + 22
-    mx = min(max(x0, seal_x - mark_w / 2), x1 - mark_w)
+    # ... and it stops short of the layer line on the right, exactly like the window: the
+    # label rides the clamp, and the clamp rides toward the edge as the take grows.
+    layer_w = caps_w(LAYER_LINE, T_MICRO, 1.1, True)
+    mx = min(max(x0, seal_x - mark_w / 2), x1 - mark_w - 20 - layer_w)
     over(canvas, lambda dd: dd.rounded_rectangle(
         [mx, y0 - 25, mx + mark_w, y0 - 5], radius=SMALL_R, fill=(0, 0, 0, 214),
         outline=BRASS + (130,)))
     d = ImageDraw.Draw(canvas)
     ar_text(d, (mx + mark_w / 2, y0 - 24), STOP_MARK, T_MICRO, BRASS_HOT, anchor="ma")
+
+    # ... and on the right of that same row, what is frozen and what moves, with the dB the
+    # moving layers are taking right now.  Never under the clamp: the clamp rides right.
+    caps(d, (x1 - layer_w, y0 - 24), LAYER_LINE, T_MICRO, BRASS_HOT, 1.1, bold=True)
 
 
 def draw_chips(canvas):
