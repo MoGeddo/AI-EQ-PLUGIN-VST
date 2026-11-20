@@ -679,7 +679,11 @@ int runWindow(const juce::File& dir) {
                                                             (float) curve->getY());
             const float xa = curve->freqToX (40.0) + (float) curve->getX();
             const float xb = curve->freqToX (100.0) + (float) curve->getX();
-            const float y0 = curve->dbToY (0.0) + (float) curve->getY();
+            // -6 dB, not 0: the curve's own glow sits within a few pixels of 0 dB even
+            // when the line is flat there, so a strip that starts at 0 dB counts the glow
+            // of nothing.  Measured on the two shots: 1.2.49 (no low cut drawn) has 0
+            // accent pixels below -6 dB in 40..100 Hz, 1.2.50 has 533.
+            const float y0 = curve->dbToY (-6.0) + (float) curve->getY();
             int pink = 0;
             for (int y = int (y0); y < int (plot.getBottom()); ++y)
                 for (int x = int (xa); x < int (xb); ++x)
@@ -692,7 +696,7 @@ int runWindow(const juce::File& dir) {
                 }
             stage (juce::String ("the decision line below 100 Hz: ") + juce::String (pink)
                    + " accent px (a drawn low cut puts the curve through that strip)");
-            check (pink >= 40, "the low cut is drawn: the decision line runs below 100 Hz");
+            check (pink >= 60, "the low cut is drawn: the decision line runs below 100 Hz");
         }
         else
         {
