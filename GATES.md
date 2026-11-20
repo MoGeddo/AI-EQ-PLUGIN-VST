@@ -1485,3 +1485,17 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EVIDENCE: VERIFIED - `aeq_dials` 10/0; the editor, processor and harness compile against
   JUCE 8.0.4; the shipped 1.2.59 window is `docs/ui-1.2.59-window.png` and the side-by-side
   against the reference is `docs/ui-1.2.58-vs-reference.png`.
+
+- [x] G103: a dial clears the plate's corner, not just its edge.
+  The 1.2.59 shot showed the auto-stop dial with a **flat bottom**: it was centred on the
+  footer row (so its lower arc sat 11 px from the plate's bottom) and 34 design px from the
+  right edge, where the plate's 16 px corner radius curves in.  The painted circle needs
+  `centre <= right - 16.8 - r`, i.e. ~43 px at a 54 px dial; it was at 34.  The three dials
+  now sit 8 px above the row's centre line and the last one is 52 px in from the edge, and
+  `ui_shot` asserts each dial's own rectangle against `panel - corner/2` on both the right and
+  the bottom: an edge is not a corner, and this is the second defect in this window caused by
+  treating the two as the same thing (the first was the bypass key, G98).
+  CHECK: grep -c "dial clears the plate's corner" plugin/Tests/ui_shot.cpp
+  EXPECT: 1
+  EVIDENCE: VERIFIED - the assertion is in the controls stage of the 1.2.60 run, whose
+  controls.log.txt reports every check green.

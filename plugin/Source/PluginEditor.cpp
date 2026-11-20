@@ -35,6 +35,9 @@ constexpr float kReadoutSlack = 40.0f;
 // How far inside a plate's own edge its right-aligned rows stop.  Every right-aligned line
 // on this panel used to end exactly on the well's border, which reads as truncated type.
 constexpr float kWellInset = 10.0f;
+// The footer dials are lifted off the row's centre line so the plate's bottom edge and its
+// 16 px corner do not cut them: at 54 px, centred, the dial's lower arc was outside the plate.
+constexpr float kKnobRowUp = 8.0f;
 
 // the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
 // the take strip is 494..520, and the caption row is 528..542.  These are y values,
@@ -1313,7 +1316,7 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
 
     // the two things a hand turns: the knobs themselves are child sliders drawn by
     // the look and feel, so this only writes their two labels and their two numbers
-    const Point<float> k2 (float (area.getRight()) - 34.0f * sx, cy);
+    const Point<float> k2 (float (area.getRight()) - 52.0f * sx, cy);
     const Point<float> k1 (float (area.getRight()) - 202.0f * sx, cy);
     const float knobSize = 42.0f * sy;          // the body; the box below adds the ring
 
@@ -1461,11 +1464,16 @@ void AeqAudioProcessorEditor::resized() {
     curve_.setBounds (well());
 
     const float sx = float (getWidth()) / kDesignW;
-    const int cy = b.footer.getCentreY();
+    // The three dials sit 8 px above the row's centre line and 52 px in from the right edge,
+    // not 34: the panel's corner radius is 16 and the dials are 54 px wide, so at the old
+    // position the auto-stop dial's lower-right quadrant was being cut off by the plate's
+    // own rounded corner - visible on the 1.2.59 shot as a knob with a flat bottom.  The
+    // assertion for this is in Tests/ui_shot.cpp (`each dial clears the plate's corner`).
+    const int cy = b.footer.getCentreY() - roundToInt (kKnobRowUp * sy);
     const int box = roundToInt (54.0f * sy);    // body (42) + ring + seat
     const int c0 = b.footer.getRight() - roundToInt (370.0f * sx);
     const int c1 = b.footer.getRight() - roundToInt (202.0f * sx);
-    const int c2 = b.footer.getRight() - roundToInt (34.0f * sx);
+    const int c2 = b.footer.getRight() - roundToInt (52.0f * sx);
     stableKnob_.setBounds (c0 - box / 2, cy - box / 2, box, box);
     amountKnob_.setBounds (c1 - box / 2, cy - box / 2, box, box);
     settleKnob_.setBounds (c2 - box / 2, cy - box / 2, box, box);

@@ -626,6 +626,26 @@ int runControls(const juce::File& dir) {
             check (air >= 8, "the plate's right inset is at least 8 px");
         }
 
+        // ---- and each dial is inside the plate, off its corner ------------------
+        // The auto-stop dial shipped in 1.2.59 with a flat bottom: it was centred on the
+        // footer's row and 34 design px from the right edge, so the plate's own 16 px corner
+        // radius cut its lower-right quadrant.  Every dial is checked against the panel's
+        // corner radius, not against the panel's edge - an edge is not a corner.
+        for (const auto c : { AeqAudioProcessorEditor::Control::StrengthKnob,
+                              AeqAudioProcessorEditor::Control::AutoStopKnob,
+                              AeqAudioProcessorEditor::Control::StabiliserKnob }) {
+            const auto r = ed->controlBounds (c).toFloat();
+            const float corner = 16.0f * k;
+            const bool inside = r.getX() >= 0.0f && r.getY() >= 0.0f
+                                && r.getRight() <= float (ed->getWidth()) - corner * 0.5f
+                                && r.getBottom() <= float (ed->getHeight()) - corner * 0.5f;
+            check (inside, (juce::String ("the ") + (c == AeqAudioProcessorEditor::Control::StrengthKnob
+                                                         ? "strength"
+                                                         : c == AeqAudioProcessorEditor::Control::AutoStopKnob
+                                                               ? "auto-stop" : "stabiliser")
+                            + " dial clears the plate's corner and its bottom edge").toRawUTF8());
+        }
+
         // ---- and the mode words fit inside their keys --------------------------
         // RESTORE crossed the border of its own key twice (1.2.53 with a lamp in the key,
         // 1.2.54 with the lamp's gutter) and both times every assertion on this panel
