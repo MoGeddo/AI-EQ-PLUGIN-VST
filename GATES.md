@@ -1448,3 +1448,15 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EVIDENCE: VERIFIED - `aeq_dials` 7/0 with the pre-fix geometry failing checks 2 and 3
   (paint radius 0.5226 box, and 0.9 px of overlap between ring and ticks); the editor and
   the harness compile against JUCE 8.0.4.
+
+- [x] G101: a right-aligned row stops inside its plate, on one vertical line with the others.
+  On the 1.2.56 shot the static/dynamic readout ended with its last glyph on the well's
+  border ("... STILL" against the 1 px edge, reading as cut-off type), and the key legend
+  under it did the same, because both were right-aligned to `heroRow().getRight()` - the
+  plate's own edge.  Both now stop `kWellInset` (10 design px) inside it, and `ui_shot`
+  asserts it against the editor's own numbers: `layerReadout().getRight() <=
+  heroBlock().getRight() - wellInsetPx()`, and that the inset is at least 8 px.
+  CHECK: grep -c 'ends inside the plate' plugin/Tests/ui_shot.cpp
+  EXPECT: 1
+  EVIDENCE: VERIFIED - the assertion is in the controls stage; 1.2.57's run reports
+  `controls` with it green (see the run's controls.log.txt).

@@ -32,6 +32,9 @@ constexpr float kReadoutTrack = 1.1f;
 // and the slack in a readout's box: trackedText wraps by word, so a box that is a pixel
 // short of the layout's advance prints a second line - the 1.2.47 empty window did.
 constexpr float kReadoutSlack = 40.0f;
+// How far inside a plate's own edge its right-aligned rows stop.  Every right-aligned line
+// on this panel used to end exactly on the well's border, which reads as truncated type.
+constexpr float kWellInset = 10.0f;
 
 // the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
 // the take strip is 494..520, and the caption row is 528..542.  These are y values,
@@ -496,7 +499,12 @@ Rectangle<int> AeqAudioProcessorEditor::layerReadout() const {
     const int w = roundToInt (aeq::ui::measure (s, kMicro * sy, Face::SemiBold)
                               + kReadoutTrack * float (jmax (0, s.length() - 1))
                               + kReadoutSlack * sy);
-    return { row.getRight() - w, row.getY(), w, row.getHeight() };
+    // 10 px inside the plate's own edge, not on it: the line is right-aligned, and a
+    // right-aligned line whose last glyph lands on the well's border reads as a line that
+    // was cut off (the 1.2.56 shot shows "STILL" touching it).  The legend below uses the
+    // same inset, so both rows end on one vertical line.
+    return { row.getRight() - roundToInt (kWellInset * float (getWidth()) / kDesignW) - w,
+             row.getY(), w, row.getHeight() };
 }
 
 String AeqAudioProcessorEditor::autoReadoutText() const {
@@ -1067,7 +1075,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
                                                           + 34.0f * sx)),
                  Palette::muted(), kMicro * sy, 1.1f);
 
-    float rx = caption.getRight();
+    float rx = caption.getRight() - kWellInset * sx;
     const auto keys = std::array<std::pair<const char*, Colour>, 3> {
         std::make_pair (kDecisionKey, Palette::accent()),
         std::make_pair (kMeasuredKey, Palette::take()),
@@ -1381,6 +1389,12 @@ bool AeqAudioProcessorEditor::modeWordFits() const {
         if (modeWordInk (i) + air > inner) return false;
     }
     return true;
+}
+
+Rectangle<int> AeqAudioProcessorEditor::heroBlock() const { return blocks().hero; }
+
+int AeqAudioProcessorEditor::wellInsetPx() const {
+    return roundToInt (kWellInset * float (getWidth()) / kDesignW);
 }
 
 Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {

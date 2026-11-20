@@ -66,6 +66,10 @@ public:
     // key's own border.  Asserted, because a word that overlaps a 1 px border still draws.
     float modeWordInk (int i) const;
     bool  modeWordFits() const;
+    // The hero block and the inset its right-aligned rows stop at - the readout and the
+    // legend have to end inside the plate, not on its border.
+    juce::Rectangle<int> heroBlock() const;
+    int wellInsetPx() const;
     juce::Rectangle<float> footerCopyBox() const;
     bool footerCopyFits() const;                       // the sentence the panel is saying
     bool footerCopyFits (const juce::String&) const;   // ... and any sentence it could say

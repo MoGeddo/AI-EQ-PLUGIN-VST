@@ -612,6 +612,19 @@ int runControls(const juce::File& dir) {
                         : "the reset key sits inside the panel's corner"));
         }
 
+        // ---- and the right-aligned rows end inside the plate --------------------
+        // Both the static/dynamic readout and the legend are right-aligned to the well, and
+        // both used to stop exactly on its border: type that lands on a 1 px border reads
+        // as type that was cut off.  The inset is the editor's own number, not a guess.
+        {
+            const auto ro = ed->layerReadout();
+            const auto hero = ed->heroBlock();
+            const int air = ed->wellInsetPx();
+            check (ro.isEmpty() || ro.getRight() <= hero.getRight() - air + 1,
+                   "the static/dynamic readout ends inside the plate, not on its border");
+            check (air >= 8, "the plate's right inset is at least 8 px");
+        }
+
         // ---- and the mode words fit inside their keys --------------------------
         // RESTORE crossed the border of its own key twice (1.2.53 with a lamp in the key,
         // 1.2.54 with the lamp's gutter) and both times every assertion on this panel
