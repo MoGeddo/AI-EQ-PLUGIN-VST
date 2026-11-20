@@ -69,6 +69,9 @@ public:
     // The hero block and the inset its right-aligned rows stop at - the readout and the
     // legend have to end inside the plate, not on its border.
     juce::Rectangle<int> heroBlock() const;
+    // The three footer dials, and whether each one clears the label beside its neighbour at
+    // the live window size - the 1.2.62 shot had one dial sitting on the word it belongs to.
+    bool dialRowFits() const;
     int wellInsetPx() const;
     juce::Rectangle<float> footerCopyBox() const;
     bool footerCopyFits() const;                       // the sentence the panel is saying

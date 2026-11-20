@@ -646,6 +646,21 @@ int runControls(const juce::File& dir) {
                             + " dial clears the plate's corner and its bottom edge").toRawUTF8());
         }
 
+        // ---- and a dial does not sit on the word beside it ----------------------
+        {
+            const int sizes2[][2] = { { 1240, 800 }, { 1024, 700 }, { 940, 620 } };
+            for (const auto& sz : sizes2) {
+                ed->setSize (sz[0], sz[1]);
+                pump();
+                check (ed->dialRowFits(),
+                       (juce::String ("each footer dial clears its neighbour's label at ")
+                        + juce::String (ed->getWidth()) + "x" + juce::String (ed->getHeight()))
+                           .toRawUTF8());
+            }
+            ed->setSize (1240, 800);
+            pump();
+        }
+
         // ---- and the mode words fit inside their keys --------------------------
         // RESTORE crossed the border of its own key twice (1.2.53 with a lamp in the key,
         // 1.2.54 with the lamp's gutter) and both times every assertion on this panel

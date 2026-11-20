@@ -1520,3 +1520,18 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: dials: 11 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_dials` 11/0; the preview at 62 px and 90 px is
   `docs/preview-knob.png`; the editor compiles against JUCE 8.0.4.
+
+- [x] G105: the dial row fits the window it is in, at the window's own size.
+  The 1.2.62 shot at 1240x800 was clean; the same build at **1024x700** put the strength dial
+  on top of the word "strength" and the stabiliser dial on "stabiliser".  The cause is a
+  scaling mismatch, not a bad offset: the row's spacing is 168 design px and scales with the
+  *width* (0.868 at 1024), while the dial's size and the labels' type scale with the
+  *height* (1.0 at 700) - so the gap shrank by 22 px and the type did not.  The dial now takes
+  `min(62 * sy, 0.30 * spacing)` (46 px at 1024x700, 62 px at 1240x800), and `dialRowFits()`
+  measures each label against the ring of the dial before it.  `ui_shot` asserts it at
+  1240x800, 1024x700 and 940x620 - the check that would have caught it the first time, since
+  every earlier assertion was made at the design size.
+  CHECK: grep -c "clears its neighbour's label" plugin/Tests/ui_shot.cpp
+  EXPECT: 1
+  EVIDENCE: VERIFIED - the assertion is in the 1.2.63 controls stage; the shipped shots at
+  both sizes are `docs/ui-1.2.63-window.png` and `docs/ui-1.2.63-1024x700.png`.

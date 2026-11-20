@@ -1444,6 +1444,34 @@ bool AeqAudioProcessorEditor::modeWordFits() const {
     return true;
 }
 
+// Do the three footer dials fit beside the words that name them?  Each label is drawn to
+// the left of its own dial (see drawFooter), so the thing that can collide is one dial's
+// ring with the *previous* label's last letter.  At the design size there is 60 px of air
+// there; at 1024x700 there was none, and the shipped 1.2.62 shot put the strength dial on
+// top of the word "strength".  Same discipline as the mode keys: measure, then assert.
+bool AeqAudioProcessorEditor::dialRowFits() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const float sx = float (getWidth()) / kDesignW;
+    const auto b = blocks();
+    const int gapDesign = roundToInt (168.0f * sx);
+    const int box = roundToInt (jmin (62.0f * sy, 0.30f * float (gapDesign)));
+    const float half = float (box) * 0.5f;
+    const float c0 = float (b.footer.getRight()) - 370.0f * sx;
+    const float c1 = float (b.footer.getRight()) - 202.0f * sx;
+    const float c2 = float (b.footer.getRight()) - 52.0f * sx;
+    const char* names[] = { "stabiliser", "strength", "auto-stop" };
+    const float centres[] = { c0, c1, c2 };
+    const float dx = half * 0.62f + 8.0f * sy;      // the same offset drawFooter uses
+    float previousRight = 0.0f;
+    for (int i = 0; i < 3; ++i) {
+        const float w = aeq::ui::measure (aeq::ui::u8 (names[i]), kMicro * sy);
+        const float labelLeft = centres[i] - dx - w;
+        if (i > 0 && labelLeft < previousRight + 4.0f) return false;
+        previousRight = centres[i] + half;
+    }
+    return true;
+}
+
 Rectangle<int> AeqAudioProcessorEditor::heroBlock() const { return blocks().hero; }
 
 int AeqAudioProcessorEditor::wellInsetPx() const {
@@ -1491,7 +1519,13 @@ void AeqAudioProcessorEditor::resized() {
     // own rounded corner - visible on the 1.2.59 shot as a knob with a flat bottom.  The
     // assertion for this is in Tests/ui_shot.cpp (`each dial clears the plate's corner`).
     const int cy = b.footer.getCentreY() - roundToInt (kKnobRowUp * sy);
-    const int box = roundToInt (62.0f * sy);    // cap + skirt + ring + seat
+    // The dial is 62 px at the design size, but the *row* is 168 design px of width and the
+    // labels beside each dial are type, so they scale with the height.  At 1024x700 the
+    // spacing lost 13 % and the type did not, and the 1.2.62 shot shows the strength dial
+    // sitting on the word "strength".  So the dial also yields to the spacing it has to fit
+    // inside - and `dialRowFits()` is asserted at three sizes rather than trusted.
+    const int gapDesign = roundToInt (168.0f * sx);
+    const int box = roundToInt (jmin (62.0f * sy, 0.30f * float (gapDesign)));
     const int c0 = b.footer.getRight() - roundToInt (370.0f * sx);
     const int c1 = b.footer.getRight() - roundToInt (202.0f * sx);
     const int c2 = b.footer.getRight() - roundToInt (52.0f * sx);
