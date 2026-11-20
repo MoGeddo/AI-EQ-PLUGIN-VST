@@ -24,6 +24,10 @@ constexpr float kPanelR = 16.0f, kWellR = 14.0f, kChipR = 12.0f, kPillR = 11.0f;
 // make out.  Every size went up one step (11/13/16/21 -> 13/15/18/24) and the four
 // steps are still four: a fifth size is how a panel turns into a ransom note.
 constexpr float kMicro = 15.0f, kCap = 17.0f, kBody = 20.0f, kValue = 26.0f;
+// px of extra space between glyphs on the three Latin readouts (the scan strip, the layer
+// line and the auto line).  One number, so the width a box reserves and the width that is
+// drawn cannot disagree.
+constexpr float kReadoutTrack = 1.1f;
 
 // the hero in design coordinates: y 70..556.  The plot takes everything down to 486,
 // the take strip is 494..520, and the caption row is 528..542.  These are y values,
@@ -434,7 +438,10 @@ Rectangle<int> AeqAudioProcessorEditor::layerReadout() const {
     if (s.isEmpty()) return {};
     const float sy = float (getHeight()) / kDesignH;
     const auto row = heroRow (kStopTop, kStopBottom);
-    const int w = roundToInt (aeq::ui::measure (s, kMicro * sy)) + 4;
+    // the tracked width, not the untracked one: a box narrower than the line it holds is
+    // how a right-aligned label ends up hanging off its own left edge
+    const int w = roundToInt (aeq::ui::measure (s, kMicro * sy, Face::SemiBold)
+                              + kReadoutTrack * float (jmax (0, s.length() - 1))) + 4;
     return { row.getRight() - w, row.getY(), w, row.getHeight() };
 }
 
@@ -453,7 +460,9 @@ String AeqAudioProcessorEditor::autoReadoutText() const {
 Rectangle<int> AeqAudioProcessorEditor::autoReadout() const {
     const float sy = float (getHeight()) / kDesignH;
     const auto f = panelFacts();
-    const float w = aeq::ui::measure (autoReadoutText(), kMicro * sy) + 2.0f * sy;
+    const String s = autoReadoutText();
+    const float w = aeq::ui::measure (s, kMicro * sy)
+                    + kReadoutTrack * float (jmax (0, s.length() - 1)) + 2.0f * sy;
     const auto pill = sealPill();
     return { pill.getRight() - roundToInt (w),
              pill.getBottom() + roundToInt (4.0f * sy), roundToInt (w),
@@ -787,22 +796,23 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
                               : Palette::take().withAlpha (0.55f));
         g.fillEllipse (br.getX() + 9.0f * sy, br.getCentreY() - 2.5f * sy,
                        5.0f * sy, 5.0f * sy);
-        aeq::ui::draw (g, scanBadgeText(),
-                       br.translated (18.0f * sy, 0.0f).withTrimmedRight (6.0f * sy),
-                       Justification::centredLeft, kCap * sy,
-                       scanning ? Palette::take().brighter (0.45f)
-                                : Palette::take().withAlpha (done ? 0.85f : 0.55f),
-                       Face::SemiBold);
+        // trackedText, like the other three readouts: see drawTake for why the RTL path
+        // (aeq::ui::draw) is the wrong funnel for a Latin status word
+        trackedText (g, scanBadgeText(),
+                     br.translated (18.0f * sy, 0.0f).withTrimmedRight (6.0f * sy),
+                     scanning ? Palette::take().brighter (0.45f)
+                              : Palette::take().withAlpha (done ? 0.85f : 0.55f),
+                     kCap * sy, kReadoutTrack, Justification::centredLeft, Face::SemiBold);
     }
 
     // The sub-line under the seal: what runs without a hand.  The sentence it replaces
     // said "nothing moves on its own", which was the opposite of the truth and the exact
     // thing the user asked about ("اوتوماتيك ودايناميك ولا ستاتيك؟").
     {
-        const auto box = autoReadout().toFloat();
-        aeq::ui::draw (g, autoReadoutText(), box, Justification::centredRight, kMicro * sy,
-                       panelFacts().haveData ? Palette::accentHi().withAlpha (0.88f)
-                                             : Palette::dim());
+        trackedText (g, autoReadoutText(), autoReadout().toFloat(),
+                     panelFacts().haveData ? Palette::accentHi().withAlpha (0.88f)
+                                           : Palette::dim(),
+                     kMicro * sy, kReadoutTrack, Justification::centredRight);
     }
 }
 
@@ -921,9 +931,9 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
         // now.  One line, on the same row as the stop mark, because the two facts belong
         // together: here is where the pass ended, and here is what has run since.
         if (! readout.isEmpty())
-            aeq::ui::draw (g, layerReadoutText(), readout.toFloat(),
-                           Justification::centredRight, kMicro * sy,
-                           Palette::accentHi().withAlpha (0.92f), Face::SemiBold);
+            trackedText (g, layerReadoutText(), readout.toFloat(),
+                         Palette::accentHi().withAlpha (0.92f), kMicro * sy, kReadoutTrack,
+                         Justification::centredRight, Face::SemiBold);
     }
 
     // the caption row, inside the well: what was learnt (left) and the keys (right)
@@ -946,13 +956,19 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // The strip leads the caption: "did it scan, and how much" in cyan, then what the
     // scan produced.  The old line opened with "HEARD 21.4 S", which was true and told
     // nobody whether the pass had finished or was still going.
-    const String strip = scanStripText();
+    // Drawn through trackedText, not aeq::ui::draw: `draw` puts a RIGHT-TO-LEFT MARK in
+    // front of every string that starts with a letter or a digit (Source/ui/ArabicText.cpp),
+    // and in an RTL paragraph "SCAN 0%  ·  0 s" is two LTR runs whose order is the
+    // paragraph's, not the string's - the shipped 1.2.46 shot of the empty window reads
+    // "s SCAN 0%  ·  0" because of it.  Every readout on this row is tracked Latin, so it
+    // takes the path that never sets an RTL base.
     const float stripSize = kMicro * sy;
-    const float stripW = aeq::ui::measure (strip, stripSize, Face::SemiBold);
-    aeq::ui::draw (g, strip, { caption.getX(), caption.getY(), stripW + 2.0f * sy,
-                               caption.getHeight() },
-                   Justification::centredLeft, stripSize, Palette::take().brighter (0.25f),
-                   Face::SemiBold);
+    const float stripW = aeq::ui::measure (scanStripText(), stripSize, Face::SemiBold)
+                         + kReadoutTrack * float (jmax (0, scanStripText().length() - 1));
+    trackedText (g, scanStripText(), { caption.getX(), caption.getY(), stripW + 8.0f * sy,
+                                       caption.getHeight() },
+                 Palette::take().brighter (0.25f), stripSize, kReadoutTrack,
+                 Justification::centredLeft, Face::SemiBold);
 
     String learned = String (int (bands_.size())) + " BANDS" + dot + target;
     // the level match runs by itself, so it is a number on the panel rather than a fudge

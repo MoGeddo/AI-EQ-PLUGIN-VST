@@ -1293,3 +1293,31 @@ at any vocal stem first; the other gates need nothing but the source tree.
   4 failed (8b-8e), because 9 s of a 21.4 s pass then reads 20 % and a full pass reads 47 %
   (run, restored).  The drawing half of the claim is asserted on the real window by
   `Tests/ui_shot.cpp` stage 13, whose log the ledger already reads at G64.
+
+- [x] G96: the readouts are drawn in the order their words are in, not the paragraph's.
+  The 1.2.46 window shipped with the scan strip readable as `s SCAN 0%  ·  0`: the empty
+  window's first caption glyph was the *last* character of the string.  `aeq::ui::draw` is
+  the text funnel for a panel that used to be Arabic, and it prepends a RIGHT-TO-LEFT MARK
+  to every string that starts with a letter or a digit (`Source/ui/ArabicText.cpp`,
+  `withRtlBase`).  In an RTL paragraph `"SCAN 0%  ·  0 s"` is two LTR runs and the
+  paragraph, not the string, decides their order - the "0 s" went to the front and the
+  final "s" landed where the line starts.
+  Nothing caught it.  `ui_shot` asserts the four *boxes* do not overlap, and `test_commit`
+  asserts the four *sentences* are right; both were true.  The words were correct and the
+  drawing of them was not, which is the class of defect a screenshot review finds and a
+  gate does not - so now a gate does:
+  (A) every one of `scanBadgeText()`, `scanStripText()`, `layerReadoutText()` and
+  `autoReadoutText()` is drawn through the tracked-Latin funnel (`trackedText`, which never
+  sets an RTL base) and never through `aeq::ui::draw`/`arabic`; (B) the real shot carries
+  the strip's cyan in the caption row, the badge's cyan in the header, and - once a decision
+  is committed - the layer line's accent on the right of the stop row, with no ink left of
+  the panel's 22 px margin.
+  CHECK: .venv/bin/python design/preview/check_readouts.py
+  EXPECT: readouts ok:
+  EVIDENCE: VERIFIED - readouts ok: four readouts on the non-bidi funnel;
+  ui-1240x800.png: strip 1053 px cyan, badge 758 px cyan, layer line 404 px accent;
+  ui-empty-1240x800.png: strip 403 px cyan, badge 537 px cyan
+  FALSIFY: put one `aeq::ui::draw (g, scanStripText(), ...)` back -> "scanStripText() is not
+  drawn through trackedText ... is drawn through aeq::ui::draw - that prepends a
+  RIGHT-TO-LEFT MARK and reorders the line" (run, restored).  The window that produced the
+  defect is kept at `docs/ui-1.2.46-window-empty.png`.
