@@ -1359,7 +1359,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   and 48k; a short trims vector is "no trim"; the reference has no value at 60 Hz and one at
   100 Hz, which is where the panel now says it starts)
   FALSIFY: (1) drop the low cut from `decisionDb()` -> 11 passed, 2 failed (checks 2 and 5).
-  (2) the window test, measured on two real shots of the same 1240x800 window: **1.2.49
-  0 accent px** below -6 dB in the 40-100 Hz strip, **1.2.50 533 px** (and 252 px below
-  -18 dB).  The strip started at 0 dB first, where 1.2.49 scored 408 against 1.2.50's 610 -
-  that is the curve's glow, not the curve, so the check now measures below -6 dB.
+  (2) the window test, measured on real shots of the same 1240x800 window: **1.2.49 0
+  accent px** below -6 dB in the 40-100 Hz strip, **1.2.50 533 px**, **1.2.52 453 px**
+  (the final build's own run 44723321413), and 252 px below -18 dB.  The strip started at
+  0 dB first, where 1.2.49 scored 408 against 1.2.50's 610 - that is the curve's glow, not
+  the curve - so the check measures below -6 dB.
