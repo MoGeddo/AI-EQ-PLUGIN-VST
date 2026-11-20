@@ -372,7 +372,10 @@ Rectangle<int> AeqAudioProcessorEditor::modeSeg (int i) const {
 Rectangle<int> AeqAudioProcessorEditor::bypassHit() const {
     const auto hd = blocks().header;
     const int s = roundToInt (40.0f * float (getHeight()) / kDesignH);
-    return { hd.getRight() - roundToInt (78.0f * float (getWidth()) / kDesignW),
+    // 106 design px from the right edge, not 78: the key is 34 px in a 40 px target and the
+    // panel's corner radius is 16, so at 78 the key sat *on* the rounded corner and hung
+    // outside the plate (the 1.2.53 shot shows it half off the window).
+    return { hd.getRight() - roundToInt (106.0f * float (getWidth()) / kDesignW),
              hd.getCentreY() - s / 2, s, s };
 }
 
@@ -1113,12 +1116,19 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         // inner edge and a hairline along the bottom one, so the light falls into it.
         g.setColour (Palette::surface().darker (0.25f));
         g.fillRoundedRectangle (r, kChipR * sy);
-        g.setColour (Colours::black.withAlpha (0.35f));
-        g.drawLine (r.getX() + kChipR * sy, r.getY() + 1.0f,
-                    r.getRight() - kChipR * sy, r.getY() + 1.0f, 1.0f);
-        g.setColour (Colours::white.withAlpha (0.05f));
-        g.drawLine (r.getX() + kChipR * sy, r.getBottom() - 1.0f,
-                    r.getRight() - kChipR * sy, r.getBottom() - 1.0f, 1.0f);
+        // The shadow and the highlight go *inside* the plate, inset by 8 px.  Drawn on the
+        // plate's top edge they ran through the cap height of the index, the mode word and
+        // the number - the 1.2.53 shot reads "S̶T̶A̶T̶I̶C̶" - and at the bottom they cut the
+        // baseline of the Hz line.
+        {
+            const auto in = r.reduced (8.0f * sy, 2.0f * sy);
+            g.setColour (Colours::black.withAlpha (0.35f));
+            g.drawLine (in.getX() + 6.0f * sy, in.getY() + 0.5f,
+                        in.getRight() - 6.0f * sy, in.getY() + 0.5f, 1.0f);
+            g.setColour (Colours::white.withAlpha (0.05f));
+            g.drawLine (in.getX() + 6.0f * sy, in.getBottom() - 0.5f,
+                        in.getRight() - 6.0f * sy, in.getBottom() - 0.5f, 1.0f);
+        }
         g.setColour (hot ? Palette::accent().withAlpha (0.55f)
                          : Colours::white.withAlpha (hover ? 0.20f : 0.10f));
         g.drawRoundedRectangle (r.reduced (0.5f), kChipR * sy, 1.0f);
@@ -1228,12 +1238,16 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
         const String s = aeq::ui::u8 (labels[i]);
         // the lamp sits inside the key, left of the word: the lit one says which mode is in
         // the path at a glance, from across a desk
+        // The lamp marks the active key from its own gutter, and the word is centred in
+        // what is left of the key: at 3.4 px of tracking RESTORE fills its segment, and a
+        // lamp inside the same box put a dot through the R (the 1.2.53 shot reads "R̶ESTORE").
+        const float gutter = 14.0f * sy;
         if (i == active) {
             const float d = 5.0f * sy;
             g.setColour (Palette::accentHi());
-            g.fillEllipse (r.getX() + 9.0f * sy, r.getCentreY() - d * 0.5f, d, d);
+            g.fillEllipse (r.getX() + 6.0f * sy, r.getCentreY() - d * 0.5f, d, d);
         }
-        aeq::ui::draw (g, s, i == active ? r.withTrimmedLeft (8.0f * sy) : r,
+        aeq::ui::draw (g, s, i == active ? r.withTrimmedLeft (gutter) : r.withTrimmedLeft (gutter * 0.4f),
                        Justification::centred, kCap * sy,
                        i == active ? Palette::accentHi() : Palette::muted());
     }

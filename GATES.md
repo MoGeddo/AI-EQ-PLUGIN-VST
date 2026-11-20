@@ -1386,6 +1386,15 @@ at any vocal stem first; the other gates need nothing but the source tree.
   bottom).  Refused, with reasons: full skeuomorphism (wood, screws - it reads 1975, which is
   the verdict this UI already had), neon on every element (if everything is coloured nothing
   is distinguished), and 3D knob renders (at 26-42 px they are noise).
+  The first build of this change (1.2.53) then shipped three defects that the shot found
+  and no assertion had: the chip's recess line ran through the cap height of STATIC / the
+  index / the number ("S̶T̶A̶T̶I̶C̶"), the active mode key's lamp sat inside the word
+  ("R̶ESTORE"), and the bypass key hung half outside the panel because its hit box was 78
+  design px from the right edge and the panel's corner radius is 16.  All three are fixed
+  in 1.2.54 - the recess is inset 8 px inside the plate, the lamp has its own gutter and the
+  word is centred in what is left, and the header keys moved 28 px left - and the last one
+  now has an assertion of its own: `ui_shot` checks that each key's 34 px seat is inside the
+  panel's corner at the live size.
   CHECK: .venv/bin/python design/preview/check_identity.py && .venv/bin/python design/preview/check_craft.py
   EXPECT: 4 blocks
   EVIDENCE: VERIFIED - identity ok: panel strings covered, contrast floor holds, 4 blocks on

@@ -594,6 +594,23 @@ int runControls(const juce::File& dir) {
               "the static/dynamic line does not sit under the clamp you press");
         check(layerBox.getRight() <= ed->getWidth(),
               "and it stays inside the window");
+
+        // ---- and the keys are inside the plate, not on its rounded corner -------
+        // The 1.2.53 shot shipped the bypass key half outside the window: its hit box was
+        // 78 design px from the right edge and the key is 34 px wide inside a 40 px target,
+        // so the seat crossed the panel's 16 px corner radius.
+        const float k = float (ed->getHeight()) / 700.0f;
+        for (const auto c : { AeqAudioProcessorEditor::Control::Bypass,
+                              AeqAudioProcessorEditor::Control::Reset }) {
+            const auto seat = ed->controlBounds (c).toFloat()
+                                .withSizeKeepingCentre (34.0f * k, 34.0f * k);
+            const float corner = 16.0f * k;
+            check (seat.getRight() <= float (ed->getWidth()) - corner
+                   && seat.getY() >= corner * 0.5f,
+                   (c == AeqAudioProcessorEditor::Control::Bypass
+                        ? "the bypass key sits inside the panel's corner"
+                        : "the reset key sits inside the panel's corner"));
+        }
     }
 
     stage(juce::String("controls: ") + juce::String(pass) + " passed, " + juce::String(fail)
