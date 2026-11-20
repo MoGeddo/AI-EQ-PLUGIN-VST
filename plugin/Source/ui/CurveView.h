@@ -477,10 +477,16 @@ private:
             const auto gap = juce::Rectangle<float> (plot_.getX() + 6.0f, plot_.getBottom() - 44.0f,
                                                      x - plot_.getX() - 12.0f, 34.0f);
             if (gap.getWidth() > 60.0f) {
+                // backed with the panel's own colour: this label sits over the fill of the
+                // decision curve once the low cut is drawn, and grey on pink is not a
+                // sentence anyone can read
+                const auto box = gap.withHeight (32.0f);
+                g.setColour (Palette::panel().withAlpha (0.72f));
+                g.fillRoundedRectangle (box, 4.0f);
                 label (g, "REFERENCE", gap.withHeight (16.0f).toNearestInt(),
-                       Palette::standard().withAlpha (0.75f), 13.0f);
+                       Palette::standard(), 14.0f);
                 label (g, "FROM 100 Hz", gap.withTop (gap.getY() + 15.0f).withHeight (16.0f).toNearestInt(),
-                       Palette::standard().withAlpha (0.55f), 13.0f);
+                       Palette::muted().withAlpha (0.9f), 14.0f);
             }
         }
 
@@ -490,12 +496,12 @@ private:
             g.setColour (Palette::accent().withAlpha (0.35f));
             g.drawVerticalLine (int (x), plot_.getY(), plot_.getBottom());
             const auto text = "LOW CUT " + juce::String (int (std::lround (data_.hpfHz))) + " Hz";
-            const float w = aeq::ui::measure (text, 13.0f) + 14.0f;
+            const float w = aeq::ui::measure (text, 14.0f) + 14.0f;
             const auto box = juce::Rectangle<float> (std::min (x + 6.0f, plot_.getRight() - w),
                                                      plot_.getY() + 4.0f, w, 18.0f);
             g.setColour (Palette::panel().withAlpha (0.85f));
             g.fillRoundedRectangle (box, 4.0f);
-            label (g, text, box.toNearestInt(), Palette::accentHi(), 13.0f, juce::Justification::centred);
+            label (g, text, box.toNearestInt(), Palette::accentHi(), 14.0f, juce::Justification::centred);
         }
     }
 
