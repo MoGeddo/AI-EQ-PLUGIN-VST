@@ -25,6 +25,14 @@ namespace aeq::ui {
 // Below this, a minor tick is shorter than 2 px and the scale stops being a scale.
 constexpr float kKnobTicksMinBox = 66.0f;
 
+// Below this, the knurled skirt's ridges are under 0.8 px wide and read as a smudge rather
+// than as machining.  Measured, not assumed: `design/preview/knob_preview.py` draws the same
+// geometry at 1:1 and at 2x, and at 54 and 62 px the skirt is invisible at 1:1.  The
+// reference does the same thing for the same reason - kit 01's large knobs are knurled, kit
+// 03's small ones are plain with a ring - so this panel's 62 px dials are plain too, and the
+// knurling is there for the sizes that can carry it.
+constexpr float kKnurlMinBox = 84.0f;
+
 struct KnobMetrics
 {
     float body;      // the anodised cap
@@ -56,7 +64,7 @@ constexpr KnobMetrics knobMetrics (float box) noexcept
     m.knurlStroke  = box * 0.011f;
     m.seat         = box * 0.371f;
     m.groove       = box * 0.390f;
-    m.grooveStroke = box * 0.048f;    // the reference's ring is thick - it is the value read
+    m.grooveStroke = box * 0.050f;    // the reference's ring is the value read: thick, not a hairline
     m.majorIn      = box * 0.434f;
     m.tickIn       = box * 0.442f;
     m.tickOut      = box * 0.478f;
@@ -68,6 +76,7 @@ constexpr KnobMetrics knobMetrics (float box) noexcept
 // Is the scale drawn at this size?  The reference draws it on the large dials and not on the
 // small ones, and the arithmetic agrees: at 54 px a minor tick is 1.7 px of hairline.
 constexpr bool knobHasTicks (float box) noexcept { return box >= kKnobTicksMinBox; }
+constexpr bool knobHasKnurl (float box) noexcept { return box >= kKnurlMinBox; }
 
 // The outer edge of everything that is painted, measured from the dial's centre.
 constexpr float knobPaintRadius (float box) noexcept

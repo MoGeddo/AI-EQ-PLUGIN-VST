@@ -95,6 +95,12 @@ int main() {
         bool none = true;
         for (const float box : boxes)
             if (box < kKnobTicksMinBox) none = none && ! knobHasTicks (box);
+        // ... and the same rule for the knurling, which is a sub-pixel smudge at this size
+        bool noKnurl = true;
+        for (const float box : boxes)
+            if (box < kKnurlMinBox) noKnurl = noKnurl && ! knobHasKnurl (box)
+                                      && ! knobHasKnurl (62.0f);
+        check (noKnurl, "the panel's 62 px dials are plain: knurl ridges are under 0.8 px");
         bool some = false;
         for (const float box : boxes)
             if (box >= kKnobTicksMinBox) some = some || knobHasTicks (box);

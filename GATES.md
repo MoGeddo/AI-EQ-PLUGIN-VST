@@ -1499,3 +1499,24 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 1
   EVIDENCE: VERIFIED - the assertion is in the controls stage of the 1.2.60 run, whose
   controls.log.txt reports every check green.
+
+- [x] G104: what the panel's dial size can actually carry - and a preview that costs seconds.
+  Three releases (1.2.59-1.2.61) were spent re-deciding the dial's contrast at 7 minutes per
+  screenshot, and the 1.2.61 shot still showed a smooth circle: at 62 px a 0.68 px knurl
+  ridge and a 1 px hairline groove are not details, they are nothing.  Two changes.
+  (1) `design/preview/knob_preview.py` draws the dial at 1:1 and 2x from the **numbers in
+  KnobSpec.h and the colours in Theme.h**, parsed out of the source - so a geometry change
+  can be looked at in two seconds instead of two CI runs, and the preview cannot drift from
+  the shipped part.  It is what produced the decision below.
+  (2) The dial's budget now has two size gates, both numbers in `KnobSpec.h`:
+  `kKnobTicksMinBox` (66 px - below it a minor tick is under 2 px) and `kKnurlMinBox` (84 px
+  - below it a ridge is under 0.8 px).  The panel's footer dials are 62 px, so they are plain
+  with a thick ring, which is exactly what the reference's own small knobs (kit 03) are; the
+  knurling and the scale wait for sizes that can carry them.  The ring went to 5 % of the box
+  (>= 2.2 px at every size the panel uses, 3.1 px at 62) and is drawn as a real groove - a
+  black cut under a muted line - because an unlit track at hairline weight is invisible.
+  `test_dials` is 11 checks over nine box sizes across both thresholds.
+  CHECK: ./build/aeq_dials && .venv/bin/python design/preview/knob_preview.py --box 62
+  EXPECT: dials: 11 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_dials` 11/0; the preview at 62 px and 90 px is
+  `docs/preview-knob.png`; the editor compiles against JUCE 8.0.4.

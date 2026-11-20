@@ -143,16 +143,26 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     // ---- knurled skirt: 40 ridges, lit from the top.  This is the one detail that says
     // "turned by a hand" at 54 px, and it is why the reference's small knobs read as
     // hardware while ours read as a circle.
-    {
+    if (aeq::ui::knobHasKnurl (box)) {
+        // Valleys first, then ridges: white at 2-7 % of a near-black plate is not a detail,
+        // it is nothing - the 1.2.61 shot still shows a smooth circle.  The grooves are cut
+        // in black at 45 %, the ridges are lit white up to 30 % on the top half, and the
+        // band is either side of the cap's own edge so the part reads as turned metal.
         for (int i = 0; i < k.knurlCount; ++i) {
             const float a = MathConstants<float>::twoPi * float (i) / float (k.knurlCount);
             const float dx = std::sin (a), dy = -std::cos (a);
+            const Line<float> grooveLine (centre.translated (dx * k.knurlIn, dy * k.knurlIn),
+                                          centre.translated (dx * k.knurlOut, dy * k.knurlOut));
+            g.setColour (Colours::black.withAlpha (0.45f));
+            g.drawLine (grooveLine, k.knurlStroke * 1.15f);
             // light comes from above: a ridge faces the light when its normal points up
             const float lit = 0.5f + 0.5f * (-dy);
-            g.setColour (Colours::white.withAlpha (0.020f + 0.055f * lit));
-            g.drawLine (Line<float> (centre.translated (dx * k.knurlIn, dy * k.knurlIn),
-                                     centre.translated (dx * k.knurlOut, dy * k.knurlOut)),
-                        k.knurlStroke);
+            g.setColour (Colours::white.withAlpha (0.06f + 0.24f * lit * lit));
+            g.drawLine (Line<float> (grooveLine.getStart().translated (k.knurlStroke * 0.5f * dx,
+                                                                       k.knurlStroke * 0.5f * dy),
+                                     grooveLine.getEnd().translated (k.knurlStroke * 0.5f * dx,
+                                                                     k.knurlStroke * 0.5f * dy)),
+                        k.knurlStroke * 0.55f);
         }
     }
 
@@ -178,8 +188,14 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     Path groove;
     groove.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
                           degreesToRadians (-135.0f), degreesToRadians (135.0f), true);
-    g.setColour (Palette::hairline().withAlpha (0.80f));
-    g.strokePath (groove, PathStrokeType (k.grooveStroke, PathStrokeType::curved,
+    // The travel is a real groove, not a hairline: at #39404d over #1f242d a 1 px line is
+    // invisible at 54 px, and an invisible ring means the dial has no read-out at all.  The
+    // reference's dials keep an unlit track that is clearly darker than the cap.
+    g.setColour (Colours::black.withAlpha (0.60f));
+    g.strokePath (groove, PathStrokeType (k.grooveStroke + 1.0f, PathStrokeType::curved,
+                                          PathStrokeType::rounded));
+    g.setColour (Palette::muted().withAlpha (0.28f));
+    g.strokePath (groove, PathStrokeType (k.grooveStroke * 0.45f, PathStrokeType::curved,
                                           PathStrokeType::rounded));
 
     // The arc runs from the *start of the travel* to the value, not from the value to 12
@@ -1475,7 +1491,7 @@ void AeqAudioProcessorEditor::resized() {
     // own rounded corner - visible on the 1.2.59 shot as a knob with a flat bottom.  The
     // assertion for this is in Tests/ui_shot.cpp (`each dial clears the plate's corner`).
     const int cy = b.footer.getCentreY() - roundToInt (kKnobRowUp * sy);
-    const int box = roundToInt (54.0f * sy);    // body (42) + ring + seat
+    const int box = roundToInt (62.0f * sy);    // cap + skirt + ring + seat
     const int c0 = b.footer.getRight() - roundToInt (370.0f * sx);
     const int c1 = b.footer.getRight() - roundToInt (202.0f * sx);
     const int c2 = b.footer.getRight() - roundToInt (52.0f * sx);
