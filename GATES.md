@@ -1535,3 +1535,31 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 1
   EVIDENCE: VERIFIED - the assertion is in the 1.2.63 controls stage; the shipped shots at
   both sizes are `docs/ui-1.2.63-window.png` and `docs/ui-1.2.63-1024x700.png`.
+
+- [x] G106: the switches are switches - a rocker, a round button, a chosen-side pill, a card.
+  The user's verdict on 1.2.58-1.2.63 was exact: "في مفاتيح كتير وكنوبس انت مخدتش منها أي
+  حاجة".  The colours and the dial had moved; the *controls* had not.  Bypass and reset were
+  still a rounded square with a glyph in it, the mode pair was a filled key rather than a
+  switch with a chosen side, and the band row was four recessed rectangles with numbers in
+  them.  Taken from the reference now, one part at a time:
+    * **Bypass = a rocker** (kit 01: a red lamp beside a slanted paddle).  A machined plate,
+      a paddle quad whose leading edge leans by `rockerTiltFor()` - leaning *is* the state,
+      before any colour is read - a pivot hairline, and the lamp under it in the plate.
+    * **Reset = a round push button** (kit 03): a well, a ring, a convex face, no lamp - a
+      reset is a gesture, not a state.
+    * **The mode pair = a switch with a chosen side**: the active key is marked by an orange
+      pill *inside* it (kit 03's "Last"), inset by `pillMetrics()` so the pill and the key's
+      border never merge into one outline (the 1.2.53 defect).
+    * **The band row = cards**: a header rule under the index/mode strip, inset from the
+      card's edges, exactly as kit 03's Grain / Transients / Time cards do - placed from
+      `cardMetrics()` so it cannot run through the type the way the 1.2.53 recess did.
+  All four geometries are arithmetic in `Source/ui/Controls.h` and are held by
+  `Tests/test_controls.cpp`: paddle inside plate, travel symmetric between on and off, lamp
+  outside the plate and inside the box, pill inset on both axes, rule inset and keeping air,
+  and no size the header uses making a part vanish.  Two of those checks failed on the first
+  run and moved the numbers (the pill's and the rule's insets were derived from a 34 px key
+  and had to be re-derived from the chip's width).
+  CHECK: ./build/aeq_controls
+  EXPECT: controls-shapes: 6 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_controls` 6/0; the editor compiles against JUCE 8.0.4; the shipped
+  window is `docs/ui-1.2.64-window.png`.

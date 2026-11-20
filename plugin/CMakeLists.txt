@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(GeddoAEQ VERSION 1.2.63 LANGUAGES CXX)
+project(GeddoAEQ VERSION 1.2.64 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -236,6 +236,15 @@ add_test(NAME audio_smoothness COMMAND aeq_smooth)
 # The dial's radial budget (Source/ui/KnobSpec.h): the scale has to be inside the box the
 # slider gives it and outside the value ring.  A picture cannot be asserted; this can, and
 # the 1.2.53 tick ring that ran past its box and crossed the ring is exactly this relation.
+# The control shapes taken from the reference (Source/ui/Controls.h): the rocker's paddle
+# inside its plate, the lamp outside it, the chosen-side pill inset inside its key, and the
+# card header rule clear of the type above and below.  Same reason as the dials: a shape that
+# is only ever looked at in a 7-minute screenshot gets shipped broken.
+add_executable(aeq_controls Tests/test_controls.cpp)
+target_include_directories(aeq_controls PRIVATE Source)
+set_target_properties(aeq_controls PROPERTIES CXX_STANDARD 17)
+add_test(NAME control_shapes COMMAND aeq_controls)
+
 add_executable(aeq_dials Tests/test_dials.cpp)
 target_include_directories(aeq_dials PRIVATE Source)
 set_target_properties(aeq_dials PROPERTIES CXX_STANDARD 17)

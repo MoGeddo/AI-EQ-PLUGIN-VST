@@ -1,6 +1,7 @@
 #include "PluginEditor.h"
 #include "ui/BandRow.h"
 #include "ui/KnobSpec.h"
+#include "ui/Controls.h"
 #include "ui/Logo.h"
 #include "ui/Wordmark.h"
 #include "ui/PanelCopy.h"
@@ -845,30 +846,86 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
     // right cluster: master bypass, reset, the seal pill with its LED, and the promise.
     // The pill's words come from panelFacts() now, so this function no longer decides
     // what "sealed" means on its own.
-    const auto by = bypassHit();
     const bool bypassed = proc_.apvts().getRawParameterValue ("bypass")->load() > 0.5f;
-    const auto rs = resetHit();
-    // Two keys, not two floating glyphs: a recessed well, an icon, and an LED that says
-    // what the key is doing.  The reference set this panel is measured against puts every
-    // switch in a machined seat with its own lamp - and a bare glyph on a gradient is the
-    // thing the user called "أماكن الأزرار" (where the buttons are).
-    auto key = [&] (Rectangle<int> hit, Icon ic, bool lit, Colour lamp) {
+    // ---- two real switches, not two glyphs in boxes -------------------------
+    // The reference's panels are full of *switches*: kit 01 has a red lamp beside a slanted
+    // rocker paddle, kit 03 has round push buttons with a ring.  This panel had a rounded
+    // square with a power glyph in it - the thing the user called "أماكن الأزرار" and then
+    // "في مفاتيح كتير وكنوبس انت مخدتش منها أي حاجة".  Bypass is now a **rocker**: a machined
+    // plate, a paddle that leans along its travel, and a lamp that says what the switch is
+    // doing.  Reset is a **round push button**: a ring in a well, an arrow inset, and no lamp,
+    // because a reset is a gesture and not a state.  Both keep the 40 px hit target they had.
+    {
         const float k = float (getHeight()) / kDesignH;
-        const auto box = hit.toFloat().withSizeKeepingCentre (34.0f * k, 34.0f * k);
-        g.setColour (Palette::surface().darker (0.30f));
-        g.fillRoundedRectangle (box, 9.0f * k);
-        g.setColour (Colours::black.withAlpha (0.45f));
-        g.drawRoundedRectangle (box.reduced (0.5f), 9.0f * k, 1.0f);
-        g.setColour (Colours::white.withAlpha (0.06f));
-        g.drawLine (box.getX() + 8.0f * k, box.getBottom() - 1.0f,
-                    box.getRight() - 8.0f * k, box.getBottom() - 1.0f, 1.0f);
-        aeq::ui::icon (g, ic, box.reduced (9.0f * k), lit ? lamp : Palette::muted(), 1.7f * k);
-        g.setColour (lit ? lamp : Palette::hairline().withAlpha (0.8f));
-        const float d = 4.0f * k;
-        g.fillEllipse (box.getCentreX() - d * 0.5f, box.getBottom() - d - 3.0f * k, d, d);
-    };
-    key (by, Icon::Power, bypassed, Palette::warn());
-    key (rs, Icon::Reset, false, Palette::muted());
+        auto plate = [&] (Rectangle<float> box) {
+            g.setColour (Palette::surface().darker (0.30f));
+            g.fillRoundedRectangle (box, 9.0f * k);
+            g.setColour (Colours::black.withAlpha (0.45f));
+            g.drawRoundedRectangle (box.reduced (0.5f), 9.0f * k, 1.0f);
+            g.setColour (Colours::white.withAlpha (0.06f));
+            g.drawLine (box.getX() + 8.0f * k, box.getBottom() - 1.0f,
+                        box.getRight() - 8.0f * k, box.getBottom() - 1.0f, 1.0f);
+        };
+
+        // ---- bypass: the rocker
+        const auto rk = bypassHit().toFloat().withSizeKeepingCentre (34.0f * k, 34.0f * k);
+        plate (rk);
+        {
+            const auto m = aeq::ui::rockerMetrics (34.0f * k);
+            const auto cx = rk.getCentreX();
+            const float cy = rk.getCentreY() - m.lampGap * 0.5f;
+            const float halfW = m.plate * 0.5f - m.pad;
+            const float halfH = m.plate * 0.5f - m.pad;
+            const float tilt = aeq::ui::rockerTiltFor (34.0f * k, ! bypassed);
+            // The paddle: a quad whose leading edge leans by `tilt`.  Leaning is the state -
+            // the reference's rocker shows on/off by its angle, before any colour is read.
+            Path paddle;
+            paddle.startNewSubPath (cx - halfW, cy - halfH + tilt);
+            paddle.lineTo (cx + halfW, cy - halfH - tilt);
+            paddle.lineTo (cx + halfW, cy + halfH + tilt);
+            paddle.lineTo (cx - halfW, cy + halfH - tilt);
+            paddle.closeSubPath();
+            ColourGradient pg (bypassed ? Palette::surfaceHi().brighter (0.10f)
+                                        : Palette::surfaceHi().brighter (0.26f),
+                               cx, cy - halfH + tilt, Palette::bg().darker (0.30f),
+                               cx, cy + halfH + tilt, false);
+            g.setGradientFill (pg);
+            g.fillPath (paddle);
+            g.setColour (Colours::black.withAlpha (0.55f));
+            g.strokePath (paddle, PathStrokeType (1.0f));
+            // the groove the paddle rocks in: a hairline across its pivot, so the tilt reads
+            g.setColour (Colours::white.withAlpha (0.07f));
+            g.drawLine (cx - halfW, cy + 0.5f, cx + halfW, cy + 0.5f, 1.0f);
+            // the lamp: the reference's red LED, in the plate under the paddle
+            const float d = m.lampD;
+            const float ly = rk.getBottom() - m.lampGap - d * 0.5f;
+            g.setColour (bypassed ? Palette::warn() : Palette::hairline().withAlpha (0.9f));
+            g.fillEllipse (cx - d * 0.5f, ly - d * 0.5f, d, d);
+            if (bypassed) {
+                g.setColour (Palette::warn().withAlpha (0.25f));
+                g.fillEllipse (cx - d, ly - d, d * 2.0f, d * 2.0f);
+            }
+        }
+
+        // ---- reset: the round push button
+        const auto rb = resetHit().toFloat().withSizeKeepingCentre (34.0f * k, 34.0f * k);
+        plate (rb);
+        {
+            const auto c2 = rb.getCentre();
+            const float ring = 34.0f * k * 0.30f;
+            g.setColour (Colours::black.withAlpha (0.60f));
+            g.fillEllipse (c2.x - ring, c2.y - ring, ring * 2, ring * 2);
+            g.setColour (Colours::white.withAlpha (0.14f));
+            g.drawEllipse (c2.x - ring, c2.y - ring, ring * 2, ring * 2, 1.2f * k);
+            // the button face: a lit top-left rim and a shadow bottom-right, so it reads convex
+            g.setColour (Palette::surfaceHi().brighter (0.16f));
+            g.fillEllipse (c2.x - ring * 0.80f, c2.y - ring * 0.80f,
+                           ring * 1.60f, ring * 1.60f);
+            aeq::ui::icon (g, Icon::Reset, juce::Rectangle<float> (ring * 1.15f, ring * 1.15f)
+                                                .withCentre (c2),
+                           Palette::muted(), 1.6f * k);
+        }
+    }
 
     const String sealText = String (aeq::copy::stateWord (panelFacts()));
     const Rectangle<float> pill = sealPill().toFloat();
@@ -1205,6 +1262,21 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
                          : Colours::white.withAlpha (hover ? 0.20f : 0.10f));
         g.drawRoundedRectangle (r.reduced (0.5f), kChipR * sy, 1.0f);
 
+        // The header rule: kit 03's cards put their title on a strip with a hairline under it
+        // ("Grains", "Transients", "Time").  That one line is what turns four numbers into
+        // four *cards*, and the row reads as a table of things rather than a row of fill.
+        // It is placed from the card's own geometry and stops short of its edges, so it can
+        // never run through the index, the mode word or the number - the 1.2.53 defect.
+        {
+            const auto cm = aeq::ui::cardMetrics (r.getWidth());
+            const float y = r.getY() + cm.headerH;
+            g.setColour (Colours::white.withAlpha (0.07f));
+            g.drawLine (r.getX() + cm.ruleInset, y, r.getRight() - cm.ruleInset, y, 1.0f);
+            g.setColour (Colours::black.withAlpha (0.35f));
+            g.drawLine (r.getX() + cm.ruleInset, y + 1.0f, r.getRight() - cm.ruleInset, y + 1.0f,
+                        1.0f);
+        }
+
         // index, and what kind of thing this is
         const int index = hot ? chip.tracked + 1 : chip.band + 1;
         trackedText (g, String (index).paddedLeft ('0', 2),
@@ -1298,12 +1370,16 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     g.drawLine (pill.getX() + kPillR * sy, pill.getBottom() - 1.0f,
                 pill.getRight() - kPillR * sy, pill.getBottom() - 1.0f, 1.0f);
     const auto& seg = active == 0 ? s0 : s1;
-    const auto segIn = seg.withTrimmedLeft (5.0f * sx).withTrimmedRight (5.0f * sx)
-                          .withTrimmedTop (3.0f * sy).withTrimmedBottom (3.0f * sy);
-    g.setColour (Palette::accent().withAlpha (0.14f));
-    g.fillRoundedRectangle (segIn, (kPillR - 3.0f) * sy);
-    g.setColour (Palette::accent().withAlpha (0.62f));
-    g.drawRoundedRectangle (segIn, (kPillR - 3.0f) * sy, 1.0f);
+    // The chosen side is marked by an orange pill *inside* the key, the way kit 03 marks its
+    // "Last" toggle: the pill is the state, the key is the target.  It is inset from the
+    // key's border (`pillMetrics`), so the two never merge into one outline - which is what
+    // the 1.2.53 shot showed when the fill ran to the key's own edge.
+    const auto pm = aeq::ui::pillMetrics (seg.getWidth(), seg.getHeight());
+    const auto segIn = seg.reduced (pm.insetX, pm.insetY);
+    g.setColour (Palette::accent().withAlpha (0.16f));
+    g.fillRoundedRectangle (segIn, pm.radius);
+    g.setColour (Palette::accent().withAlpha (0.75f));
+    g.drawRoundedRectangle (segIn.reduced (0.5f), pm.radius, 1.0f);
     const char* labels[] = { kModeRestore, kModeMatch };
     for (int i = 0; i < 2; ++i) {
         const auto r = i == 0 ? s0 : s1;
