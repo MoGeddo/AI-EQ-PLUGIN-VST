@@ -1422,3 +1422,29 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: craft ok
   EVIDENCE: VERIFIED - craft ok, the editor and the harness compile against JUCE 8.0.4, and
   `controls` reports **62 passed, 0 failed** on 1.2.54 plus the new size sweep on 1.2.55.
+
+- [x] G100: every part of the dial is inside the dial, and the scale is off the value ring.
+  Read at 8x, the 1.2.55 shot showed two defects on the same part.  (1) The tick ring sat at
+  `body * 1.34`, and body was `0.39 * box`, so the painted dial reached **0.5226 x the
+  slider's box** - 2.3 px outside it on every side, into the label column of the dial beside
+  it.  (2) The tick marks started at `tickR - 4.5`, which is *inside* the value ring at
+  `1.19 * body`, so all eleven marks crossed the ring and read as nubs stuck to it.  Both are
+  relations between numbers, so they are now decided in one place - `Source/ui/KnobSpec.h`,
+  pure C++ - and checked by `Tests/test_dials.cpp` over six box sizes (44, 46, 51.84 = the
+  0.96 press state, 54, 58, 62): the parts are ordered body < seat < value ring < major tick
+  < minor tick < scale edge, nothing painted leaves the box, the scale keeps >= 0.8 px of air
+  from the ring, a minor tick is >= 4 % of the box long, and the body keeps >= 32 % of it.
+  The first red run was the real defect: with the strokes as fixed pixel widths the major
+  tick was clipped by the box at the smaller sizes, which is why every length in KnobSpec -
+  strokes included - is now a fraction of the box.
+  Two smaller things found in the same read: the accent arc at value 0 is a zero-length
+  stroke, i.e. one round dot on the ring (it printed as a stray pink speck beside the
+  auto-stop dial at OFF), so the start marker is drawn in the ring's own ink at zero; and the
+  reset key's glyph was a 300-degree arc with a 4 px wedge that read as the letter **C**
+  (`Icon::Reset` in `Theme.h`) - it is now a tangential arrowhead, half the arc's width, on
+  the arc's own end.
+  CHECK: ./build/aeq_dials
+  EXPECT: dials: 7 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_dials` 7/0 with the pre-fix geometry failing checks 2 and 3
+  (paint radius 0.5226 box, and 0.9 px of overlap between ring and ticks); the editor and
+  the harness compile against JUCE 8.0.4.

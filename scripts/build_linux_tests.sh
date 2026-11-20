@@ -43,6 +43,7 @@ build aeq_profile                plugin/Tests/test_profile.cpp
 build aeq_live                   plugin/Tests/test_live.cpp
 build aeq_damage                 plugin/Tests/test_damage.cpp
 build aeq_chain                  plugin/Tests/test_chain.cpp
+build aeq_dials                  plugin/Tests/test_dials.cpp
 build aeq_cli                    plugin/cli/main.cpp
 
 echo "built $(ls build/aeq_* 2>/dev/null | wc -l) binaries in build/"

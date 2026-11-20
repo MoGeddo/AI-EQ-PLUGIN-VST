@@ -260,17 +260,29 @@ inline void icon (juce::Graphics& g, Icon which, juce::Rectangle<float> r,
                                                    juce::PathStrokeType::rounded));
             g.drawLine (centre.x, r.getY() + s * 0.08f, centre.x, centre.y - s * 0.02f, thickness);
             break;
-        case Icon::Reset:
-            p.addCentredArc (centre.x, centre.y, s * 0.28f, s * 0.28f, 0.0f,
-                             juce::MathConstants<float>::pi * 0.6f, juce::MathConstants<float>::pi * 2.1f, true);
+        case Icon::Reset: {
+            // An arrow you can read at 16 px of ink.  The first version was a 300-degree
+            // arc plus a 4 px wedge that pointed along the gap - on the shipped 1.2.54
+            // window it read as the letter "C" with a speck beside it.  The head is now
+            // half the arc's width and sits tangentially *on* the arc's end, so the break
+            // in the circle and the direction of travel are the same mark.
+            const float rr = s * 0.30f;
+            const float a0 = juce::MathConstants<float>::pi * 0.30f;   // 54 deg, clockwise
+            p.addCentredArc (centre.x, centre.y, rr, rr, 0.0f, a0,
+                             a0 + juce::MathConstants<float>::pi * 1.62f, true);
             g.strokePath (p, juce::PathStrokeType (thickness, juce::PathStrokeType::curved,
                                                    juce::PathStrokeType::rounded));
+            const float hx = centre.x + std::sin (a0) * rr;
+            const float hy = centre.y - std::cos (a0) * rr;
+            const float tx = std::cos (a0), ty = std::sin (a0);       // tangent, clockwise
+            const float n = s * 0.155f;                               // half the head's width
             p.clear();
-            p.addTriangle (centre.x + s * 0.30f, centre.y - s * 0.20f,
-                           centre.x + s * 0.20f, centre.y - s * 0.34f,
-                           centre.x + s * 0.40f, centre.y - s * 0.34f);
+            p.addTriangle (hx + tx * n * 1.25f, hy + ty * n * 1.25f,
+                           hx - tx * n * 0.30f - ty * n, hy - ty * n * 0.30f + tx * n,
+                           hx - tx * n * 0.30f + ty * n, hy - ty * n * 0.30f - tx * n);
             g.fillPath (p);
             break;
+        }
         case Icon::Wave:
             for (int i = 0; i < 5; ++i) {
                 const float h = s * (0.16f + 0.20f * std::abs (std::sin (i * 1.1f + 0.6f)));

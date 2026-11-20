@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "ui/BandRow.h"
+#include "ui/KnobSpec.h"
 #include "ui/Logo.h"
 #include "ui/Wordmark.h"
 #include "ui/PanelCopy.h"
@@ -113,12 +114,16 @@ void arabic (Graphics& g, const char* s, Rectangle<float> area, Colour c, float 
 // body radius and a child is clipped to its own bounds: at 42 px the ring was being cut
 // off at the top of every knob.
 void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bool hover) {
-    const float r = box * 0.39f;
+    // The whole radial budget comes from ui/KnobSpec.h - body, seat, value ring, scale - so
+    // that every part of it is inside the square the slider owns and the ring is never
+    // crossed by the ticks.  test_dials.cpp holds those relations for every box size here.
+    const auto k = aeq::ui::knobMetrics (box);
+    const float r = k.body;
     const float value = jlimit (0.0f, 1.0f, proportion);
     const auto accent = Palette::accent();
 
     // seat: a recess with a lit top edge and a shadowed bottom one
-    const float seat = r * 1.08f;
+    const float seat = k.seat;
     g.setColour (Colours::black.withAlpha (0.55f));
     g.fillEllipse (centre.x - seat, centre.y - seat + 1.0f, seat * 2, seat * 2);
     g.setColour (Palette::hairline().withAlpha (0.55f));
@@ -145,26 +150,28 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     // is set".  Every hardware panel in the AudioUi set the panel is measured against has
     // one, and ours had a bare groove.
     {
-        const float tickR = r * 1.34f;
         for (int i = 0; i <= 10; ++i) {
             const float a = degreesToRadians (-135.0f + 27.0f * float (i));
             const bool major = (i % 5 == 0);
-            const float inner = tickR - (major ? 4.5f : 3.0f);
+            // the tick starts outside the value ring, not on top of it: a mark that crosses
+            // the ring reads as a nub stuck to it, which is what the 1.2.53 shot showed
+            const float inner = major ? k.majorIn : k.tickIn;
             const float dx = std::sin (a), dy = -std::cos (a);
             g.setColour (Palette::hairline().withAlpha (major ? 0.95f : 0.55f));
             g.drawLine (Line<float> (centre.translated (dx * inner, dy * inner),
-                                     centre.translated (dx * tickR, dy * tickR)),
-                        major ? 1.6f : 1.0f);
+                                     centre.translated (dx * k.tickOut, dy * k.tickOut)),
+                        major ? k.majorStroke : k.minorStroke);
         }
     }
 
     // the value ring: a groove from -135 to +135, and the accent from the centre detent
-    const float ringR = r * 1.19f;
+    const float ringR = k.groove;
     Path groove;
     groove.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
                           degreesToRadians (-135.0f), degreesToRadians (135.0f), true);
     g.setColour (Palette::hairline().withAlpha (0.75f));
-    g.strokePath (groove, PathStrokeType (2.0f, PathStrokeType::curved, PathStrokeType::rounded));
+    g.strokePath (groove, PathStrokeType (k.grooveStroke, PathStrokeType::curved,
+                                          PathStrokeType::rounded));
 
     // The arc runs from the *start of the travel* to the value, not from the value to 12
     // o'clock: JUCE measures angles from the top, clockwise, so the travel is -135..+135
@@ -174,7 +181,11 @@ void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bo
     Path arc;
     arc.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
                        degreesToRadians (-135.0f), a, true);
-    g.setColour (accent.withAlpha (0.90f));
+    // At zero the lit arc is a zero-length stroke, i.e. one round dot sitting on the ring's
+    // start - on the 1.2.54 shot that read as a stray pink speck beside the knob.  A dial at
+    // zero has nothing lit, so the start marker is drawn in the ring's own ink instead.
+    g.setColour (value < 0.02f ? Palette::hairline()
+                               : accent.withAlpha (0.90f));
     g.strokePath (arc, PathStrokeType (2.4f, PathStrokeType::curved, PathStrokeType::rounded));
 
     // needle, from the centre out: never a dot in the middle

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(GeddoAEQ VERSION 1.2.55 LANGUAGES CXX)
+project(GeddoAEQ VERSION 1.2.56 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -233,6 +233,14 @@ add_test(NAME audio_smoothness COMMAND aeq_smooth)
 # The product, not the maths: with no editor open and nobody touching anything, does
 # the plugin listen, decide and apply?  This drives the core exactly as the
 # processor's 4 Hz timer does and asserts the decision is there.
+# The dial's radial budget (Source/ui/KnobSpec.h): the scale has to be inside the box the
+# slider gives it and outside the value ring.  A picture cannot be asserted; this can, and
+# the 1.2.53 tick ring that ran past its box and crossed the ring is exactly this relation.
+add_executable(aeq_dials Tests/test_dials.cpp)
+target_include_directories(aeq_dials PRIVATE Source)
+set_target_properties(aeq_dials PROPERTIES CXX_STANDARD 17)
+add_test(NAME dial_geometry COMMAND aeq_dials)
+
 add_executable(aeq_auto Tests/test_auto.cpp)
 target_include_directories(aeq_auto PRIVATE Source)
 set_target_properties(aeq_auto PROPERTIES CXX_STANDARD 17)
