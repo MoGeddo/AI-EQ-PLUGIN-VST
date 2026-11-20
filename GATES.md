@@ -1563,3 +1563,17 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: controls-shapes: 6 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_controls` 6/0; the editor compiles against JUCE 8.0.4; the shipped
   window is `docs/ui-1.2.64-window.png`.
+
+- [x] G107: the rocker reads as a rocker - from its edges, not its shading.
+  The first build of the rocker (1.2.64) filled a leaning quad with a vertical gradient, and
+  the shot shows it as a **triangle pointing left**: the light-to-dark ramp crossed the quad's
+  own diagonal edges and the eye took the boundary for a third edge.  A rocker is read from
+  its *edges* and its travel, not from its shading, so the paddle is now a rounded rectangle
+  with three grip hairlines, a lit edge on the raised end, and a 1.6 px travel - plus the lamp
+  in the strip under it.  The rule this produced is in the comment above the code: on this
+  panel a machined part is drawn as flat fill + edge highlight + a hairline that says which
+  end is up, and a gradient is only for a *round* surface (the cap, the seat).
+  CHECK: grep -c "the paddle" plugin/Source/PluginEditor.cpp
+  EXPECT: 1
+  EVIDENCE: VERIFIED - the 1.2.65 window, `docs/ui-1.2.65-window.png`; the geometry stays held
+  by `aeq_controls` (6/0).

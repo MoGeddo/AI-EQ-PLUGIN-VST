@@ -873,36 +873,46 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
         {
             const auto m = aeq::ui::rockerMetrics (34.0f * k);
             const auto cx = rk.getCentreX();
-            const float cy = rk.getCentreY() - m.lampGap * 0.5f;
+            // the paddle occupies the plate less its padding, and the lamp gets the strip
+            // under it - so the switch is a *paddle* over a *lamp*, which is what the
+            // reference's rocker is
+            const float paddleTop = rk.getY() + m.pad;
+            const float paddleH = m.plate - 2.0f * m.pad;
             const float halfW = m.plate * 0.5f - m.pad;
-            const float halfH = m.plate * 0.5f - m.pad;
-            const float tilt = aeq::ui::rockerTiltFor (34.0f * k, ! bypassed);
-            // The paddle: a quad whose leading edge leans by `tilt`.  Leaning is the state -
-            // the reference's rocker shows on/off by its angle, before any colour is read.
-            Path paddle;
-            paddle.startNewSubPath (cx - halfW, cy - halfH + tilt);
-            paddle.lineTo (cx + halfW, cy - halfH - tilt);
-            paddle.lineTo (cx + halfW, cy + halfH + tilt);
-            paddle.lineTo (cx - halfW, cy + halfH - tilt);
-            paddle.closeSubPath();
-            ColourGradient pg (bypassed ? Palette::surfaceHi().brighter (0.10f)
-                                        : Palette::surfaceHi().brighter (0.26f),
-                               cx, cy - halfH + tilt, Palette::bg().darker (0.30f),
-                               cx, cy + halfH + tilt, false);
-            g.setGradientFill (pg);
-            g.fillPath (paddle);
-            g.setColour (Colours::black.withAlpha (0.55f));
-            g.strokePath (paddle, PathStrokeType (1.0f));
-            // the groove the paddle rocks in: a hairline across its pivot, so the tilt reads
-            g.setColour (Colours::white.withAlpha (0.07f));
-            g.drawLine (cx - halfW, cy + 0.5f, cx + halfW, cy + 0.5f, 1.0f);
+            // On = the paddle is pressed at the top and lifted at the bottom: shown as a
+            // 1.6 px travel of the whole paddle plus a lit top edge.  A gradient-filled
+            // quad was tried first and read as a triangle (the 1.2.64 shot) - a rocker is
+            // read from its *edges*, not from its shading.
+            const float travel = aeq::ui::rockerTiltFor (34.0f * k, ! bypassed) * 0.55f;
+            const Rectangle<float> paddle (cx - halfW, paddleTop - travel,
+                                           halfW * 2.0f, paddleH);
+            g.setColour (bypassed ? Palette::surfaceHi().brighter (0.04f)
+                                  : Palette::surfaceHi().brighter (0.20f));
+            g.fillRoundedRectangle (paddle, 3.0f * k);
+            g.setColour (Colours::black.withAlpha (0.60f));
+            g.drawRoundedRectangle (paddle.reduced (0.5f), 3.0f * k, 1.0f);
+            // the ridges across the paddle: three hairlines, the reference's grip
+            for (int i = 1; i <= 3; ++i) {
+                const float y = paddle.getY() + paddleH * float (i) / 4.0f;
+                g.setColour (Colours::black.withAlpha (0.35f));
+                g.drawLine (paddle.getX() + 3.0f * k, y, paddle.getRight() - 3.0f * k, y, 1.0f);
+                g.setColour (Colours::white.withAlpha (0.07f));
+                g.drawLine (paddle.getX() + 3.0f * k, y + 1.0f, paddle.getRight() - 3.0f * k,
+                            y + 1.0f, 1.0f);
+            }
+            // the raised end carries the light
+            g.setColour (bypassed ? Colours::black.withAlpha (0.45f)
+                                  : Colours::white.withAlpha (0.20f));
+            const float litY = bypassed ? paddle.getBottom() - 1.0f : paddle.getY() + 1.0f;
+            g.drawLine (paddle.getX() + 3.0f * k, litY, paddle.getRight() - 3.0f * k, litY,
+                        1.0f);
             // the lamp: the reference's red LED, in the plate under the paddle
             const float d = m.lampD;
             const float ly = rk.getBottom() - m.lampGap - d * 0.5f;
             g.setColour (bypassed ? Palette::warn() : Palette::hairline().withAlpha (0.9f));
             g.fillEllipse (cx - d * 0.5f, ly - d * 0.5f, d, d);
             if (bypassed) {
-                g.setColour (Palette::warn().withAlpha (0.25f));
+                g.setColour (Palette::warn().withAlpha (0.22f));
                 g.fillEllipse (cx - d, ly - d, d * 2.0f, d * 2.0f);
             }
         }
