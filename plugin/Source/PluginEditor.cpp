@@ -85,6 +85,19 @@ void trackedText (Graphics& g, const String& s, Rectangle<float> area, Colour c,
     lay.draw (g, area);
 }
 
+// The advance a tracked line actually takes.  `aeq::ui::measure` returns the *untracked*
+// width, and JUCE 8 deprecates Font::getStringWidthFloat - a TextLayout with no wrap is the
+// same shaping the draw call makes, so it is the number the next word should be placed past.
+float trackedInk (const String& s, float size, float tracking, Face face) {
+    AttributedString as;
+    as.append (s.toUpperCase(),
+               aeq::ui::font (size, face).withExtraKerningFactor (tracking / size),
+               Colours::white);
+    TextLayout lay;
+    lay.createLayout (as, 10000.0f);
+    return lay.getWidth();
+}
+
 void arabic (Graphics& g, const char* s, Rectangle<float> area, Colour c, float size,
              Justification j = Justification::centredLeft, Face face = Face::Regular) {
     aeq::ui::draw (g, aeq::ui::u8 (s), area, j, size, c, face);
@@ -967,8 +980,11 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // "s SCAN 0%  ·  0" because of it.  Every readout on this row is tracked Latin, so it
     // takes the path that never sets an RTL base.
     const float stripSize = kMicro * sy;
-    const float stripW = aeq::ui::measure (scanStripText(), stripSize, Face::SemiBold)
-                         + kReadoutTrack * float (jmax (0, scanStripText().length() - 1));
+    // The advance the line *will* take, kerning included: `measure()` returns the untracked
+    // width, and the caption's next word was laid out against it - the 1.2.48 shot reads
+    // "COARSE3 BANDS" because the render is ~30 px wider than the number that placed it.
+    const float stripW = trackedInk (scanStripText(), stripSize, kReadoutTrack,
+                                     Face::SemiBold) + 2.0f * sy;
     // The box is the left 45 % of the row, not the measured width: trackedText lays out
     // with AttributedString's default by-word wrap, so a box one pixel short of the
     // advance turns "SCAN 0%  ·  0 s" into two lines (the shipped 1.2.47 shot of the empty
@@ -994,7 +1010,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
                      + aeq::ui::num (s2.gapAfterDb, 1, 4) + " DB";
     }
     trackedText (g, learned, caption.withLeft (roundToInt (caption.getX() + stripW
-                                                          + 30.0f * sx)),
+                                                          + 34.0f * sx)),
                  Palette::muted(), kMicro * sy, 1.1f);
 
     float rx = caption.getRight();
