@@ -1460,3 +1460,28 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: 1
   EVIDENCE: VERIFIED - the assertion is in the controls stage; 1.2.57's run reports
   `controls` with it green (see the run's controls.log.txt).
+
+- [x] G102: the dial is the reference's part - cap, knurled skirt, thick ring, and a scale
+  only where it can be read.
+  After G101 the dial was still a smooth dark circle with a hairline groove and a scale of
+  eleven faint ticks.  The reference's knobs (VST kit 01) are the opposite: a dark machined
+  cap, a **knurled skirt** whose ridges you can see, a **thick** coloured arc ring hugging
+  the cap, a screw in the seat - and, on the small knobs (kit 03's Grain/Effect knobs), **no
+  scale at all**.  That last observation is the one that matters here: this panel's dials are
+  54 design px, where a minor tick computed out at 1.4 px and read as noise.
+  `drawKnob()` is rebuilt to that anatomy: 40 skirt ridges lit from above, a ring stroke of
+  4.8 % of the box (>= 2.6 px at every size the panel uses), a screw in the seat, and the
+  tick ring drawn only when the box reaches `kKnobTicksMinBox` (66 px) - a number in
+  `Source/ui/KnobSpec.h`, not a judgement re-made at each call site.
+  `test_dials` now walks nine box sizes, including above and below the threshold, and holds
+  ten relations: the parts in order (cap < skirt < seat < ring < scale), nothing painted
+  outside the square, nothing on its edge, >= 0.8 px of air between ring and scale, every
+  drawn tick >= 2 px long (major >= 2.8 px), no ticks below the threshold, the cap >= 32 % of
+  the box, the skirt inside the seat with the ring clear of it, and the ring >= 2 px thick.
+  Three of those checks failed on the first run and moved the numbers: the tick was 1.98 px at
+  the threshold, and the ring overlapped the skirt.
+  CHECK: ./build/aeq_dials
+  EXPECT: dials: 10 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_dials` 10/0; the editor, processor and harness compile against
+  JUCE 8.0.4; the shipped 1.2.59 window is `docs/ui-1.2.59-window.png` and the side-by-side
+  against the reference is `docs/ui-1.2.58-vs-reference.png`.

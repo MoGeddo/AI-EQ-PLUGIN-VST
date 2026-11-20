@@ -117,90 +117,119 @@ void arabic (Graphics& g, const char* s, Rectangle<float> area, Colour c, float 
 // body radius and a child is clipped to its own bounds: at 42 px the ring was being cut
 // off at the top of every knob.
 void drawKnob (Graphics& g, Point<float> centre, float box, float proportion, bool hover) {
-    // The whole radial budget comes from ui/KnobSpec.h - body, seat, value ring, scale - so
-    // that every part of it is inside the square the slider owns and the ring is never
-    // crossed by the ticks.  test_dials.cpp holds those relations for every box size here.
+    // The whole radial budget comes from ui/KnobSpec.h - cap, knurled skirt, seat, ring,
+    // scale - so that every part of it is inside the square the slider owns and the ring is
+    // never crossed by the ticks.  test_dials.cpp holds those relations for every box size.
+    //
+    // The anatomy is the reference's (dribbble.com/AudioUi, VST kit 01): a dark machined
+    // cap, a **knurled skirt** you can see the ridges of, a **thick** coloured arc ring
+    // hugging the cap, and a scale only on the dials large enough to carry one.
     const auto k = aeq::ui::knobMetrics (box);
     const float r = k.body;
     const float value = jlimit (0.0f, 1.0f, proportion);
     const auto accent = Palette::accent();
+    const auto hot = Palette::accentHi();
 
-    // seat: a recess with a lit top edge and a shadowed bottom one
-    const float seat = k.seat;
+    // ---- seat: the recess the whole part sits in, shadowed at the top so the part reads
+    // as *in* the plate rather than on it
     g.setColour (Colours::black.withAlpha (0.55f));
-    g.fillEllipse (centre.x - seat, centre.y - seat + 1.0f, seat * 2, seat * 2);
-    g.setColour (Palette::hairline().withAlpha (0.55f));
-    g.drawEllipse (centre.x - seat, centre.y - seat, seat * 2, seat * 2, 1.0f);
+    g.fillEllipse (centre.x - k.seat, centre.y - k.seat + 1.0f, k.seat * 2, k.seat * 2);
+    g.setColour (Palette::hairline().withAlpha (0.45f));
+    g.drawEllipse (centre.x - k.seat, centre.y - k.seat, k.seat * 2, k.seat * 2, 1.0f);
 
-    // body: radial, darker at the rim, with a specular arc at the top
-    ColourGradient body (Palette::surfaceHi().brighter (0.10f), centre.x, centre.y - r * 0.35f,
-                         Palette::bg().darker (0.35f), centre.x, centre.y + r, false);
+    // ---- knurled skirt: 40 ridges, lit from the top.  This is the one detail that says
+    // "turned by a hand" at 54 px, and it is why the reference's small knobs read as
+    // hardware while ours read as a circle.
+    {
+        for (int i = 0; i < k.knurlCount; ++i) {
+            const float a = MathConstants<float>::twoPi * float (i) / float (k.knurlCount);
+            const float dx = std::sin (a), dy = -std::cos (a);
+            // light comes from above: a ridge faces the light when its normal points up
+            const float lit = 0.5f + 0.5f * (-dy);
+            g.setColour (Colours::white.withAlpha (0.020f + 0.055f * lit));
+            g.drawLine (Line<float> (centre.translated (dx * k.knurlIn, dy * k.knurlIn),
+                                     centre.translated (dx * k.knurlOut, dy * k.knurlOut)),
+                        k.knurlStroke);
+        }
+    }
+
+    // ---- cap: radial, darker at the rim, with a specular arc on the lit side
+    ColourGradient body (Palette::surfaceHi().brighter (0.12f), centre.x, centre.y - r * 0.40f,
+                         Palette::bg().darker (0.30f), centre.x, centre.y + r, false);
     g.setGradientFill (body);
     g.fillEllipse (centre.x - r, centre.y - r, r * 2, r * 2);
-    g.setColour (Colours::white.withAlpha (hover ? 0.22f : 0.14f));
+    g.setColour (Colours::white.withAlpha (hover ? 0.26f : 0.16f));
     g.drawEllipse (centre.x - r + 0.5f, centre.y - r + 0.5f, r * 2 - 1.0f, r * 2 - 1.0f, 1.0f);
-    g.setColour (Palette::accentHi().withAlpha (0.16f));
+    g.setColour (hot.withAlpha (0.14f));
     Path cap;
-    // the specular highlight belongs on the lit side of the part, which is the top: at
-    // 1.12 pi..1.88 pi it was being drawn across the bottom of every knob
-    cap.addCentredArc (centre.x, centre.y, r * 0.86f, r * 0.86f, 0.0f,
+    // the specular highlight belongs on the lit side of the part, which is the top
+    cap.addCentredArc (centre.x, centre.y, r * 0.82f, r * 0.82f, 0.0f,
                        -MathConstants<float>::pi * 0.34f,
                        MathConstants<float>::pi * 0.34f, true);
-    g.strokePath (cap, PathStrokeType (1.2f));
+    g.strokePath (cap, PathStrokeType (box * 0.026f));
 
-    // ---- the tick ring: 24 marks at the 11 positions a hand actually reads (every 10 %).
-    // A dial with a groove and a needle says "this moves"; a dial with a *scale* says "this
-    // is set".  Every hardware panel in the AudioUi set the panel is measured against has
-    // one, and ours had a bare groove.
-    {
+    // ---- the value ring: the travel in the plate's ink, the value in the accent.  It hugs
+    // the cap, thicker than the old hairline groove, because on the reference the ring is
+    // the number - there is no other place the eye can read a setting from.
+    const float ringR = k.groove;
+    Path groove;
+    groove.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
+                          degreesToRadians (-135.0f), degreesToRadians (135.0f), true);
+    g.setColour (Palette::hairline().withAlpha (0.80f));
+    g.strokePath (groove, PathStrokeType (k.grooveStroke, PathStrokeType::curved,
+                                          PathStrokeType::rounded));
+
+    // The arc runs from the *start of the travel* to the value, not from the value to 12
+    // o'clock: JUCE measures angles from the top, clockwise, so the travel is -135..+135
+    // and the lit part is -135..a.
+    const float a = degreesToRadians (-135.0f + 270.0f * value);
+    Path arc;
+    arc.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
+                       degreesToRadians (-135.0f), a, true);
+    // At zero the lit arc is a zero-length stroke, i.e. one round dot on the ring's start -
+    // on the 1.2.54 shot that read as a stray pink speck beside the knob.  A dial at zero
+    // has nothing lit, so the start marker is drawn in the ring's own ink instead.
+    g.setColour (value < 0.02f ? Palette::hairline() : accent);
+    g.strokePath (arc, PathStrokeType (k.grooveStroke, PathStrokeType::curved,
+                                       PathStrokeType::rounded));
+
+    // ---- the scale, only where it can be read: outside the ring, clear of it
+    if (aeq::ui::knobHasTicks (box)) {
         for (int i = 0; i <= 10; ++i) {
-            const float a = degreesToRadians (-135.0f + 27.0f * float (i));
+            const float ta = degreesToRadians (-135.0f + 27.0f * float (i));
             const bool major = (i % 5 == 0);
-            // the tick starts outside the value ring, not on top of it: a mark that crosses
-            // the ring reads as a nub stuck to it, which is what the 1.2.53 shot showed
             const float inner = major ? k.majorIn : k.tickIn;
-            const float dx = std::sin (a), dy = -std::cos (a);
-            g.setColour (Palette::hairline().withAlpha (major ? 0.95f : 0.55f));
+            const float dx = std::sin (ta), dy = -std::cos (ta);
+            g.setColour ((major ? Palette::text() : Palette::muted()).withAlpha (major ? 0.90f
+                                                                                       : 0.45f));
             g.drawLine (Line<float> (centre.translated (dx * inner, dy * inner),
                                      centre.translated (dx * k.tickOut, dy * k.tickOut)),
                         major ? k.majorStroke : k.minorStroke);
         }
     }
 
-    // the value ring: a groove from -135 to +135, and the accent from the centre detent
-    const float ringR = k.groove;
-    Path groove;
-    groove.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
-                          degreesToRadians (-135.0f), degreesToRadians (135.0f), true);
-    g.setColour (Palette::hairline().withAlpha (0.75f));
-    g.strokePath (groove, PathStrokeType (k.grooveStroke, PathStrokeType::curved,
-                                          PathStrokeType::rounded));
+    // ---- the screw at the bottom of the seat: a detail from the reference's panels, and
+    // it also anchors the part - a dial whose seat has no fastener reads as a sticker
+    g.setColour (Colours::black.withAlpha (0.65f));
+    g.fillEllipse (centre.x - box * 0.020f, centre.y + k.seat - box * 0.032f,
+                   box * 0.040f, box * 0.040f);
+    g.setColour (Colours::white.withAlpha (0.10f));
+    g.drawLine (centre.x - box * 0.012f, centre.y + k.seat - box * 0.012f,
+                centre.x + box * 0.012f, centre.y + k.seat - box * 0.012f, 1.0f);
 
-    // The arc runs from the *start of the travel* to the value, not from the value to 12
-    // o'clock: JUCE measures angles from the top, clockwise, so the travel is -135..+135
-    // and the lit part is -135..a.  Drawn the other way round the ring sat on the wrong
-    // side of the knob and its length had nothing to do with the number.
-    const float a = degreesToRadians (-135.0f + 270.0f * value);
-    Path arc;
-    arc.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f,
-                       degreesToRadians (-135.0f), a, true);
-    // At zero the lit arc is a zero-length stroke, i.e. one round dot sitting on the ring's
-    // start - on the 1.2.54 shot that read as a stray pink speck beside the knob.  A dial at
-    // zero has nothing lit, so the start marker is drawn in the ring's own ink instead.
-    g.setColour (value < 0.02f ? Palette::hairline()
-                               : accent.withAlpha (0.90f));
-    g.strokePath (arc, PathStrokeType (2.4f, PathStrokeType::curved, PathStrokeType::rounded));
-
-    // needle, from the centre out: never a dot in the middle
+    // ---- needle, from the centre out: never a dot in the middle
     const Point<float> tip (centre.x + std::sin (a) * r * 0.66f,
                             centre.y - std::cos (a) * r * 0.66f);
-    g.setColour (Colours::black.withAlpha (0.45f));
-    g.drawLine (Line<float> (centre.translated (0.0f, 1.0f), tip.translated (0.0f, 1.0f)), 3.6f);
-    g.setColour (Palette::accentHi());
-    g.drawLine (Line<float> (centre, tip), 2.8f);
-    g.fillEllipse (centre.x - 2.0f, centre.y - 2.0f, 4.0f, 4.0f);
-    // the head of the pointer, on the scale: where the dial is, read against the ticks
-    g.fillEllipse (tip.x - 2.6f, tip.y - 2.6f, 5.2f, 5.2f);
+    g.setColour (Colours::black.withAlpha (0.50f));
+    g.drawLine (Line<float> (centre.translated (0.0f, 1.5f), tip.translated (0.0f, 1.5f)),
+                box * 0.075f);
+    g.setColour (hot);
+    g.drawLine (Line<float> (centre, tip), box * 0.060f);
+    g.fillEllipse (centre.x - box * 0.045f, centre.y - box * 0.045f,
+                   box * 0.090f, box * 0.090f);
+    // the head of the pointer: where the dial is, read against the ring
+    g.fillEllipse (tip.x - box * 0.056f, tip.y - box * 0.056f,
+                   box * 0.112f, box * 0.112f);
 }
 
 } // namespace
