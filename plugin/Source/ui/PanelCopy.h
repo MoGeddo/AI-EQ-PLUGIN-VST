@@ -41,6 +41,14 @@ struct Facts
     int  dynamicLayers = 0;     // layers moving the signal right now (stabiliser + de-esser
                                 // + tracked), 0 when nothing is committed
     double movingDb = 0.0;      // and how much they are taking off, in total, right now
+    // Who ended the pass.  The user asked "does it scan all the audio or does it stop by
+    // itself?" and the panel could not answer: every sealed pass read "SEALED", whether the
+    // person pressed the clamp, the auto-stop dial ran out, or the five-minute cap fired.
+    bool stoppedByUser = true;
+    bool autoStopped = false;
+    // The dials that decide it, so the panel can print the RULE and not only the outcome.
+    double settleSeconds = 0.0;   // how much audio it wants before it trusts the numbers
+    double autoStopSeconds = 0.0; // 0 = it never stops itself
 };
 
 inline bool sealed (const Facts& f) { return f.frozen; }
@@ -85,34 +93,46 @@ inline std::string verdict (const Facts& f)
     return "Still learning. You stop it when you have heard the whole take.";
 }
 
-// The header's one-word state.
+// The header's one-word state.  "SEALED" alone cannot answer the user's question - "does it
+// scan all the audio, or does it stop by itself?" - because a pass that ended itself and a
+// pass the person ended read the same.  So the word carries who ended it: SEALED BY YOU,
+// SEALED (AUTO-STOP), SEALED (5 MIN CAP).  It is one word either way, and the difference is
+// exactly the thing that was being asked about.
 inline std::string stateWord (const Facts& f)
 {
-    // "no take yet" outranks everything: the pill and the footer have to agree, and the
-    // footer's first question is whether there is a take at all.
     if (! f.haveData) return "READY";
-    if (sealed (f)) return "SEALED";
+    if (sealed (f))
+    {
+        if (f.stoppedByUser) return "SEALED BY YOU";
+        if (f.autoStopped)   return "SEALED (AUTO-STOP)";
+        return "SEALED (5 MIN CAP)";
+    }
     if (open (f)) return "OPEN";
-    return "LISTENING";
+    return "LEARNING";
 }
 
+// And the sentence under the seal keeps saying what runs without a hand.
+inline std::string sealedSub (const Facts& f)
+{
+    if (f.stoppedByUser) return "frozen where you stopped it";
+    if (f.autoStopped)   return "frozen at " + std::to_string ((long long) std::llround (f.heardSeconds))
+                                + " s by the auto-stop";
+    return "frozen by the 5 minute cap";
+}
+
+// The same two facts as one number for the *closed* pass: nothing on the panel may keep
+// saying "SCANNING" over a decision that is frozen.  The meter is stopped by the core, so
+// this is only the wording.
+inline bool stillScanning (const Facts& f) { return ! sealed (f) && f.haveData; }
+
+// The invitation before there is a take, and the state sentence while one is open.  These
+// were in this file before the seal learned to name who ended it; they are kept because the
+// header still draws them for the two states that have no "who" to name.
 inline std::string stateSub (const Facts& f)
 {
     if (! f.haveData) return "press the clamp to stop";
-    // The frozen curve cannot move; the dynamic layer keeps working - and the old sentence
-    // said "nothing moves on its own", i.e. the opposite of what the plugin does.  It is
-    // the sentence a user asked about directly ("اوتوماتيك ودايناميك ولا ستاتيك؟").
-    //
-    // It stops at "curve frozen" now because the panel draws it *beside* `autoLine`, which
-    // already names the dynamic layer: "curve frozen  ·  AUTO: GAIN + DYNAMIC + STOP AT
-    // 45 s" says both halves once, and a sentence that says "dynamics live" next to
-    // "+ DYNAMIC" reads like two different claims about one thing.
-    if (sealed (f)) return "curve frozen";
-    // "correction live" and not "correction live, still learning": this sentence is drawn
-    // beside `autoLine` under the seal pill, and the two together have to fit between the
-    // tagline's ink and the panel's right edge at every aspect ratio the window allows.
-    if (open (f)) return "correction live";
-    return "you stop it";
+    if (sealed (f))   return sealedSub (f);
+    return "correction live";
 }
 
 // The word on the clamp itself.  This is the answer to "where does it start and where do
@@ -202,16 +222,36 @@ inline std::string layerLine (const Facts& f)
     return s;
 }
 
-// What runs by itself.  The dial decides whether the pass ends on its own; the gain match
-// and the dynamic layers always do.  Saying it once, in the words of the question, beats
-// three dials a user has to interpret.
-inline std::string autoLine (const Facts& f, double autoStopSeconds)
+// What runs by itself, and **when it stops**.  This started as "AUTO: GAIN + DYNAMIC +
+// STOP BY YOU", which was half true: the plugin's default really is that the person ends
+// the pass, but there is a five-minute cap under that promise (a pass nobody stops would
+// listen forever and never apply anything).  The user asked directly - "does it scan all
+// the audio, or does it stop by itself?" - so the line now states the rule it will actually
+// follow, with the seconds that remain on the clock, and names the cap rather than
+// pretending there is none.
+//
+//   dial set    SCANS TO 21 s, THEN STOPS ITSELF  ·  6 s LEFT
+//   dial OFF    SCANS TO THE 5 MIN CAP  ·  240 s LEFT
+//
+// The count is against the *pass clock* (every second of input, gaps included), not the
+// sung-audio meter: a stop promised in seconds has to be seconds.
+inline std::string stopRuleLine (double stopAtSeconds, bool dialled, double clockSeconds)
+{
+    const double left = std::max (0.0, stopAtSeconds - clockSeconds);
+    const std::string at   = std::to_string ((long long) std::llround (stopAtSeconds));
+    const std::string rest = std::to_string ((long long) std::llround (left));
+    if (dialled)
+        return "SCANS TO " + at + " s, THEN STOPS ITSELF  \xc2\xb7  " + rest + " s LEFT";
+    return "SCANS TO THE " + std::to_string ((long long) std::llround (stopAtSeconds / 60.0))
+         + " MIN CAP  \xc2\xb7  " + rest + " s LEFT";
+}
+
+// The footer's summary of what needs no hand: the gain match and the dynamic layer always
+// run; the stop is the line above.
+inline std::string autoLine (const Facts& f)
 {
     std::string s = "AUTO: GAIN";
     if (f.committed) s += " + DYNAMIC";
-    s += autoStopSeconds > 0.0
-        ? (" + STOP AT " + std::to_string ((long long) std::llround (autoStopSeconds)) + " s")
-        : std::string (" + STOP BY YOU");
     return s;
 }
 

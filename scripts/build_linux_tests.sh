@@ -45,6 +45,7 @@ build aeq_damage                 plugin/Tests/test_damage.cpp
 build aeq_chain                  plugin/Tests/test_chain.cpp
 build aeq_dials                  plugin/Tests/test_dials.cpp
 build aeq_layout                 plugin/Tests/test_layout.cpp
+build aeq_when_it_stops          plugin/Tests/test_when_it_stops.cpp
 build aeq_controls               plugin/Tests/test_controls.cpp
 build aeq_cli                    plugin/cli/main.cpp
 

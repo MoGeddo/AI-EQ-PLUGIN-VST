@@ -1618,6 +1618,43 @@ at any vocal stem first; the other gates need nothing but the source tree.
   kit-03 cards stack a title, a value and a caption - which is also what makes it re-flow
   instead of overprint.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 10 passed, 0 failed
-  EVIDENCE: VERIFIED - `aeq_layout` 10/0 (three of its checks failed against the old geometry
-  and moved the numbers); the window at 1240x800 and 1024x700 is `docs/ui-1.2.67-*.png`.
+  EXPECT: layout: 11 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_layout` 11/0.  It was 10/0 when this gate was written and the
+  eleventh check is the one this gate was missing: **1.2.67 shipped 10/0 green and failed on
+  the runner**, because nothing here measured a dial *label* against the column it is drawn
+  in.  The new check ("the widest dial label fits the column it is drawn in") failed against
+  the shipped geometry at every width, which is what a gate is for.
+
+- [x] G110: the panel says **who** ends the scan, and says it **before** it happens.
+  Two questions the user asked, twice, in their own words: "هل هو بيسكان الصوت كله ولا بيقف
+  لوحده انا مش فاهم فكر بشكل كويس الاول فكر في كل حاجه" and, before that, the screenshot with
+  "SCANNED 88 S" and "STOPPED BY YOU" printed together - which cannot both be true.
+  The core had no clock for the promise and the panel had no words for the rule:
+    * **the cap was measured in the wrong seconds.**  `analyzedSeconds` counts *sung* audio
+      (the analyser's gate rejects breath and room), so on a real take - 76 % voice - 300 s
+      of audio read as **248 s** and the five-minute cap never fired at all.  A pass nobody
+      stopped listened forever and the meter said "listening".  The cap and the dial now run
+      on `passSeconds()`, a pass clock that counts the audio the pass was handed while it is
+      open and ignores blocks of exact digital silence (a stopped transport feeds zeros; a
+      recorded take's pauses are noise floor).  Measured: 300 s of take -> cap at **300**, the
+      meter at 248, and both stop the moment the seal lands.
+    * **the frozen meter kept moving.**  `refreshLocked()` republished `analyzedSeconds` after
+      the freeze, so a sealed pass printed a bigger number every second - the number in the
+      user's screenshot.  A sealed pass now stops counting: the decision and the meter stop
+      together.  (`aeq_commit` "3. and the meter stops with it"; the gate that used to demand
+      the opposite was corrected, with the reason in the diff.)
+    * **the panel could not say who ended it.**  Three words now, one word either way:
+      `SEALED BY YOU` / `SEALED (AUTO-STOP)` / `SEALED (5 MIN CAP)`, and the line under them
+      says *when* - "frozen at 45 s by the auto-stop", "frozen by the 5 minute cap".
+    * **and the rule is stated while the pass is open**, which is when knowing it can still
+      change what you do: the line under the seal reads `SCANS TO 21 s, THEN STOPS ITSELF ·
+      6 s LEFT` with a dial set, and `SCANS TO THE 5 MIN CAP · 240 s LEFT` with the dial OFF.
+      There is no version that says "never": a pass nobody stops never applies anything, so
+      the cap is real and the panel names it.  The footer's auto-stop column says "cap 5 min
+      still stops it" under the word OFF, because "OFF" alone read as "never".
+  CHECK: ./build/aeq_when_it_stops
+  EXPECT: when_it_stops: 15 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_when_it_stops` 15/0 (cap fires at 300 s of input, not at 248 s of
+  voice and not never; a sealed pass stops counting; the dial stops on its own setting; the
+  three words and the cap named in the sentence).  `aeq_commit` 45/0, `aeq_auto` 15/0, the
+  rest of the ledger unchanged.

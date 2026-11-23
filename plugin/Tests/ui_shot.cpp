@@ -559,21 +559,36 @@ int runControls(const juce::File& dir) {
         const auto layer = ed->layerReadoutText();
         check(layer.contains("STATIC") && layer.contains("DYNAMIC"),
               ("the panel answers static-or-dynamic in one line: " + layer).toRawUTF8());
-        const auto autos = ed->autoReadoutText();
-        check(autos.contains("AUTO") && autos.contains("GAIN") && autos.contains("STOP"),
-              ("and says what runs without a hand: " + autos).toRawUTF8());
-        check(autos.contains("STOP BY YOU"),
-              ("a pass this one ended by hand does not claim the dial ended it: "
-               + autos).toRawUTF8());
-
-        // the dial, once it is armed and the pass is open again, is what the line names
+        // The line under the seal answers the question the user asked in words - "does it scan
+        // all the audio, or does it stop by itself?" - and it answers it *while the pass is
+        // open*, with the rule and the seconds left on it.  It used to answer after the fact
+        // ("AUTO: GAIN + DYNAMIC + STOP BY YOU"), which said who stopped a pass that had
+        // already been stopped and nothing about what would stop the next one.
         if (auto* p = proc.apvts().getParameter("auto_stop")) {
+            const float was = p->getValue();
+            p->setValueNotifyingHost(p->convertTo0to1(0.0f));
+            pump();
+            // sealed by a hand: the line names the hand, not the dial
+            check(ed->autoReadoutText().contains("STOP"),
+                  ("sealed by hand, the line does not claim the dial did it: "
+                   + ed->autoReadoutText()).toRawUTF8());
+            // open again, dial armed: the rule is printed before it fires
+            click(ed->controlBounds(AeqAudioProcessorEditor::Control::Clamp).getCentre());
             p->setValueNotifyingHost(p->convertTo0to1(90.0f));
             ed->keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
             pump();
-            check(ed->autoReadoutText().contains("STOP AT 90 s"),
-                  ("with the auto-stop dial at 90 s the line says so: "
+            const auto rule = ed->autoReadoutText();
+            check(rule.contains("SCANS TO 90 s") && rule.contains("LEFT"),
+                  ("with the auto-stop dial at 90 s the open pass states the rule: "
+                   + rule).toRawUTF8());
+            // and with the dial OFF it still states one - the cap
+            p->setValueNotifyingHost(p->convertTo0to1(0.0f));
+            pump();
+            check(ed->autoReadoutText().contains("5 MIN CAP"),
+                  ("with the dial OFF it names the cap instead of leaving it to guesswork: "
                    + ed->autoReadoutText()).toRawUTF8());
+            p->setValueNotifyingHost(was);
+            pump();
         }
 
         // ---- and the boxes are on the panel, not under each other ---------------
@@ -754,6 +769,38 @@ int runWindow(const juce::File& dir) {
     proc.stopLearning();
     stage("stopped; the seal should be where the user left it");
     for (const auto& s : sizes) shoot(s, s.sealed);
+
+    // 2b. **seven bands**, which is the case the user named: "the panel must be legible at
+    // seven bands".  The detected take happened to produce a different number, and a
+    // screenshot at whatever the detector chose is not a test of the row the user was
+    // looking at.  So the decision is replaced with exactly seven bands - two cuts, two
+    // lifts, a shelf-ish pair and one narrow notch - and the row is photographed at the
+    // narrow window (1024 px), where a cell is ~150 px wide and the three-row card has
+    // the least room it will ever have.  ui-1.2.68-7-bands-1024x700.png is the crop the
+    // release notes point at.
+    stage("seven bands, on purpose");
+    {
+        const auto st = proc.core().state();
+        aeq::RestoreState seven = st;
+        seven.corrective.clear();
+        const struct { double f, q, g; } wanted[] = {
+            { 105.0, 1.10, -3.4 }, { 240.0, 1.60,  1.8 }, { 520.0, 2.10, -2.2 },
+            { 1250.0, 1.40, 2.6 }, { 2600.0, 2.60, -1.9 }, { 5200.0, 1.80, -2.4 },
+            { 9400.0, 3.20, -1.5 } };
+        for (const auto& w : wanted) {
+            aeq::BandSpec b;
+            b.f0 = w.f; b.q = w.q; b.gainDb = w.g; b.type = aeq::BandType::Peak;
+            seven.corrective.push_back(b);
+        }
+        seven.resonance.clear();
+        proc.core().restoreDecision(seven);
+        proc.core().clearTrims();
+        editor->resized();
+        shoot({ 1024, 700, "ui-7bands-1024x700.png", "ui-7bands-1024x700-sealed.png" },
+              "ui-1.2.68-7-bands-1024x700.png");
+        shoot({ 1240, 800, "ui-7bands-1240x800.png", "ui-7bands-1240x800-sealed.png" },
+              "ui-1.2.68-7-bands-1240x800.png");
+    }
 
     // 3. the drawing has the low cut in it.
     //

@@ -9,7 +9,7 @@
 
 #define AppName "Geddo AEQ"
 #ifndef AppVersion
-  #define AppVersion "1.2.67"
+  #define AppVersion "1.2.68"
 #endif
 #define FileVersion AppVersion + ".0"
 #define AppPublisher "Geddo"

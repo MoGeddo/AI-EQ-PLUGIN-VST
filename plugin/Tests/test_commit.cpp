@@ -186,8 +186,14 @@ int main() {
                 && before.corrective[i].q == after.corrective[i].q
                 && before.corrective[i].gainDb == after.corrective[i].gainDb;
         checkTrue(same, "3. after the commit the decision does not move");
-        checkF(after.analyzedSeconds > before.analyzedSeconds,
-               "3. but the meter keeps counting (%.1f s heard)", after.analyzedSeconds);
+        // The meter stops with the decision.  It used to keep following the analyser, which
+        // is how a sealed pass came to print a bigger number every second - the user's own
+        // screenshot had "SCANNED 88 s" over a scan that had been sealed at 61 s, and there
+        // was no way to tell when the scan had ended.  A meter that moves after the freeze
+        // reads as "it is still scanning", which is the question this had to answer.
+        checkF(std::abs(after.analyzedSeconds - before.analyzedSeconds) < 0.01,
+               "3. and the meter stops with it - a sealed pass is not still scanning "
+               "(%.1f s heard, unchanged)", after.analyzedSeconds);
 
         // ---- 3b. reopen: a stop made a phrase early costs one click ----------
         const auto beforeReopen = c.core->state();
@@ -323,8 +329,12 @@ int main() {
                               + (has (v, "learning") ? 1 : 0)
                               + (has (v, "Listening") ? 1 : 0);
             if (stories != 1) oneStory = false;
-            if (has (v, "Sealed") && aeq::copy::stateWord (g) != "SEALED") oneStory = false;
-            if (! has (v, "Sealed") && aeq::copy::stateWord (g) == "SEALED") oneStory = false;
+            // The pill now names *who* ended the pass ("SEALED BY YOU"), so the agreement
+            // is on the state, not on the literal word: a sentence that says Sealed and a
+            // pill that says OPEN would be two stories about one take.
+            const std::string word = aeq::copy::stateWord (g);
+            const bool pillSaysSealed = word.rfind ("SEALED", 0) == 0;
+            if (has (v, "Sealed") != pillSaysSealed) oneStory = false;
         }
         checkTrue (oneStory, "6f. every state says exactly one thing, and the pill agrees with it");
     }
@@ -384,16 +394,30 @@ int main() {
         checkTrue (has (moving, "STATIC 3") && has (moving, "DYNAMIC 4") && has (moving, "1.4 dB"),
                    "8k. a moving layer is named, counted and given the dB it is taking now");
 
-        // ---- what runs by itself -------------------------------------------------
-        checkTrue (has (aeq::copy::autoLine (g, 0.0), "STOP BY YOU")
-                     && has (aeq::copy::autoLine (g, 21.0), "STOP AT 21 s"),
-                   "8l. the automatic parts are named: gain, dynamic, and how the pass ends");
-        checkTrue (has (aeq::copy::autoLine (g, 0.0), "DYNAMIC"),
+        // ---- what runs by itself, and when it stops -------------------------------
+        // "STOP BY YOU" was the old answer and it was half true: a pass nobody stops ends
+        // itself at the cap.  The line now states the rule with the seconds left on it.
+        checkTrue (has (aeq::copy::stopRuleLine (300.0, false, 240.0), "5 MIN CAP")
+                     && has (aeq::copy::stopRuleLine (300.0, false, 240.0), "60 s LEFT"),
+                   "8l. with the dial OFF the line names the 5 minute cap and the seconds left");
+        checkTrue (has (aeq::copy::stopRuleLine (21.0, true, 15.0), "SCANS TO 21 s")
+                     && has (aeq::copy::stopRuleLine (21.0, true, 15.0), "6 s LEFT"),
+                   "8l2. with a dial set the line names the dial and the seconds left on it");
+        checkTrue (has (aeq::copy::autoLine (g), "DYNAMIC"),
                    "8m. once committed, the dynamic layer is part of what runs by itself");
+        checkTrue (! has (aeq::copy::autoLine (g), "STOP"),
+                   "8m2. ... and the stop is not in that line: one sentence talks about one "
+                   "thing, and the stop has its own");
 
         // ---- the sentence that was the opposite of the truth ---------------------
+        // A sealed pass used to read "curve frozen", which was true and said nothing: the
+        // user asked twice whether the pass stops by itself, so the line under the seal now
+        // answers that ("frozen at 45 s by the auto-stop") and leaves the moving layer to
+        // autoLine's "+ DYNAMIC".  The old sentence, "nothing moves on its own", was the
+        // opposite of what the plugin does and must not come back.
+        f.autoStopped = true; f.stoppedByUser = false; f.heardSeconds = 45.0;
         const std::string sub = aeq::copy::stateSub (f);
-        checkTrue (has (sub, "curve frozen") && ! has (sub, "nothing moves")
+        checkTrue (has (sub, "frozen") && has (sub, "auto-stop") && ! has (sub, "nothing moves")
                      && ! has (sub, "dynamics live"),
                    "8n. a sealed take says the curve is frozen and leaves the moving layer "
                    "to autoLine's '+ DYNAMIC' - the old line said 'nothing moves on its own', "

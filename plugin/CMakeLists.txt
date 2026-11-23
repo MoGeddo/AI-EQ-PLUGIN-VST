@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(GeddoAEQ VERSION 1.2.67 LANGUAGES CXX)
+project(GeddoAEQ VERSION 1.2.68 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -253,6 +253,14 @@ add_executable(aeq_layout Tests/test_layout.cpp)
 target_include_directories(aeq_layout PRIVATE Source)
 set_target_properties(aeq_layout PROPERTIES CXX_STANDARD 17)
 add_test(NAME layout_no_overlap COMMAND aeq_layout)
+
+# G110: who ends the pass, and the rule stated before it fires.  A behaviour gate, not a
+# sentence gate: the cap is measured on the pass clock, a sealed pass stops counting, and the
+# dial stops on its own setting.
+add_executable(aeq_when_it_stops Tests/test_when_it_stops.cpp)
+target_include_directories(aeq_when_it_stops PRIVATE Source)
+set_target_properties(aeq_when_it_stops PROPERTIES CXX_STANDARD 17)
+add_test(NAME scan_stop_rule COMMAND aeq_when_it_stops)
 
 add_executable(aeq_dials Tests/test_dials.cpp)
 target_include_directories(aeq_dials PRIVATE Source)

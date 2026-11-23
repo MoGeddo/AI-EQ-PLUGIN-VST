@@ -477,8 +477,15 @@ Rectangle<int> AeqAudioProcessorEditor::sealPill() const {
     const float sy = float (getHeight()) / kDesignH;
     const auto hd = blocks().header;
     const String sealText = String (aeq::copy::stateWord (panelFacts()));
-    const float textW = aeq::ui::measure (sealText, kCap * sy);
-    const float pillW = textW + 44.0f * sy;
+    // The pill's width comes from its word, and the word got longer when the seal started
+    // saying *who* ended the pass ("SEALED (AUTO-STOP)").  It is measured, and the pill is
+    // clamped so it can never run into the bypass key: a pill that overlaps a control is a
+    // control nobody can press.
+    float textW = aeq::ui::measure (sealText, kCap * sy);
+    const float by = float (bypassHit().getX());
+    const float maxRight = by - 12.0f * sy;
+    const float pillW = jmin (textW + 44.0f * sy, maxRight - float (hd.getX()));
+    (void) textW;
     const auto rs = resetHit();
     return { roundToInt (float (rs.getX()) - pillW - 10.0f * sy),
              hd.getY() + roundToInt (4.0f * sy), roundToInt (pillW), roundToInt (30.0f * sy) };
@@ -571,7 +578,15 @@ String AeqAudioProcessorEditor::autoReadoutText() const {
     // the tagline by a handful of pixels.  The frozen half still has a home - the
     // footer's verdict says it, in the sentence the user already reads there.
     if (! f.haveData) return String (aeq::copy::stateSub (f));
-    return String (aeq::copy::autoLine (f, stopSettingShown()));
+    // Open: the rule it will follow, and how long is left on it.  This is the sentence the
+    // question asked for - "does it scan all the audio, or does it stop by itself?" - and
+    // it is drawn before the stop, when knowing it can still change what you do.
+    if (! f.frozen) {
+        const auto clock = proc_.core().passClock();
+        return String (aeq::copy::stopRuleLine (clock.stopAtSeconds, clock.dialled,
+                                                clock.heardSeconds));
+    }
+    return String (aeq::copy::autoLine (f));
 }
 
 Rectangle<int> AeqAudioProcessorEditor::autoReadout() const {
@@ -1000,11 +1015,16 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
                      kCap * sy, kReadoutTrack, Justification::centredLeft, Face::SemiBold);
     }
 
-    // The sub-line under the seal: what runs without a hand.  The sentence it replaces
-    // said "nothing moves on its own", which was the opposite of the truth and the exact
-    // thing the user asked about ("اوتوماتيك ودايناميك ولا ستاتيك؟").
+    // The sub-line under the seal: what runs without a hand, and - when the pass is sealed -
+    // who ended it.  Two questions the user asked in two words: "هل بيسكان الصوت كله ولا
+    // بيقف لوحده".  The line answers the second one every time the state changes.
     {
-        trackedText (g, autoReadoutText(), autoReadout().toFloat(),
+        // While the pass is open this line is the RULE, not a noun: the user's question was
+        // asked before the stop, and a panel that only explains who ended a pass after the
+        // fact answers it too late.  Sealed, it says who did (sealedSub).
+        const auto f = panelFacts();
+        String line = f.frozen ? String (aeq::copy::sealedSub (f)) : autoReadoutText();
+        trackedText (g, line, autoReadout().toFloat(),
                      panelFacts().haveData ? Palette::accentHi().withAlpha (0.88f)
                                            : Palette::dim(),
                      kMicro * sy, kReadoutTrack, Justification::centredRight);
@@ -1455,19 +1475,30 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     // placed from constants - a 60 px value box at `cy - 3`, a 14 px step for a 26 px
     // number - so "100.0 dB" printed through the dial beside it (the user's screenshot).
     // `ui/Layout.h::dialColumn` gives all of that one home, and test_layout.cpp walks it.
+    // `sy` (height / design) scales the whole group, so the dial row shrinks with the window
+    // instead of keeping design pixels at every width - which is what put the group's left
+    // edge inside the sentence at 940 px (the 1.2.67 CI failure).
+    constexpr float kDialMaxDiameter = aeq::ui::layout::kDialMaxDiameter;
+    const float ds = dialScale();
     const auto r0 = aeq::ui::layout::dialColumn (0, float (area.getRight()), float (area.getY()),
-                                                 float (area.getHeight()));
+                                                 float (area.getHeight()), ds);
     const auto r1 = aeq::ui::layout::dialColumn (1, float (area.getRight()), float (area.getY()),
-                                                 float (area.getHeight()));
+                                                 float (area.getHeight()), ds);
     const auto r2 = aeq::ui::layout::dialColumn (2, float (area.getRight()), float (area.getY()),
-                                                 float (area.getHeight()));
+                                                 float (area.getHeight()), ds);
 
     struct Col { aeq::ui::layout::DialColumn c; const char* label; String value; bool sub; };
     const String v0 = aeq::ui::num (roundToInt (stableKnob_.getValue()), 0, 3) + "%";
     const String v1 = aeq::ui::num (roundToInt (amountKnob_.getValue()), 0, 3) + "%";
-    const String v2 = roundToInt (settleKnob_.getValue()) >= 1
+    // OFF is the honest word and the old one was a lie by omission: with the dial at 0 the
+    // pass still ends itself, at the five-minute cap, and the hint under the value says so
+    // instead of leaving "OFF" to imply "never".
+    const bool dialled = roundToInt (settleKnob_.getValue()) >= 1;
+    const String v2 = dialled
                         ? aeq::ui::num (roundToInt (settleKnob_.getValue()), 0, 3) + " s"
                         : String ("OFF");
+    const String hint2 = dialled ? String ("then it stops itself")
+                                 : String ("cap 5 min still stops it");
     const bool stabLive = proc_.core().stabilizerBands() > 0
                           && std::abs (proc_.core().stabilizerTotalDb()) >= 0.05;
     const Col cols[] = { { r0, kStabiliser, v0, true },
@@ -1476,33 +1507,52 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     for (int i = 0; i < 3; ++i) {
         const auto& c = cols[i].c;
         const String label = aeq::ui::u8 (cols[i].label);
-        const float lw = aeq::ui::measure (label, kMicro * sy);
-        // the label sits over the value, right-aligned to the dial's left edge
-        aeq::ui::draw (g, label, { c.centreX - 31.0f - c.valueBoxW - 8.0f, c.labelY,
-                                   c.valueBoxW + 8.0f, kCap * sy * 1.3f },
-                       Justification::centredRight, kCap * sy, Palette::muted());
+        // The label is drawn in its OWN box - left of the dial, inside its own column - and
+        // the value under it, right-aligned to the same edge.  Both are the layout's
+        // numbers; neither is `centreX - 31` written out again (that constant was the
+        // dial's radius at design size, i.e. a fixed offset in a row that scales).
+        const juce::Rectangle<float> labelBox (c.centreX - kDialMaxDiameter * ds * 0.5f
+                                                 - c.labelBoxW,
+                                               c.labelY, c.labelBoxW, kCap * sy * 1.3f);
+        aeq::ui::draw (g, label, labelBox, Justification::centredRight, kCap * sy,
+                       Palette::muted());
         g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
         g.setColour (Palette::text());
-        g.drawText (cols[i].value, juce::Rectangle<float> (c.centreX - 31.0f - c.valueBoxW,
-                                                           c.valueY, c.valueBoxW,
-                                                           kValue * sy * 1.25f),
+        g.drawText (cols[i].value,
+                    juce::Rectangle<float> (c.centreX - kDialMaxDiameter * ds * 0.5f - c.valueBoxW,
+                                            c.valueY, c.valueBoxW, kValue * sy * 1.25f),
                     Justification::centredRight, false);
-        (void) lw;
     }
     // the stabiliser's live number, under its own value and inside its own column - and only
     // when it is doing something (a permanent "0.0 dB" is a number nobody reads)
     if (stabLive)
         aeq::ui::draw (g, aeq::ui::num (proc_.core().stabilizerTotalDb(), 1, 4) + " dB",
-                       { r0.centreX - 31.0f - r0.valueBoxW, r0.subY, r0.valueBoxW,
-                         r0.microLikeHeight },
+                       { r0.centreX - kDialMaxDiameter * ds * 0.5f - r0.valueBoxW, r0.subY,
+                         r0.valueBoxW, r0.microLikeHeight },
                        Justification::centredRight, kMicro * sy,
                        proc_.core().stabilizerTotalDb() < -0.5 ? Palette::accent()
                                                                : Palette::dim());
+    // Under the auto-stop value: what the value actually means.  "OFF" alone implied
+    // "never stops" and the user's whole question was whether it stops by itself; the
+    // cap is the answer, and it is printed where the dial is.  Measured against its own
+    // column before it is drawn - the third column is the narrowest thing on this row and
+    // a hint that overflows it is the overlap this release is about.
+    {
+        const float track = kReadoutTrack * 0.5f;
+        const float hw = aeq::ui::measure (hint2, kMicro * sy)
+                         + track * float (jmax (0, hint2.length() - 1));
+        if (hw <= r2.valueBoxW)
+            trackedText (g, hint2,
+                         { r2.centreX - kDialMaxDiameter * ds * 0.5f - r2.valueBoxW, r2.subY,
+                           r2.valueBoxW, r2.microLikeHeight },
+                         Palette::dim(), kMicro * sy, track, Justification::centredRight);
+    }
     // the de-esser says its own dB while it is working, and nothing when it is not
     const double gr = std::abs (proc_.core().deEssGainReductionDb());
     if (gr >= 0.05)
         aeq::ui::draw (g, "DE-ESS " + aeq::ui::num (gr, 1, 4) + " dB",
-                       { r0.left, r0.subY, r0.centreX - 31.0f - r0.left - 6.0f,
+                       { r0.left, r0.subY,
+                         r0.centreX - kDialMaxDiameter * ds * 0.5f - r0.left - 6.0f * sy,
                          r0.microLikeHeight },
                        Justification::centredRight, kMicro * sy,
                        Palette::accent().withAlpha (0.9f));
@@ -1530,6 +1580,12 @@ aeq::copy::Facts AeqAudioProcessorEditor::panelFacts() const {
     // 0.3 dB.  The frozen curve is deliberately not in this number - it cannot move.
     f.dynamicLayers = proc_.core().movingLayersNow();
     f.movingDb = proc_.core().movingDbNow();
+    // Who ended this pass.  The core knows whether it stopped itself (the auto-stop dial or
+    // the 5-minute cap); if it did not and the pass is frozen, the person did.
+    f.autoStopped = proc_.core().stoppedAutomatically();
+    f.stoppedByUser = ! f.autoStopped;
+    f.settleSeconds = st.needSeconds;
+    f.autoStopSeconds = double (settleKnob_.getValue());
     return f;
 }
 
@@ -1563,9 +1619,16 @@ bool AeqAudioProcessorEditor::modeWordFits() const {
 // the left of its own dial (see drawFooter), so the thing that can collide is one dial's
 // ring with the *previous* label's last letter.  At the design size there is 60 px of air
 // there; at 1024x700 there was none, and the shipped 1.2.62 shot put the strength dial on
+// The dial group's own scale: min of the window's two scales.  One function, because the
+// paint code, the hit boxes and the gate all have to agree about it (see ui/Layout.h).
+float AeqAudioProcessorEditor::dialScale() const {
+    return jmin (float (getWidth()) / kDesignW, float (getHeight()) / kDesignH);
+}
+
 // top of the word "strength".  Same discipline as the mode keys: measure, then assert.
 bool AeqAudioProcessorEditor::dialRowFits() const {
     const float sy = float (getHeight()) / kDesignH;
+    const float ds = dialScale();
     const auto b = blocks();
     const auto copy = footerCopyBox();
     const char* names[] = { "stabiliser", "strength", "auto-stop" };
@@ -1573,12 +1636,20 @@ bool AeqAudioProcessorEditor::dialRowFits() const {
     for (int i = 2; i >= 0; --i) {
         const auto c = aeq::ui::layout::dialColumn (i, float (b.footer.getRight()),
                                                     float (b.footer.getY()),
-                                                    float (b.footer.getHeight()));
+                                                    float (b.footer.getHeight()), ds);
+        // Everything below is measured from the layout's own boxes and the font that actually
+        // draws them.  The old version derived the label's left edge from `centreX - 31` -
+        // a fixed number that happened to equal the dial's radius at design scale - and
+        // compared it with a sentence box, so it passed at 1240 while the label it never
+        // measured crossed the neighbouring dial at 1024.  This one cannot: the label's box
+        // is the box it is drawn in, and the label's *width* has to fit that box.
         const float labelW = aeq::ui::measure (aeq::ui::u8 (names[i]), kMicro * sy);
-        // the label sits in the column's left part, right-aligned to the value's box
-        const float labelLeft = c.centreX - 31.0f - c.valueBoxW - labelW;
-        if (labelLeft < copy.getRight() + 8.0f) return false;      // it would run into the sentence
-        if (c.right > previousLeft + 0.5f) return false;           // columns overlapping
+        if (labelW > c.labelBoxW + 0.5f) return false;              // label wider than the column
+        if (c.labelBoxW <= 0.0f) return false;
+        const float labelLeft = c.centreX - aeq::ui::layout::kDialMaxDiameter * ds * 0.5f
+                                - c.labelBoxW;
+        if (labelLeft < copy.getRight() + 8.0f * sy) return false;  // into the sentence
+        if (c.right > previousLeft + 0.5f) return false;            // columns overlapping
         previousLeft = c.left;
     }
     return true;
@@ -1596,8 +1667,11 @@ Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {
     const auto area = blocks().footer.toFloat();
     const auto s1 = modeSegDraw (1).toFloat();
     const float modeRight = s1.getRight() + 4.0f * sx;
-    // one function decides this, and test_layout.cpp walks it at five widths
-    const auto copy = aeq::ui::layout::footerCopy (area.getX(), area.getRight(), modeRight);
+    // one function decides this, and test_layout.cpp walks it at every window size the panel
+    // allows - including the tall-narrow corner, where a group scaled by sy alone would eat
+    // the sentence it is supposed to leave alone.
+    const auto copy = aeq::ui::layout::footerCopy (area.getX(), area.getRight(), modeRight,
+                                                   dialScale());
     return { copy.left, area.getY(), jmax (60.0f, copy.right - copy.left), area.getHeight() };
 }
 
@@ -1630,17 +1704,19 @@ void AeqAudioProcessorEditor::resized() {
     // smaller.  Before this, the layout was three constants (370 / 202 / 52 px from the right
     // edge) and the labels were placed from a *different* set of constants in the paint code -
     // which is how "100.0 dB" ended up printed through the strength dial.
+    const float ds = dialScale();
     const auto c0c = aeq::ui::layout::dialColumn (0, float (b.footer.getRight()),
                                                   float (b.footer.getY()),
-                                                  float (b.footer.getHeight()));
+                                                  float (b.footer.getHeight()), ds);
     const auto c1c = aeq::ui::layout::dialColumn (1, float (b.footer.getRight()),
                                                   float (b.footer.getY()),
-                                                  float (b.footer.getHeight()));
+                                                  float (b.footer.getHeight()), ds);
     const auto c2c = aeq::ui::layout::dialColumn (2, float (b.footer.getRight()),
                                                   float (b.footer.getY()),
-                                                  float (b.footer.getHeight()));
-    const int box = roundToInt (jmin (aeq::ui::layout::kDialMaxDiameter * sy,
-                                      aeq::ui::layout::kDialColW - 2.0f * aeq::ui::layout::kDialEdgeAir));
+                                                  float (b.footer.getHeight()), ds);
+    const int box = roundToInt (jmin (aeq::ui::layout::kDialMaxDiameter * ds,
+                                      (aeq::ui::layout::kDialColW
+                                        - 2.0f * aeq::ui::layout::kDialEdgeAir) * ds));
     const int cy = roundToInt (c0c.valueY);
     const int c0 = roundToInt (c0c.centreX);
     const int c1 = roundToInt (c1c.centreX);

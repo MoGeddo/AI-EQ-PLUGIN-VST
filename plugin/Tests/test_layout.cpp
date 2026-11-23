@@ -43,6 +43,10 @@ int main() {
     const int bands[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
     const float gapPx = 10.0f;
     const float margin = 22.0f;
+    // The panel's own design box and margins.  A test that invents these is a test of its own
+    // arithmetic: the first version of this file used 22 px margins and design widths with
+    // scale 1 and passed a footer that had 18 px of sentence at the window's smallest size.
+    const float kDesignW = 1180.0f, kDesignH = 700.0f, kMargin = 22.0f;
     const float cellH = 80.0f;
 
     // ---- 0. a card's rows stay out of each other's way ------------------------
@@ -99,13 +103,30 @@ int main() {
     }
 
     // ---- 2. the footer's sentence box -----------------------------------------
+    // Modelled as *windows*, not as design widths with scale 1: the panel lays the footer out
+    // at its own sx/sy, and the dial group scales with sy while the footer's width scales with
+    // sx.  Checking design widths alone (what this did before 1.2.68) is how a sentence box
+    // that had shrunk to 18 px at 1000x660 passed every assertion here and broke on the real
+    // panel in CI.
     {
+        struct Win { float w, h; };
+        const Win wins[] = { { 1000, 660 }, { 1024, 700 }, { 1240, 800 }, { 1440, 930 },
+                             { 1800, 1160 }, { 1000, 1160 }, { 1800, 660 } };
         bool fits = true;
-        for (const float rowW : rows) {
-            const auto f = footerCopy (margin, rowW - margin, 192.0f);
-            fits = fits && f.fits && f.right > f.left;
+        float worst = 1e9f;
+        for (const auto& win : wins) {
+            // the panel's real design box and its real margins - from the editor, not guessed
+            const float sx = win.w / kDesignW, sy = win.h / kDesignH;
+            const float rowL = kMargin * sx, rowR = win.w - kMargin * sx;
+            // two mode keys, 90 design px each, plus the editor's 4 px gap (modeSegDraw)
+            const auto f = footerCopy (rowL, rowR, 2.0f * 90.0f * sx + 4.0f * sx, std::min (sx, sy));
+            const float width = f.right - f.left;
+            if (width < worst) worst = width;
+            fits = fits && f.fits && width > 0.0f;
         }
-        check (fits, "the footer's sentence keeps >= 120 px at every window width");
+        std::printf ("        worst sentence width %.0f px (needs 120)\n", worst);
+        check (fits, "the footer's sentence keeps >= 120 px at every window size the panel "
+                     "allows, including the narrow-tall and wide-short corners of its range");
     }
 
     // ---- 3. a dial's label, value and sub-readout -----------------------------
@@ -113,7 +134,7 @@ int main() {
         bool ok = true;
         for (const float rowW : rows) {
             for (int i = 0; i < kDialColumns; ++i) {
-                const auto c = dialColumn (i, rowW - margin, 640.0f, 46.0f);
+                const auto c = dialColumn (i, rowW - margin, 640.0f, 46.0f, 1.0f);
                 // the dial itself: 62 px, must be inside its column, clear of the corner
                 const float dia = 62.0f;
                 const bool dialInside = c.centreX - dia * 0.5f >= c.left
@@ -129,17 +150,42 @@ int main() {
         check (ok, "a dial's label sits above its value, and the value's box fits 300%");
     }
 
+    // ---- 3b. the labels fit the column they are drawn in ----------------------
+    // The 1.2.67 CI run is why this exists: every check in this file passed while the panel
+    // failed "each footer dial clears its neighbour's label", because nothing here ever
+    // compared a *label's* width with the box it was drawn in.  A label beside the value
+    // needs column width for the dial AND the value AND the word; stacked, it needs the
+    // width of the widest word only - and "stabiliser" (82 px at Cairo 15) is the widest
+    // word on the row, so it is the one that decides.
+    {
+        bool ok = true;
+        float worstSlack = 1e9f;
+        for (const float rowW : rows)
+            for (int i = 0; i < kDialColumns; ++i) {
+                const auto c = dialColumn (i, rowW - margin, 640.0f, 46.0f, 1.0f);
+                const float labelW = tightMicroWidth ("stabiliser");
+                const float slack = c.labelBoxW - labelW;
+                if (slack < worstSlack) worstSlack = slack;
+                // the label's box must be inside the column, left of the dial
+                ok = ok && slack >= 0.0f;
+                ok = ok && c.centreX - 31.0f - c.labelBoxW >= c.left;
+            }
+        std::printf ("        worst label slack %.1f px (the widest word on the row)\n", worstSlack);
+        check (ok, "the widest dial label fits the column it is drawn in, and stays left of "
+                   "its dial - at every window width");
+    }
+
     // ---- 4. the three columns do not overlap ---------------------------------
     {
         float prevLeft = 1e9f;
         bool ok = true;
         for (int i = kDialColumns - 1; i >= 0; --i) {
-            const auto c = dialColumn (i, 1240.0f - margin, 640.0f, 46.0f);
+            const auto c = dialColumn (i, 1240.0f - margin, 640.0f, 46.0f, 1.0f);
             ok = ok && c.right <= prevLeft + 0.5f;
             prevLeft = c.left;
         }
         check (ok, "the three dial columns are disjoint, right to left");
-        check (dialGroupLeft (1240.0f - margin)
+        check (dialGroupLeft (1240.0f - margin, 1.0f)
                    == 1240.0f - margin - kDialCornerInset - 3.0f * kDialColW,
                "the dial group's left edge is the corner inset plus its three columns");
     }

@@ -21,6 +21,8 @@
 //
 // Widths are *measured* by the caller with the font it draws with (aeq::ui::measure); this
 // header only compares those numbers.
+#include <algorithm>
+
 namespace aeq::ui::layout {
 
 // ---- the band card ---------------------------------------------------------------
@@ -78,39 +80,63 @@ struct DialColumn
     float centreX;          // where the dial is drawn
     float labelY, valueY, subY;
     float valueBoxW;
+    float labelBoxW;        // the label's own box: left of the dial, inside the column
     float microLikeHeight;  // the height the sub-readout is drawn in (kMicro's line)
     bool  subFits;          // false -> the live dB is not drawn (better than drawn twice)
 };
 
 constexpr int kDialColumns = 3;
-constexpr float kDialColW = 150.0f;     // >= 2 x (dial 62/2) + 74 of text
+// The column has to hold the dial (62) + the inset that keeps it off the corner (16) + the
+// widest label under it ("stabiliser", 82 px of Cairo 15) with air between them.  150 was the
+// first number and it forgot the label: with 62 + 16 there were 72 px left for a word that
+// needs 82, so the label's box crossed into the previous column's dial.  The 1.2.67 CI run
+// failed on exactly that ("each footer dial clears its neighbour's label", at 1240, 1024 and
+// 940), which is why the number and the assertion are both here now.
+constexpr float kDialColW = 186.0f;
 // The rightmost column stops this far inside the footer's own right edge: the panel's corner
 // radius is 16, and a dial drawn on it is a dial cut by it (the 1.2.59 defect, again).
 constexpr float kDialCornerInset = 16.0f;
 constexpr float kDialMaxDiameter = 62.0f;   // the design size
-constexpr float kDialEdgeAir = 8.0f;        // air between a dial and its column's edges
+constexpr float kDialEdgeAir = 8.0f;        // air between a dial and the label beside it
 
-inline DialColumn dialColumn (int i, float rowRight, float rowTop, float rowH) noexcept
+// `scale` is the dial group's own scale, and it must be min(sx, sy) - the smaller of the
+// window's two scales, not its height scale, and never 1.
+//
+// Two bugs, one lesson, both found by the layout test after shipping:
+//   * the group was laid out in design pixels while its row is in window pixels, so at 940 px
+//     the three columns took 450 of the 896 px footer and the sentence had 52 px ("each
+//     footer dial clears its neighbour's label", 1.2.67 CI);
+//   * scaling it by sy alone then starved a *tall narrow* window (1000x1160: sy/sx ~ 2, the
+//     group wanted 934 px of a 963 px row and the sentence went to -204 px).
+// The row's width scales with sx and its height with sy, so whatever sits in the row and may
+// not eat it has to follow the smaller one.
+inline DialColumn dialColumn (int i, float rowRight, float rowTop, float rowH,
+                              float scale = 1.0f) noexcept
 {
     DialColumn c {};
-    c.right = rowRight - kDialCornerInset - float (kDialColumns - 1 - i) * kDialColW;
-    c.left = c.right - kDialColW;
-    // the dial sits at the column's right end, 16 px in from it, so its own 62 px and the
-    // panel's corner both fit
-    c.centreX = c.right - 16.0f - 31.0f;
-    c.valueBoxW = 74.0f;    // "300%" at 26 px is ~56 px
-    c.labelY = rowTop + rowH * 0.5f - 26.0f;
-    c.valueY = rowTop + rowH * 0.5f - 4.0f;
-    c.subY = c.valueY + 22.0f;
-    c.microLikeHeight = 16.0f;
-    c.subFits = c.subY + 14.0f <= rowTop + rowH + 8.0f;
+    const float colW  = kDialColW * scale;
+    const float inset = kDialCornerInset * scale;
+    const float dial  = kDialMaxDiameter * scale;
+    const float air   = kDialEdgeAir * scale;
+    c.right = rowRight - inset - float (kDialColumns - 1 - i) * colW;
+    c.left = c.right - colW;
+    // the dial sits at the column's right end, so its own diameter and the panel's corner
+    // both fit; the label and the value live in what is left of the column
+    c.centreX = c.right - inset - dial * 0.5f;
+    c.valueBoxW = 74.0f * scale;    // "300%" at 26 px is ~56 px
+    c.labelBoxW = std::max (0.0f, c.centreX - dial * 0.5f - air - c.left);
+    c.labelY = rowTop + rowH * 0.5f - 26.0f * scale;
+    c.valueY = rowTop + rowH * 0.5f - 4.0f * scale;
+    c.subY = c.valueY + 22.0f * scale;
+    c.microLikeHeight = 16.0f * scale;
+    c.subFits = c.subY + 14.0f * scale <= rowTop + rowH + 8.0f * scale;
     return c;
 }
 
 // The three columns' left edge: the thing the sentence may not cross.
-inline float dialGroupLeft (float rowRight) noexcept
+inline float dialGroupLeft (float rowRight, float scale = 1.0f) noexcept
 {
-    return rowRight - kDialCornerInset - float (kDialColumns) * kDialColW;
+    return rowRight - kDialCornerInset * scale - float (kDialColumns) * kDialColW * scale;
 }
 
 // ---- the footer's sentence -------------------------------------------------------
@@ -120,11 +146,11 @@ struct FooterCopy
     bool  fits;
 };
 
-inline FooterCopy footerCopy (float rowLeft, float rowRight, float modeW) noexcept
+inline FooterCopy footerCopy (float rowLeft, float rowRight, float modeW, float scale = 1.0f) noexcept
 {
     FooterCopy f {};
-    f.left = rowLeft + modeW + 20.0f;
-    f.right = dialGroupLeft (rowRight) - 16.0f;
+    f.left = rowLeft + modeW + 20.0f * scale;
+    f.right = dialGroupLeft (rowRight, scale) - 16.0f * scale;
     f.fits = f.left + 120.0f <= f.right;
     return f;
 }

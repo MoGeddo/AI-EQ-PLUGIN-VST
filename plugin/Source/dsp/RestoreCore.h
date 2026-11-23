@@ -171,6 +171,8 @@ public:
         }
         phase_.store(int(Phase::Committed), std::memory_order_release);
         frozen_.store(true, std::memory_order_release);
+        // commit() is what the clamp calls: this pass ended because a hand ended it.
+        autoStopped_.store(false, std::memory_order_release);
         // Make the audio thread read the pending slot even if it had already adopted the
         // previous one.  Without this, a Stop pressed between two timer ticks found
         // `pendingSeen_ == true` and the decision - the whole point of the product - was
@@ -372,6 +374,9 @@ private:
         fifoRead_.store(fifoWrite_.load(std::memory_order_acquire), std::memory_order_release);
         fifoDropped_.store(0);
         analyzer_.reset();
+        // The pass clock belongs to the take, not to the decision: relearn means the whole
+        // measurement starts over, so the automatic stop must start over with it.
+        passSamples_.store (0, std::memory_order_relaxed);
         learnStab_.prepare(fs_);
         beginLearnBank();
         learnProgress_ = 0.0;
@@ -392,6 +397,21 @@ public:
     // ---------------------------------------------------------------- audio
     void processBlock(float* left, float* right, int n) {
         if (n <= 0) return;
+
+        // The pass clock (passSeconds) is audio time: the samples the pass has been handed
+        // while it is open.  Audio time and not wall time, because in a DAW the two only
+        // agree while the transport rolls - and the promise ("it stops itself after five
+        // minutes of take") is about the take.  Counting blocks of *digital silence* is
+        // the one thing it refuses: a session left open with the transport stopped feeds
+        // nothing but zeros, and a cap that counted them would seal an empty pass overnight.
+        // A recorded take never sends exact zeros - its pauses are noise floor - so this
+        // tells "the singer is between phrases" from "nothing is plugged in".
+        if (!frozen() && settings_.learn && !settings_.bypass) {
+            bool anyAudio = false;
+            for (int j = 0; j < n && ! anyAudio; ++j)
+                anyAudio = left[j] != 0.0f || (right && right[j] != 0.0f);
+            if (anyAudio) passSamples_.fetch_add (n, std::memory_order_relaxed);
+        }
 
         // 0. apply anything another thread *asked* for.  Every object below is written
         //    only here, so "the editor changed something" never means "the editor wrote
@@ -670,6 +690,15 @@ public:
         return live_;
     }
 
+    // The same reading the panel prints while a pass is open: how much of the take has gone
+    // through the pass clock, and the second the automatic stop will fire *if it fires* -
+    // the auto-stop dial when one is set, the five-minute cap when it is OFF.  Exposed as
+    // one pair so the header cannot print a clock and a rule that disagree.
+    struct PassClock { double heardSeconds = 0.0; double stopAtSeconds = 0.0; bool dialled = false; };
+    PassClock passClock() const {
+        return { passSeconds(), stopAtSeconds(), autoStopDialled() };
+    }
+
     void refresh() {
         std::lock_guard<std::mutex> lk(analyzeMx_);
         if (resetAnalysis_.exchange (false, std::memory_order_acq_rel)) resetAnalysisNow();
@@ -720,6 +749,20 @@ public:
         ++live_.version;
     }
 
+    // The pass clock: every second of *input* the pass has been handed, gaps between
+    // phrases included.  This is not the meter (that is sung audio, `analyzedSeconds`);
+    // it is the clock the automatic stop runs on, and it has to be the wall clock
+    // because that is the promise: "if nobody stops this, it stops itself in N seconds".
+    // Measuring the promise in sung seconds broke it silently - a take with breath and
+    // silence in it (which is every vocal) reached 248 s of "heard" after 300 s of
+    // input and the five-minute cap never fired at all, so the plugin listened forever
+    // and the panel said "listening" over a take it had already left behind.  The test
+    // that found it is test_when_it_stops.cpp, section 0.
+    double passSeconds() const {
+        const auto n = passSamples_.load (std::memory_order_relaxed);
+        return double (n) / (fs_ > 0.0 ? fs_ : 48000.0);
+    }
+
     void refreshLocked() {
         if (!analyzer_.ready()) return;
         publishLiveLocked();
@@ -727,14 +770,13 @@ public:
         // editor's meter and the dynamic layers read it) but the decision is not
         // re-solved.  Re-solving after the user stopped the pass is exactly the
         // behaviour they asked to remove.
-        if (frozen()) {
-            const double heard = analyzer_.activeSeconds();
-            if (heard > 0.0) {
-                std::lock_guard<std::mutex> lk(stateMx_);
-                state_.analyzedSeconds = heard;      // the counter is a meter, not a decision
-            }
-            return;
-        }
+        //
+        // The counter stops too.  It used to keep following the analyser, which meant a
+        // sealed pass printed a bigger number every second - "SCANNED 88 s" over the
+        // take that was sealed at 61 s, and no way for the panel to say when the scan
+        // actually ended.  A meter that keeps moving after the decision is frozen reads
+        // as "it is still scanning", which is the exact question this had to answer.
+        if (frozen()) return;
         Measurements m;
         m.freqs = analyzer_.grid().f;
         m.bandDb = analyzer_.bandLevelsDb();
@@ -1119,11 +1161,19 @@ public:
         const double cap = (settings_.autoStopSeconds > 0.0)
                              ? std::min(settings_.autoStopSeconds, RestoreSettings::kHardCapSeconds)
                              : RestoreSettings::kHardCapSeconds;
-        if (state_.analyzedSeconds >= cap) {
+        if (passSeconds() >= cap) {
             phase_.store(int(Phase::Committed), std::memory_order_release);
             frozen_.store(true, std::memory_order_release);
+            // ... and it says so: a pass that ended itself must not read like one the person
+            // ended ("SEALED BY YOU" about something you did not stop is a lie).
+            autoStopped_.store(true, std::memory_order_release);
         }
     }
+
+    // Did the last sealed pass end by itself (the auto-stop dial or the 5-minute cap) rather
+    // than because the user pressed the clamp?  The panel's seal pill says which.
+    bool stoppedAutomatically() const { return autoStopped_.load(std::memory_order_acquire); }
+    void clearAutoStopped() { autoStopped_.store(false, std::memory_order_release); }
 
     // apply a pending correction (audio thread, called from processBlock)
     void pollAndApply() {
@@ -1331,6 +1381,19 @@ public:
     // cascade skips them, so counting the list said "10 bands" when seven were doing
     // nothing.  The number the window shows is this one.
 public:
+    // The pass clock, and the stop rule that reads it.  The panel prints both so the
+    // answer to "does it scan the whole take or does it stop by itself" is on screen:
+    // `stopAtSeconds()` is the second the pass will end on its own (the auto-stop dial,
+    // or the five-minute cap when the dial is OFF - never "never"), and the header
+    // says so while it listens.
+    double heardPassSeconds() const { return passSeconds(); }
+    double stopAtSeconds() const {
+        return (settings_.autoStopSeconds > 0.0)
+                 ? std::min (settings_.autoStopSeconds, RestoreSettings::kHardCapSeconds)
+                 : RestoreSettings::kHardCapSeconds;
+    }
+    bool   autoStopDialled() const { return settings_.autoStopSeconds > 0.0; }
+
     // How much gain the level match is holding, in dB.  Shown in the editor so the
     // "auto gain" is a number the user can see, not a hidden fudge.
     double levelMatchDb() const { return 20.0 * std::log10(std::max(outGain_, 1e-6)); }
@@ -1578,6 +1641,10 @@ private:
     std::atomic<int> stabPubCount_{0};
     std::atomic<double> stabPubTotal_{0.0};
     std::atomic<double> deEssPubGr_{0.0};
+    std::atomic<bool> autoStopped_{false};
+    // Seconds the pass has been *open* (see passSeconds()).  Counted on the audio thread,
+    // read by whoever refreshes; reset with the take, never with the decision.
+    std::atomic<long long> passSamples_{0};
     std::atomic<double> movingPubDb_{0.0};
     std::atomic<int>    movingPubCount_{0};
     std::atomic<double> stabPubHz_[Stabilizer::kMaxBands];

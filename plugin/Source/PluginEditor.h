@@ -74,6 +74,9 @@ public:
     bool dialRowFits() const;
     int wellInsetPx() const;
     juce::Rectangle<float> footerCopyBox() const;
+    // The dial group's own scale: min(window/design in x, window/design in y).  One function,
+    // because the paint code, the hit boxes and the arithmetic gate must agree.
+    float dialScale() const;
     bool footerCopyFits() const;                       // the sentence the panel is saying
     bool footerCopyFits (const juce::String&) const;   // ... and any sentence it could say
 

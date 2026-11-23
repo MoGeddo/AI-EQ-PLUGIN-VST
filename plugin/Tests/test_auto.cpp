@@ -85,14 +85,22 @@ struct RunResult {
 };
 
 // Exactly what the processor does, with nobody watching: blocks in, refresh at 4 Hz.
-static RunResult playAuto(const std::vector<float>& take, double settleSeconds) {
+static RunResult playAuto(const std::vector<float>& take, double settleSeconds,
+                          double autoStopSeconds = -1.0) {
     // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
     auto coreOwner = std::make_unique<aeq::RestoreCore>();
     aeq::RestoreCore& core = *coreOwner;
     aeq::RestoreSettings s;               // the plugin's defaults, minus the UI
     s.learn = true;
     s.settleSeconds = settleSeconds;
-    s.autoStopSeconds = settleSeconds;   // the gate has no hand to press the clamp
+    // The gate has no hand to press the clamp, so it asks for an automatic stop.  It used
+    // to pass `settleSeconds` here, which was the same number and the same *unit* by
+    // accident: the cap was measured in sung seconds, so "stop at 8 s" fired after 8 s of
+    // voice.  Now the cap is clock seconds - the promise is "in N seconds of audio, if
+    // nobody stops it" - so a caller that wants "settle, then keep listening" says which
+    // second it means instead of relying on the two numbers agreeing.  0 = no dial: this
+    // pass keeps listening until the harness stops it, which is the default a person gets.
+    s.autoStopSeconds = autoStopSeconds >= 0.0 ? autoStopSeconds : 0.0;
     core.prepare(kSr, 512);
     core.setSettings(s);
 
