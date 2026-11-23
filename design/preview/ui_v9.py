@@ -154,9 +154,10 @@ HEADER = (X0, 10, X1, 68)
 # it.  The old footer was 36 px tall and a 24 px knob value hung out of the bottom of the
 # window - the render said so before the window did.  The graph gives up 44 px of height
 # (67 %, still the instrument) and both rows below it gain room.
-GRAPH = (X0, 70, X1, 536)                # 466 px = 67 % of the window
-TAKE_RIBBON = (X0 + 18, 482, X1 - 18, 508)
-CHIPS = (X0, 552, X1, 632)
+GRAPH = (X0, 70, X1, 528)                # 458 px = 65 % of the window: the band row
+                                          # needs three full rows of type (1.2.68)
+TAKE_RIBBON = (X0 + 18, 474, X1 - 18, 500)
+CHIPS = (X0, 536, X1, 632)                # 96 px: header / value / micro, measured
 FOOTER = (X0, 640, X1, 686)
 
 PANEL_R, GRAPH_R, CHIP_R, PILL_R, SMALL_R = 16, 14, 12, 11, 4

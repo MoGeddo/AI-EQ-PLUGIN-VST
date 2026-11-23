@@ -48,11 +48,22 @@ constexpr float kKnobRowUp = 8.0f;
 // 1.2.18: the type went up a step, so the hero gives 16 px of height back to the two rows
 // under it (the graph is still 67 % of the window) and every row inside the hero moved up
 // with it.  These are the same numbers as design/preview/ui_v9.py.
-constexpr float kHeroTop = 70.0f, kHeroBottom = 536.0f;
-constexpr float kPlotBottom = 454.0f;      // the plot stops here; the strip has its own band
-constexpr float kStopTop = 460.0f, kStopBottom = 476.0f;   // the label above the clamp
-constexpr float kRibbonTop = 482.0f, kRibbonBottom = 508.0f;
-constexpr float kCaptionTop = 514.0f, kCaptionBottom = 532.0f;
+// The four blocks' vertical grid.  The band row grew by 16 px in 1.2.68: three rows of type
+// (header 16, value 26 -> 32.5 pitch, micro 15 -> 18.75 pitch) plus 7 px of air top and
+// bottom need 86.4 px, and the row was 80 - which is why at seven bands the micro line and
+// the gain printed through each other at every window size.  The 16 px come out of the graph
+// (536 -> 528), which is still 65 % of the window's height, above the 60 % floor the
+// identity gate holds; and the band cards get *bigger text room*, not smaller, which is what
+// the user asked for.  Every number below is reachable from Layout.h::chipRows().
+constexpr float kHeroTop = 70.0f, kHeroBottom = 528.0f;
+// one number: the band row's height lives in Layout.h with the card arithmetic that needs
+// it, so the block and the three rows inside it cannot disagree about how tall a card is
+constexpr float kChipsTop = 536.0f;
+constexpr float kChipsBottom = kChipsTop + aeq::ui::layout::kChipsDesignH;
+constexpr float kPlotBottom = 446.0f;      // the plot stops here; the strip has its own band
+constexpr float kStopTop = 452.0f, kStopBottom = 468.0f;   // the label above the clamp
+constexpr float kRibbonTop = 474.0f, kRibbonBottom = 500.0f;
+constexpr float kCaptionTop = 506.0f, kCaptionBottom = 524.0f;
 
 // The copy, in English.  Short enough to stay one line at the larger type, and it still
 // says what the instrument does rather than what it would like to be.
@@ -385,7 +396,7 @@ AeqAudioProcessorEditor::Blocks AeqAudioProcessorEditor::blocks() const {
     Blocks b;
     b.header = R (kMargin, 10, kDesignW - kMargin, 68);
     b.hero   = R (kMargin, kHeroTop, kDesignW - kMargin, kHeroBottom);
-    b.chips  = R (kMargin, 552, kDesignW - kMargin, 632);
+    b.chips  = R (kMargin, kChipsTop, kDesignW - kMargin, kChipsBottom);
     b.footer = R (kMargin, 640, kDesignW - kMargin, 686);
     return b;
 }
@@ -1277,6 +1288,14 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         return;
     }
 
+    // How much bigger the card's type is than the design's.  The cards are 96 design px tall
+    // and the type in them is kValue = 26 at the design window, so the row's own height
+    // decides it - the same rule the three-row card arithmetic needs to place the micro line
+    // inside the card at every window size (it was 11 px off at 1024x700, which is why the
+    // number and the Hz line printed through each other).
+    const float cardH = float (blocks().chips.getHeight());
+    const float typeScale = cardH / (float (aeq::ui::layout::kChipsDesignH));
+
     const auto rects = chipRects();
 
     for (int i = 0; i < int (rects.size()) && i < int (chips_.size()); ++i) {
@@ -1341,7 +1360,7 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         const auto rows = aeq::ui::layout::chipRows (
             r.getWidth(), r.getHeight(), indexW, modeW,
             aeq::ui::measure ("2.64 kHz  \xc2\xb7  Q 0.40", kMicro * sy),
-            aeq::ui::measure ("2.64 kHz", kMicro * sy));
+            aeq::ui::measure ("2.64 kHz", kMicro * sy), typeScale);
         trackedText (g, indexText,
                      { r.getX() + rows.padX, r.getY() + rows.headerY,
                        jmax (10.0f, indexW + 4.0f), rows.headerH },
@@ -1397,7 +1416,7 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         } else {
             micro = rows.microForm == 2 ? String() : micro;
         }
-        if (micro.isNotEmpty())
+        if (micro.isNotEmpty() && rows.microForm <= 2)
             trackedText (g, micro, { r.getX() + rows.padX, r.getY() + rows.microY,
                                      r.getWidth() - 2.0f * rows.padX, rows.microH },
                          Palette::dim(), kMicro * sy, 0.9f, Justification::centredLeft);

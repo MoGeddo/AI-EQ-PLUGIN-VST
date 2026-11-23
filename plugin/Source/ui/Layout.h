@@ -43,22 +43,48 @@ struct ChipRows
     bool  headerFits;         // the index and the mode word do not collide
 };
 
-// `cellW`, `cellH`: the card.  `indexW`, `modeW`, `fullW`, `freqW`: measured advances.
+// The design type sizes the card draws with, and the row's design height.  These are *inputs*
+// to the arithmetic now, not assumptions inside it: `chipRows` used to hard-code `valueH 32`
+// and `microY = cellH - 5 - 14` for an 80 px card, and the real card is 80 design px tall at
+// the design window but only **69** at 1024x700 - so the micro line was placed 11 px below
+// where the layout thought it was, straight through the number.  A card that is laid out
+// from its own box has to be told what the type inside it is.
+constexpr float kChipValueType = 26.0f;   // kValue at design size
+constexpr float kChipMicroType = 15.0f;   // kMicro at design size
+constexpr float kChipPadY      = 7.0f;    // top air, and the same under the micro line
+constexpr float kChipGapY      = 3.0f;    // between the header rule and the value
+constexpr float kChipHeaderH   = 16.0f;
+// the band card's design height, so the paint code can ask 'how big is my type here'
+constexpr float kChipsDesignH  = 96.0f;
+
+// `cellW`, `cellH`: the card, in window px.  `typeScale` = the card's own type scale
+// (height/design at the design window, min(sx,sy) otherwise): the type inside a card is sized
+// by the window, so its pitch is too.  `indexW`, `modeW`, `fullW`, `freqW`: measured advances.
 inline ChipRows chipRows (float cellW, float cellH, float indexW, float modeW,
-                          float fullW, float freqW) noexcept
+                          float fullW, float freqW, float typeScale = 1.0f) noexcept
 {
     ChipRows r {};
     r.padX = cellW < 150.0f ? 9.0f : 12.0f;
-    r.headerH = 16.0f;
-    r.headerY = 7.0f;
-    r.ruleY = r.headerY + r.headerH + 2.0f;
-    r.valueH = 32.0f;
-    r.valueY = r.ruleY + 4.0f;
-    r.microH = 14.0f;
-    r.microY = cellH - 5.0f - r.microH;
-    // the micro line gets the card's full inner width - that is what makes it fit at 7 bands
+    const float padY    = kChipPadY * typeScale;
+    const float gapY    = kChipGapY * typeScale;
+    const float lineH   = kChipMicroType * typeScale * 1.25f;   // one micro line's pitch
+    r.headerH = kChipHeaderH * typeScale;
+    r.headerY = padY;
+    r.ruleY   = r.headerY + r.headerH + 2.0f * typeScale;
+    r.valueH  = kChipValueType * typeScale * 1.25f;
+    r.microH  = lineH;
+    // the value and the micro line share what is left of the card, from the bottom up - so
+    // the micro line is always *inside* the card and always *below* the number, whatever the
+    // card's height turns out to be
+    r.microY  = cellH - padY - r.microH;
+    r.valueY  = r.ruleY + gapY;
+    // if the card is too short for both, the value keeps its line and the micro line is the
+    // thing that goes (it is the one that can be said in the chart instead)
+    const float valueBottom = r.valueY + r.valueH;
+    r.microForm = valueBottom <= r.microY - 1.0f ? 0 : 3;   // 3 = the card cannot hold both
     const float inner = cellW - 2.0f * r.padX;
-    r.microForm = inner >= fullW ? 0 : (inner >= freqW ? 1 : 2);
+    if (r.microForm == 0)
+        r.microForm = inner >= fullW ? 0 : (inner >= freqW ? 1 : 2);
     r.headerFits = indexW + 8.0f + modeW <= inner;
     return r;
 }
@@ -67,10 +93,11 @@ inline ChipRows chipRows (float cellW, float cellH, float indexW, float modeW,
 inline bool chipFits (const ChipRows& r, float cellH) noexcept
 {
     return r.headerY + r.headerH <= r.ruleY
-        && r.ruleY < r.valueY
+        && r.ruleY <= r.valueY
         && r.valueY + r.valueH <= r.microY + 0.5f
-        && r.microY + r.microH <= cellH
-        && r.headerFits;
+        && r.microY + r.microH <= cellH + 0.5f
+        && r.headerFits
+        && r.microForm >= 0 && r.microForm <= 2;   // 3 = the card is too short: not a fit
 }
 
 // ---- the footer's dial group ------------------------------------------------------

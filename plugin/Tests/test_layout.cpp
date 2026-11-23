@@ -47,7 +47,10 @@ int main() {
     // arithmetic: the first version of this file used 22 px margins and design widths with
     // scale 1 and passed a footer that had 18 px of sentence at the window's smallest size.
     const float kDesignW = 1180.0f, kDesignH = 700.0f, kMargin = 22.0f;
-    const float cellH = 80.0f;
+    // the real band card, at the design window: 96 design px (CHIPS 536..632).  The old
+    // 80 was this test's own invention and it hid a card that could not hold its rows.
+    const float cellH = 96.0f;
+    const float typeScale = 1.0f;
 
     // ---- 0. a card's rows stay out of each other's way ------------------------
     {
@@ -63,7 +66,7 @@ int main() {
                 const auto r = chipRows (cellW, cellH, tightMicroWidth ("01"),
                                          tightMicroWidth ("STATIC"),
                                          tightMicroWidth ("371 Hz  \xc2\xb7  Q 0.90"),
-                                         tightMicroWidth ("371 Hz"));
+                                         tightMicroWidth ("371 Hz"), typeScale);
                 fits = fits && chipFits (r, cellH);
             }
         (void) worstCell;
@@ -89,7 +92,7 @@ int main() {
                 const float cellW = ((rowW - 2.0f * margin) - gapPx * float (n - 1)) / float (n);
                 const auto r = chipRows (cellW, cellH, 18.0f, 62.0f,
                                          tightMicroWidth ("371 Hz  \xc2\xb7  Q 0.90"),
-                                         tightMicroWidth ("371 Hz"));
+                                         tightMicroWidth ("371 Hz"), typeScale);
                 ++forms[r.microForm];
                 ok = ok && r.microForm >= 0 && r.microForm <= 2;
             }

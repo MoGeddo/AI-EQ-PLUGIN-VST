@@ -83,7 +83,7 @@ def picture_checks() -> tuple[list[str], list[str]]:
         sealed = "empty" not in shot.name
 
         # A. nothing drawn off the left edge of the take caption's row (design 514..532)
-        y0, y1 = int(514 * sy), int(532 * sy)
+        y0, y1 = int(506 * sy), int(524 * sy)
         margin_x = int((MARGIN - 2) * sx)
         stray = sum(1 for y in range(y0, y1) for x in range(0, margin_x)
                     if lum(img.getpixel((x, y))) > 0.55)
