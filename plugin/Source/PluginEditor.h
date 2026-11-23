@@ -104,6 +104,8 @@ public:
     juce::String autoReadoutText() const;    // curve frozen · AUTO: GAIN + DYNAMIC + ...
     // what the footer draws: the long verdict, or the written-short one when the row is tight
     juce::String footerSentence() const;
+    // every caption in the band row fits the row it is drawn in (7 bands is the stress case)
+    bool chipCaptionsFit() const;
     juce::Rectangle<int> autoReadout() const;
     // The ink of the two things the badge has to clear: the name, and the tagline under
     // it.  A sentence that "looks fine" at one window size is not a measurement, and the

@@ -835,6 +835,25 @@ int runWindow(const juce::File& dir) {
         stage(curve != nullptr ? "the graph is a child of the panel" : "FAIL no graph child");
         editor->setSize (1240, 800);
         juce::MessageManager::getInstance()->runDispatchLoopUntil (400);
+
+        // 2c. the seven-band row is *measured*, at the narrowest windows, with the fonts the
+        // plugin loads: every caption must fit the card it is drawn in.  1.2.69 shipped a
+        // caption that wrapped onto the card's bottom edge and an index that lost a digit,
+        // because the captions were laid out through a wrapping TextLayout while the
+        // arithmetic measured a plain advance.
+        if (auto* seven = dynamic_cast<AeqAudioProcessorEditor*> (editor.get())) {
+            bool allFit = true;
+            const int caps[][2] = { { 1024, 700 }, { 1240, 800 }, { 1000, 660 } };
+            for (const auto& sz : caps) {
+                editor->setSize (sz[0], sz[1]);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+                if (! seven->chipCaptionsFit()) allFit = false;
+            }
+            editor->setSize (1240, 800);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+            check (allFit, "at seven bands every caption fits its card - index, mode word, "
+                           "gain and the Hz Q line - at every window size");
+        }
         const auto img = editor->createComponentSnapshot (editor->getLocalBounds(), false, 1.0f);
         if (curve != nullptr && img.isValid())
         {

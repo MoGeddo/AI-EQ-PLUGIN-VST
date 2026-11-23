@@ -1361,10 +1361,18 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
             r.getWidth(), r.getHeight(), indexW, modeW,
             aeq::ui::measure ("2.64 kHz  \xc2\xb7  Q 0.40", kMicro * sy),
             aeq::ui::measure ("2.64 kHz", kMicro * sy), typeScale);
-        trackedText (g, indexText,
-                     { r.getX() + rows.padX, r.getY() + rows.headerY,
-                       jmax (10.0f, indexW + 4.0f), rows.headerH },
-                     hot ? Palette::accentHi() : Palette::dim(), kMicro * sy, 1.3f);
+        // The index and the micro line are drawn with drawText, not through the tracked
+        // path.  `trackedText` builds a TextLayout, which (a) *wraps*, so "105 Hz · Q 1.10"
+        // broke into two lines with the second one landing on the card's bottom edge, and
+        // (b) adds tracking the layout arithmetic does not know about, so a string that
+        // measured 117 px in a 117 px box drew 4 px wider and lost a digit ("01" printed as
+        // "0" at seven bands).  A micro line is a caption: one line, measured, drawn.
+        g.setFont (aeq::ui::font (kMicro * sy)); 
+        g.setColour (hot ? Palette::accentHi() : Palette::dim());
+        g.drawText (indexText,
+                    juce::Rectangle<float> (r.getX() + rows.padX, r.getY() + rows.headerY,
+                                            jmax (10.0f, indexW + 6.0f), rows.headerH),
+                    Justification::centredLeft, false);
         // ... and the mode word only when it has somewhere to go: on a narrow card the index
         // is the whole header, which is better than two words on top of each other
         if (rows.headerFits)
@@ -1401,10 +1409,15 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
                     Justification::centredLeft, false);
         const float nw = aeq::ui::measure (num, kValue * sy, Face::SemiBold);
         const String unit = hot ? String ("H" + String (chip.tracked + 1)) : String ("dB");
-        trackedText (g, unit, { r.getX() + rows.padX + 3.0f + nw,
-                                r.getY() + rows.valueY + rows.valueH - rows.microH,
-                                40.0f * sy, rows.microH },
-                     Palette::dim(), kMicro * sy, 0.4f);
+        g.setFont (aeq::ui::font (kMicro * sy));
+        g.setColour (Palette::dim());
+        g.drawText (unit,
+                    juce::Rectangle<float> (r.getX() + rows.padX + 3.0f + nw,
+                                            r.getY() + rows.valueY + rows.valueH - rows.microH,
+                                            jmax (14.0f, r.getWidth() - 2.0f * rows.padX
+                                                          - nw - 3.0f),
+                                            rows.microH),
+                    Justification::centredLeft, false);
 
         if (! hot) {
             const String full = f0 >= 1000.0
@@ -1417,9 +1430,16 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
             micro = rows.microForm == 2 ? String() : micro;
         }
         if (micro.isNotEmpty() && rows.microForm <= 2)
-            trackedText (g, micro, { r.getX() + rows.padX, r.getY() + rows.microY,
-                                     r.getWidth() - 2.0f * rows.padX, rows.microH },
-                         Palette::dim(), kMicro * sy, 0.9f, Justification::centredLeft);
+        {
+            // measured before it is drawn: a caption that does not fit its own row is not
+            // drawn at all, and the form the layout chose is the form that gets used
+            g.setFont (aeq::ui::font (kMicro * sy));
+            g.setColour (Palette::dim());
+            g.drawText (micro,
+                        juce::Rectangle<float> (r.getX() + rows.padX, r.getY() + rows.microY,
+                                                r.getWidth() - 2.0f * rows.padX, rows.microH),
+                        Justification::centredLeft, false);
+        }
 
         // a tracked layer is a level, so it gets a meter; a static band has no state
         if (hot) {
@@ -1661,6 +1681,59 @@ float AeqAudioProcessorEditor::dialScale() const {
 }
 
 // top of the word "strength".  Same discipline as the mode keys: measure, then assert.
+// Every caption in the band row, measured against the row it is drawn in.
+//
+// The 7-band shot that produced 1.2.69's fix showed the caption "105 Hz · Q 1.10" wrapping
+// into two lines with the second one on the card's bottom edge, and the index "01" drawn as
+// "0" - both because the captions were laid out through a TextLayout (which wraps and adds
+// tracking) while the arithmetic measured a plain advance.  They are plain drawText lines
+// now, and this is the check that says so with the fonts the plugin actually loads: for each
+// visible card, the index, the mode word, the gain + unit and the caption all measure no
+// wider than the boxes they are drawn in.
+bool AeqAudioProcessorEditor::chipCaptionsFit() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const auto rects = chipRects();
+    if (rects.empty()) return true;
+    const float cardH = float (blocks().chips.getHeight());
+    const float typeScale = cardH / float (aeq::ui::layout::kChipsDesignH);
+    for (size_t i = 0; i < rects.size() && i < chips_.size(); ++i) {
+        const auto r = rects[i].toFloat();
+        const auto chip = chips_[i];
+        const float inner = r.getWidth() - 2.0f * (r.getWidth() < 150.0f ? 9.0f : 12.0f);
+        const int band = chip.band;
+        const bool hot = chip.tracked >= 0;
+        double f0 = 0.0, q = 0.0;
+        if (! hot && band >= 0 && band < int (bands_.size())) {
+            f0 = bands_[size_t (band)].f0;
+            q = bands_[size_t (band)].q;
+        }
+        const String full = f0 >= 1000.0
+            ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2)
+            : String (int (f0)) + " Hz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2);
+        const String freqOnly = f0 >= 1000.0 ? String (f0 / 1000.0, 2) + " kHz"
+                                             : String (int (f0)) + " Hz";
+        const float modeW = aeq::ui::measure (hot ? aeq::ui::u8 (kTracked)
+                                                  : aeq::ui::u8 (kStatic), kCap * sy);
+        const auto rows = aeq::ui::layout::chipRows (r.getWidth(), r.getHeight(),
+                                                     aeq::ui::measure ("01", kMicro * sy), modeW,
+                                                     aeq::ui::measure (full, kMicro * sy),
+                                                     aeq::ui::measure (freqOnly, kMicro * sy),
+                                                     typeScale);
+        const String micro = rows.microForm == 0 ? full
+                           : rows.microForm == 1 ? freqOnly
+                           : String();
+        if (micro.isNotEmpty() && aeq::ui::measure (micro, kMicro * sy) > inner + 0.5f)
+            return false;
+        if (rows.headerFits && aeq::ui::measure ("01", kMicro * sy)
+                                 + 8.0f + modeW > inner + 0.5f)
+            return false;
+        // the header row is tall enough for the type in it
+        if (rows.headerH + 0.5f < aeq::ui::font (kMicro * sy).getHeight())
+            return false;
+    }
+    return true;
+}
+
 bool AeqAudioProcessorEditor::dialRowFits() const {
     const float sy = float (getHeight()) / kDesignH;
     const float ds = dialScale();
