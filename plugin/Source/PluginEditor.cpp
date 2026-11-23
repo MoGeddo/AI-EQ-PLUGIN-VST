@@ -2,6 +2,7 @@
 #include "ui/BandRow.h"
 #include "ui/KnobSpec.h"
 #include "ui/Controls.h"
+#include "ui/Layout.h"
 #include "ui/Logo.h"
 #include "ui/Wordmark.h"
 #include "ui/PanelCopy.h"
@@ -1211,6 +1212,15 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
 void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
     const float sy = float (getHeight()) / kDesignH;
 
+    // The number a card shows: a tracked layer is numbered after the static bands, because
+    // it comes after them in the signal path.  The old code computed this inline twice and
+    // the header rule then needed it a third time.
+    auto activeIndex = [this] (int i) {
+        if (i < 0 || i >= int (chips_.size())) return 1;
+        const auto& c = chips_[size_t (i)];
+        return c.tracked >= 0 ? int (bands_.size()) + c.tracked + 1 : c.band + 1;
+    };
+
     // Nothing measured yet: the row keeps its four seats.  Dropping the row entirely left
     // a 100 px hole between the well and the footer and made the window look unfinished;
     // a seat with no number in it says "this is where the bands will be" and claims
@@ -1282,24 +1292,39 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
                         1.0f);
         }
 
-        // index, and what kind of thing this is
-        const int index = hot ? chip.tracked + 1 : chip.band + 1;
-        trackedText (g, String (index).paddedLeft ('0', 2),
-                     { r.getX() + 12.0f * sy, r.getY() + 7.0f * sy, 46.0f * sy, 15.0f * sy },
-                     hot ? Palette::accentHi() : Palette::dim(), kMicro * sy, 1.3f);
+        // ---- three rows, laid out from the card's own box --------------------
+        // This is the fix the user's 7-band screenshot asked for.  Everything below used to
+        // be placed from fixed offsets inside a cell whose width depends on how many bands
+        // there are, so at 7 bands the number, the "dB" and the right-aligned Hz·Q box
+        // printed on top of each other.  The rows now come from ui/Layout.h, which
+        // test_layout.cpp walks for 1..8 bands at five window widths.
         const bool vetoed = ! hot && chip.band >= 0 && chip.band < int (bands_.size())
                             && std::abs (bands_[size_t (chip.band)].gainDb) > 0.5
                             && chip.band < int (trims_.size())
                             && std::abs (bands_[size_t (chip.band)].gainDb
                                          + trims_[size_t (chip.band)]) < 0.05;
-        const String mode = hot ? aeq::ui::u8 (kTracked)
-                                : aeq::ui::u8 (vetoed ? kOff : kStatic);
-        const float mw = aeq::ui::measure (mode, kCap * sy);
-        aeq::ui::draw (g, mode, { r.getRight() - 12.0f * sy - mw, r.getY() + 5.0f * sy, mw,
-                                  18.0f * sy },
-                       Justification::centredRight, kCap * sy,
-                       hot ? Palette::accentHi()
-                           : (vetoed ? Palette::dim().withAlpha (0.75f) : Palette::muted()));
+        const String indexText = String (activeIndex (i)).paddedLeft ('0', 2);
+        const String modeWord = hot ? aeq::ui::u8 (kTracked)
+                                    : aeq::ui::u8 (vetoed ? kOff : kStatic);
+        const float indexW = aeq::ui::measure (indexText, kMicro * sy);
+        const float modeW = aeq::ui::measure (modeWord, kCap * sy);
+        const auto rows = aeq::ui::layout::chipRows (
+            r.getWidth(), r.getHeight(), indexW, modeW,
+            aeq::ui::measure ("2.64 kHz  \xc2\xb7  Q 0.40", kMicro * sy),
+            aeq::ui::measure ("2.64 kHz", kMicro * sy));
+        trackedText (g, indexText,
+                     { r.getX() + rows.padX, r.getY() + rows.headerY,
+                       jmax (10.0f, indexW + 4.0f), rows.headerH },
+                     hot ? Palette::accentHi() : Palette::dim(), kMicro * sy, 1.3f);
+        // ... and the mode word only when it has somewhere to go: on a narrow card the index
+        // is the whole header, which is better than two words on top of each other
+        if (rows.headerFits)
+            aeq::ui::draw (g, modeWord,
+                           { r.getRight() - rows.padX - modeW, r.getY() + rows.headerY,
+                             modeW, rows.headerH },
+                           Justification::centredRight, kCap * sy,
+                           hot ? Palette::accentHi()
+                               : (vetoed ? Palette::dim().withAlpha (0.75f) : Palette::muted()));
 
         // the number: the band's cut, or how far the layer is moving the harmonic now
         // A tracked layer has no fixed frequency - it sits on a harmonic of the note
@@ -1322,21 +1347,30 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         const String num = (gain >= 0.0 ? "+" : "") + String (gain, 1);
         g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
         g.setColour (hot ? Palette::accentHi() : Palette::text());
-        g.drawText (num, r.withTrimmedLeft (12.0f * sy).withTrimmedTop (22.0f * sy)
-                            .withHeight (kValue * sy * 1.3f),
+        g.drawText (num, juce::Rectangle<float> (r.getX() + rows.padX, r.getY() + rows.valueY,
+                                                 r.getWidth() - 2.0f * rows.padX, rows.valueH),
                     Justification::centredLeft, false);
         const float nw = aeq::ui::measure (num, kValue * sy, Face::SemiBold);
-        trackedText (g, "dB", { r.getX() + 15.0f * sy + nw, r.getY() + 30.0f * sy,
-                                28.0f * sy, 14.0f * sy },
+        const String unit = hot ? String ("H" + String (chip.tracked + 1)) : String ("dB");
+        trackedText (g, unit, { r.getX() + rows.padX + 3.0f + nw,
+                                r.getY() + rows.valueY + rows.valueH - rows.microH,
+                                40.0f * sy, rows.microH },
                      Palette::dim(), kMicro * sy, 0.4f);
 
-        if (! hot)
-            micro = f0 >= 1000.0
+        if (! hot) {
+            const String full = f0 >= 1000.0
                 ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2)
                 : String (int (f0)) + " Hz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2);
-        trackedText (g, micro, { r.getRight() - 12.0f * sy - 150.0f * sy,
-                                 r.getY() + 31.0f * sy, 150.0f * sy, 14.0f * sy },
-                     Palette::dim(), kMicro * sy, 0.9f, Justification::centredRight);
+            const String freqOnly = f0 >= 1000.0 ? String (f0 / 1000.0, 2) + " kHz"
+                                                 : String (int (f0)) + " Hz";
+            micro = rows.microForm == 0 ? full : (rows.microForm == 1 ? freqOnly : String());
+        } else {
+            micro = rows.microForm == 2 ? String() : micro;
+        }
+        if (micro.isNotEmpty())
+            trackedText (g, micro, { r.getX() + rows.padX, r.getY() + rows.microY,
+                                     r.getWidth() - 2.0f * rows.padX, rows.microH },
+                         Palette::dim(), kMicro * sy, 0.9f, Justification::centredLeft);
 
         // a tracked layer is a level, so it gets a meter; a static band has no state
         if (hot) {
@@ -1416,62 +1450,62 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
                        Palette::muted());
     }
 
-    // the two things a hand turns: the knobs themselves are child sliders drawn by
-    // the look and feel, so this only writes their two labels and their two numbers
-    const Point<float> k2 (float (area.getRight()) - 52.0f * sx, cy);
-    const Point<float> k1 (float (area.getRight()) - 202.0f * sx, cy);
-    const float knobSize = 42.0f * sy;          // the body; the box below adds the ring
+    // ---- the three dials, as three columns ------------------------------------
+    // Each column owns a label, a value and (for the stabiliser) a live dB.  They used to be
+    // placed from constants - a 60 px value box at `cy - 3`, a 14 px step for a 26 px
+    // number - so "100.0 dB" printed through the dial beside it (the user's screenshot).
+    // `ui/Layout.h::dialColumn` gives all of that one home, and test_layout.cpp walks it.
+    const auto r0 = aeq::ui::layout::dialColumn (0, float (area.getRight()), float (area.getY()),
+                                                 float (area.getHeight()));
+    const auto r1 = aeq::ui::layout::dialColumn (1, float (area.getRight()), float (area.getY()),
+                                                 float (area.getHeight()));
+    const auto r2 = aeq::ui::layout::dialColumn (2, float (area.getRight()), float (area.getY()),
+                                                 float (area.getHeight()));
 
-    auto labelFor = [&] (const char* s, Point<float> c, float dx) {
-        const String t2 = aeq::ui::u8 (s);
-        const float w = aeq::ui::measure (t2, kMicro * sy);
-        aeq::ui::draw (g, t2, { c.x - dx - w, cy - 20.0f * sy, w, kCap * sy * 1.35f },
-                       Justification::centredRight, kCap * sy, Palette::muted());
-    };
-    const Point<float> k0 (float (area.getRight()) - 370.0f * sx, cy);
-    labelFor (kStabiliser, k0, knobSize * 0.62f + 8.0f * sy);
-    labelFor (kStrength, k1, knobSize * 0.62f + 8.0f * sy);
-    labelFor (kAutoStop, k2, knobSize * 0.62f + 8.0f * sy);
-
-    g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
-    g.setColour (Palette::text());
+    struct Col { aeq::ui::layout::DialColumn c; const char* label; String value; bool sub; };
+    const String v0 = aeq::ui::num (roundToInt (stableKnob_.getValue()), 0, 3) + "%";
     const String v1 = aeq::ui::num (roundToInt (amountKnob_.getValue()), 0, 3) + "%";
     const String v2 = roundToInt (settleKnob_.getValue()) >= 1
                         ? aeq::ui::num (roundToInt (settleKnob_.getValue()), 0, 3) + " s"
                         : String ("OFF");
-    // the label and the value are one block beside the dial, and the value box is
-    // measured from the type: at 24 px in an 18 px box the bottom of every number was
-    // clipped by the row it sat in
-    g.drawText (v1, Rectangle<float> (k1.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
-                                      60.0f * sy, kValue * sy * 1.25f),
-                Justification::centredRight, false);
-    g.drawText (v2, Rectangle<float> (k2.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
-                                      60.0f * sy, kValue * sy * 1.25f),
-                Justification::centredRight, false);
-    // the stabiliser dial shows its own doing: the amount it is set to, and under it the
-    // dB the ten bands are actually taking off right now.  A dial that moves a layer
-    // nobody can see is the "unclear" the panel kept being reported for.
-    const String v0 = aeq::ui::num (roundToInt (stableKnob_.getValue()), 0, 3) + "%";
-    g.drawText (v0, Rectangle<float> (k0.x - 40.0f * sx - 60.0f * sy, cy - 3.0f * sy,
-                                      60.0f * sy, kValue * sy * 1.25f),
-                Justification::centredRight, false);
-    if (proc_.core().stabilizerBands() > 0) {
-        const String live = aeq::ui::num (proc_.core().stabilizerTotalDb(), 1, 4) + " dB";
-        aeq::ui::draw (g, live, { k0.x - 74.0f * sy, cy + 11.0f * sy, 74.0f * sy, kCap * sy },
-                       Justification::centredRight, kCap * sy,
+    const bool stabLive = proc_.core().stabilizerBands() > 0
+                          && std::abs (proc_.core().stabilizerTotalDb()) >= 0.05;
+    const Col cols[] = { { r0, kStabiliser, v0, true },
+                         { r1, kStrength, v1, false },
+                         { r2, kAutoStop, v2, false } };
+    for (int i = 0; i < 3; ++i) {
+        const auto& c = cols[i].c;
+        const String label = aeq::ui::u8 (cols[i].label);
+        const float lw = aeq::ui::measure (label, kMicro * sy);
+        // the label sits over the value, right-aligned to the dial's left edge
+        aeq::ui::draw (g, label, { c.centreX - 31.0f - c.valueBoxW - 8.0f, c.labelY,
+                                   c.valueBoxW + 8.0f, kCap * sy * 1.3f },
+                       Justification::centredRight, kCap * sy, Palette::muted());
+        g.setFont (aeq::ui::font (kValue * sy, Face::SemiBold));
+        g.setColour (Palette::text());
+        g.drawText (cols[i].value, juce::Rectangle<float> (c.centreX - 31.0f - c.valueBoxW,
+                                                           c.valueY, c.valueBoxW,
+                                                           kValue * sy * 1.25f),
+                    Justification::centredRight, false);
+        (void) lw;
+    }
+    // the stabiliser's live number, under its own value and inside its own column - and only
+    // when it is doing something (a permanent "0.0 dB" is a number nobody reads)
+    if (stabLive)
+        aeq::ui::draw (g, aeq::ui::num (proc_.core().stabilizerTotalDb(), 1, 4) + " dB",
+                       { r0.centreX - 31.0f - r0.valueBoxW, r0.subY, r0.valueBoxW,
+                         r0.microLikeHeight },
+                       Justification::centredRight, kMicro * sy,
                        proc_.core().stabilizerTotalDb() < -0.5 ? Palette::accent()
                                                                : Palette::dim());
-        // The de-esser is a section of the chain with its own gain reduction, and it was
-        // the one section with no number on the panel: it was folded into the moving total
-        // and nowhere else.  It says its own dB while it is working, and nothing when it
-        // is not - a permanent "0.0 dB" is a number nobody reads.
-        const double gr = std::abs (proc_.core().deEssGainReductionDb());
-        if (gr >= 0.05) {
-            const String de = "DE-ESS " + aeq::ui::num (gr, 1, 4) + " dB";
-            aeq::ui::draw (g, de, { k0.x - 190.0f * sy, cy + 11.0f * sy, 110.0f * sy, kCap * sy },
-                           Justification::centredRight, kCap * sy, Palette::accent().withAlpha (0.9f));
-        }
-    }
+    // the de-esser says its own dB while it is working, and nothing when it is not
+    const double gr = std::abs (proc_.core().deEssGainReductionDb());
+    if (gr >= 0.05)
+        aeq::ui::draw (g, "DE-ESS " + aeq::ui::num (gr, 1, 4) + " dB",
+                       { r0.left, r0.subY, r0.centreX - 31.0f - r0.left - 6.0f,
+                         r0.microLikeHeight },
+                       Justification::centredRight, kMicro * sy,
+                       Palette::accent().withAlpha (0.9f));
 }
 
 // --------------------------------------------------------------------------- copy
@@ -1532,23 +1566,20 @@ bool AeqAudioProcessorEditor::modeWordFits() const {
 // top of the word "strength".  Same discipline as the mode keys: measure, then assert.
 bool AeqAudioProcessorEditor::dialRowFits() const {
     const float sy = float (getHeight()) / kDesignH;
-    const float sx = float (getWidth()) / kDesignW;
     const auto b = blocks();
-    const int gapDesign = roundToInt (168.0f * sx);
-    const int box = roundToInt (jmin (62.0f * sy, 0.30f * float (gapDesign)));
-    const float half = float (box) * 0.5f;
-    const float c0 = float (b.footer.getRight()) - 370.0f * sx;
-    const float c1 = float (b.footer.getRight()) - 202.0f * sx;
-    const float c2 = float (b.footer.getRight()) - 52.0f * sx;
+    const auto copy = footerCopyBox();
     const char* names[] = { "stabiliser", "strength", "auto-stop" };
-    const float centres[] = { c0, c1, c2 };
-    const float dx = half * 0.62f + 8.0f * sy;      // the same offset drawFooter uses
-    float previousRight = 0.0f;
-    for (int i = 0; i < 3; ++i) {
-        const float w = aeq::ui::measure (aeq::ui::u8 (names[i]), kMicro * sy);
-        const float labelLeft = centres[i] - dx - w;
-        if (i > 0 && labelLeft < previousRight + 4.0f) return false;
-        previousRight = centres[i] + half;
+    float previousLeft = float (b.footer.getRight());
+    for (int i = 2; i >= 0; --i) {
+        const auto c = aeq::ui::layout::dialColumn (i, float (b.footer.getRight()),
+                                                    float (b.footer.getY()),
+                                                    float (b.footer.getHeight()));
+        const float labelW = aeq::ui::measure (aeq::ui::u8 (names[i]), kMicro * sy);
+        // the label sits in the column's left part, right-aligned to the value's box
+        const float labelLeft = c.centreX - 31.0f - c.valueBoxW - labelW;
+        if (labelLeft < copy.getRight() + 8.0f) return false;      // it would run into the sentence
+        if (c.right > previousLeft + 0.5f) return false;           // columns overlapping
+        previousLeft = c.left;
     }
     return true;
 }
@@ -1563,11 +1594,11 @@ Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {
     const float sy = float (getHeight()) / kDesignH;
     const float sx = float (getWidth()) / kDesignW;
     const auto area = blocks().footer.toFloat();
-    const auto s0 = modeSegDraw (0).toFloat(), s1 = modeSegDraw (1).toFloat();
-    const float pillRight = s1.getRight() + 4.0f * sx;
-    const float knobsX = area.getRight() - 370.0f * sx - 110.0f * sx;
-    return { pillRight + 24.0f * sx, area.getY(),
-             jmax (120.0f, knobsX - pillRight - 40.0f * sx), area.getHeight() };
+    const auto s1 = modeSegDraw (1).toFloat();
+    const float modeRight = s1.getRight() + 4.0f * sx;
+    // one function decides this, and test_layout.cpp walks it at five widths
+    const auto copy = aeq::ui::layout::footerCopy (area.getX(), area.getRight(), modeRight);
+    return { copy.left, area.getY(), jmax (60.0f, copy.right - copy.left), area.getHeight() };
 }
 
 bool AeqAudioProcessorEditor::footerCopyFits (const String& line) const {
@@ -1593,23 +1624,27 @@ void AeqAudioProcessorEditor::resized() {
 
     curve_.setBounds (well());
 
-    const float sx = float (getWidth()) / kDesignW;
-    // The three dials sit 8 px above the row's centre line and 52 px in from the right edge,
-    // not 34: the panel's corner radius is 16 and the dials are 54 px wide, so at the old
-    // position the auto-stop dial's lower-right quadrant was being cut off by the plate's
-    // own rounded corner - visible on the 1.2.59 shot as a knob with a flat bottom.  The
-    // assertion for this is in Tests/ui_shot.cpp (`each dial clears the plate's corner`).
-    const int cy = b.footer.getCentreY() - roundToInt (kKnobRowUp * sy);
-    // The dial is 62 px at the design size, but the *row* is 168 design px of width and the
-    // labels beside each dial are type, so they scale with the height.  At 1024x700 the
-    // spacing lost 13 % and the type did not, and the 1.2.62 shot shows the strength dial
-    // sitting on the word "strength".  So the dial also yields to the spacing it has to fit
-    // inside - and `dialRowFits()` is asserted at three sizes rather than trusted.
-    const int gapDesign = roundToInt (168.0f * sx);
-    const int box = roundToInt (jmin (62.0f * sy, 0.30f * float (gapDesign)));
-    const int c0 = b.footer.getRight() - roundToInt (370.0f * sx);
-    const int c1 = b.footer.getRight() - roundToInt (202.0f * sx);
-    const int c2 = b.footer.getRight() - roundToInt (52.0f * sx);
+    // The three dials come from ui/Layout.h, the same function the paint code and the test
+    // use: three 150 px columns ending 16 px inside the footer's right edge, each dial
+    // centred in its column, sized to the column and to the row's height, whichever is
+    // smaller.  Before this, the layout was three constants (370 / 202 / 52 px from the right
+    // edge) and the labels were placed from a *different* set of constants in the paint code -
+    // which is how "100.0 dB" ended up printed through the strength dial.
+    const auto c0c = aeq::ui::layout::dialColumn (0, float (b.footer.getRight()),
+                                                  float (b.footer.getY()),
+                                                  float (b.footer.getHeight()));
+    const auto c1c = aeq::ui::layout::dialColumn (1, float (b.footer.getRight()),
+                                                  float (b.footer.getY()),
+                                                  float (b.footer.getHeight()));
+    const auto c2c = aeq::ui::layout::dialColumn (2, float (b.footer.getRight()),
+                                                  float (b.footer.getY()),
+                                                  float (b.footer.getHeight()));
+    const int box = roundToInt (jmin (aeq::ui::layout::kDialMaxDiameter * sy,
+                                      aeq::ui::layout::kDialColW - 2.0f * aeq::ui::layout::kDialEdgeAir));
+    const int cy = roundToInt (c0c.valueY);
+    const int c0 = roundToInt (c0c.centreX);
+    const int c1 = roundToInt (c1c.centreX);
+    const int c2 = roundToInt (c2c.centreX);
     stableKnob_.setBounds (c0 - box / 2, cy - box / 2, box, box);
     amountKnob_.setBounds (c1 - box / 2, cy - box / 2, box, box);
     settleKnob_.setBounds (c2 - box / 2, cy - box / 2, box, box);

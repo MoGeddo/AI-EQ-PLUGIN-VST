@@ -1594,3 +1594,30 @@ at any vocal stem first; the other gates need nothing but the source tree.
   EXPECT: controls-shapes: 6 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_controls` 6/0; the preview is `docs/preview-controls.png`; the
   editor compiles against JUCE 8.0.4.
+
+- [x] G109: no layout in a variable row may be placed from a constant.
+  The user sent a screenshot of the real plugin with **7 bands** and said the obvious thing:
+  things are on top of each other.  Three collisions, one cause:
+    * each band card is `(rowWidth - gap*(n-1))/n` wide - 150 px at seven bands - and drew a
+      26 px number, a "dB" placed from `12 + numberAdvance + 3`, and a right-aligned 150 px
+      box holding "371 Hz · Q 0.90": the number and the micro line printed through each other
+      ("+3.4 dB Q 2.20");
+    * the footer's three dials were three constants (370 / 202 / 52 px from the right edge)
+      while their labels and values were placed from a *different* set of constants in the
+      paint code, so "100.0 dB" from the stabiliser ran under the strength dial's "100%";
+    * the verdict sentence's box was computed from a third set of constants, so as the
+      sentence grew (7 bands) it overlapped the dial group.
+  All three now come from `Source/ui/Layout.h`, one function each - `chipRows()`,
+  `dialColumn()`, `footerCopy()` - and `Tests/test_layout.cpp` walks **1..8 bands x five window
+  widths (940, 1024, 1180, 1240, 1440)** asserting: a card's header/value/micro rows never
+  overlap and stay inside the card; a card that is too narrow for its header says so instead
+  of overprinting; the micro line degrades to the frequency alone and then to nothing rather
+  than colliding; the footer sentence keeps >= 120 px and never reaches the dial group; each
+  dial is inside its column and clears the panel's corner; the three columns are disjoint.
+  The card is now three rows and a rule (header / value+unit / micro), the way the reference's
+  kit-03 cards stack a title, a value and a caption - which is also what makes it re-flow
+  instead of overprint.
+  CHECK: ./build/aeq_layout
+  EXPECT: layout: 10 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_layout` 10/0 (three of its checks failed against the old geometry
+  and moved the numbers); the window at 1240x800 and 1024x700 is `docs/ui-1.2.67-*.png`.

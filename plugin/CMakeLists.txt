@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(GeddoAEQ VERSION 1.2.66 LANGUAGES CXX)
+project(GeddoAEQ VERSION 1.2.67 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -244,6 +244,15 @@ add_executable(aeq_controls Tests/test_controls.cpp)
 target_include_directories(aeq_controls PRIVATE Source)
 set_target_properties(aeq_controls PROPERTIES CXX_STANDARD 17)
 add_test(NAME control_shapes COMMAND aeq_controls)
+
+# The band card and the footer dial group as arithmetic (Source/ui/Layout.h).  The user's
+# 7-band screenshot is the specification: "+3.4 dB Q 2.20" overprinted in a 150 px cell, and
+# "100.0 dB" printed through the strength dial.  A fixed offset in a variable-width row is a
+# class of bug, so it is checked for 1..8 bands at five window widths.
+add_executable(aeq_layout Tests/test_layout.cpp)
+target_include_directories(aeq_layout PRIVATE Source)
+set_target_properties(aeq_layout PROPERTIES CXX_STANDARD 17)
+add_test(NAME layout_no_overlap COMMAND aeq_layout)
 
 add_executable(aeq_dials Tests/test_dials.cpp)
 target_include_directories(aeq_dials PRIVATE Source)
