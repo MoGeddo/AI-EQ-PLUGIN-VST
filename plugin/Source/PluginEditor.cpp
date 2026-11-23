@@ -417,6 +417,47 @@ Rectangle<int> AeqAudioProcessorEditor::well() const {
     return heroRow (kHeroTop, kPlotBottom);
 }
 
+// The strip's legend, as one box: three keys, each a word and a dot, placed right to left
+// from the well's own right edge.  A function and not a loop inside the paint code, because
+// the sentence beside it has to know where the legend starts.
+// Does the strip's sentence fit between the scan strip and the legend?  The paint code
+// chooses between three lengths of it (with the match distance, with the automatic gain, and
+// the two facts that always show); this asks the same question with the same measurement, so
+// a gate can hold it at every window size instead of trusting the screenshot.
+bool AeqAudioProcessorEditor::stripReadoutFits() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const float sx = float (getWidth()) / kDesignW;
+    const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
+    const float rowScale = jmin (sx, sy);
+    const float stripW = trackedInk (scanStripText(), kMicro * rowScale, kReadoutTrack,
+                                     Face::SemiBold) + 2.0f * rowScale;
+    const float left  = caption.getX() + stripW + 20.0f * sx;
+    const float right = legendInk().getX() - 12.0f * sx;
+    String target = String (proc_.core().targetName());
+    if (proc_.core().hasReference()) {
+        const String n = String (proc_.core().referenceName());
+        target = n.isNotEmpty() ? ("REFERENCE " + n.toUpperCase()) : String ("REFERENCE");
+    }
+    const String base = String (int (bands_.size())) + " BANDS"
+                        + String::fromUTF8 (kMidDot) + target;
+    return trackedInk (base, kMicro * rowScale, 1.1f, Face::Regular) <= right - left;
+}
+
+Rectangle<float> AeqAudioProcessorEditor::legendInk() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const float sx = float (getWidth()) / kDesignW;
+    const float rowScale = jmin (sx, sy);      // the caption row's type scale (drawTake)
+    const auto caption = heroRow (kCaptionTop, kCaptionBottom).toFloat();
+    float rx = caption.getRight() - kWellInset * sx;
+    const float right = rx;
+    const char* keys[] = { kDecisionKey, kMeasuredKey, kReferenceKey };
+    for (const char* k : keys) {
+        const float w = aeq::ui::measure (aeq::ui::u8 (k), kCap * rowScale);
+        rx -= w + 30.0f * rowScale;
+    }
+    return { rx, caption.getY(), right - rx, caption.getHeight() };
+}
+
 std::vector<Rectangle<int>> AeqAudioProcessorEditor::chipRects() const {
     const auto c = blocks().chips;
     const int gap = roundToInt (10.0f * float (getWidth()) / kDesignW);
@@ -1198,7 +1239,12 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     // paragraph's, not the string's - the shipped 1.2.46 shot of the empty window reads
     // "s SCAN 0%  ·  0" because of it.  Every readout on this row is tracked Latin, so it
     // takes the path that never sets an RTL base.
-    const float stripSize = kMicro * sy;
+    // The caption row's type follows the *smaller* of the window's scales, like the dial
+    // group and the footer's sentence: the row's width scales with sx, and a 15 px line at
+    // sy in an sx-wide row is what put the legend into the sentence on a tall window
+    // (1000x1160 leaves 16 px between them; see test_layout's stripLine()).
+    const float rowScale = jmin (sx, sy);
+    const float stripSize = kMicro * rowScale;
     // The advance the line *will* take, kerning included: `measure()` returns the untracked
     // width, and the caption's next word was laid out against it - the 1.2.48 shot reads
     // "COARSE3 BANDS" because the render is ~30 px wider than the number that placed it.
@@ -1214,39 +1260,58 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
                  Palette::takeInk(), stripSize, kReadoutTrack,
                  Justification::centredLeft, Face::SemiBold);
 
+    // The three legend keys are placed FIRST, right to left, and their left edge is what the
+    // sentence may not cross.  They used to be placed after it and independently of it, so on
+    // the 7-band window the sentence ran under them: "13-TAKE CONSENSUS" printed through
+    // "reference", with a key's dot on top of the word.  Same rule as every other row here -
+    // measure the thing on the right, then give the text what is left.
+    const auto legend = legendInk();
+    const float textRight = legend.getX() - 12.0f * sx;
+    const float textLeft = caption.getX() + stripW + 20.0f * sx;
+
+    // The sentence degrades in whole *facts*, never mid-word: what was learnt and what it is
+    // aiming at always show (they are the answer to "did it scan"); the automatic gain and
+    // the match distance only exist once a decision does, and they are what goes when the row
+    // is full.  No ellipsis: a cut number reads as a smaller number.
     String learned = String (int (bands_.size())) + " BANDS" + dot + target;
-    // the level match runs by itself, so it is a number on the panel rather than a fudge
-    // in the dark: how much gain it is holding to keep the take where it was
-    if (proc_.isFrozen() || proc_.isCommitted())
-        learned += dot + "AUTO GAIN " + aeq::ui::num (proc_.core().levelMatchDb(), 1, 4) + " DB";
-    // The distance to the target, before and after the curve: the only honest answer to
-    // "does it sound like the thing I asked for yet".  One decimal, fixed width, and it
-    // only appears when there is a target to be far from.
+    const String gainPart = (proc_.isFrozen() || proc_.isCommitted())
+        ? dot + "AUTO GAIN " + aeq::ui::num (proc_.core().levelMatchDb(), 1, 4) + " DB"
+        : String();
+    String matchPart;
     {
         const auto s2 = proc_.core().state();
         if (s2.gapValid)
-            learned += dot + "MATCH " + aeq::ui::num (s2.gapBeforeDb, 1, 4) + ">"
-                     + aeq::ui::num (s2.gapAfterDb, 1, 4) + " DB";
+            matchPart = dot + "MATCH " + aeq::ui::num (s2.gapBeforeDb, 1, 4) + ">"
+                        + aeq::ui::num (s2.gapAfterDb, 1, 4) + " DB";
     }
-    trackedText (g, learned, caption.withLeft (roundToInt (caption.getX() + stripW
-                                                          + 34.0f * sx)),
-                 Palette::muted(), kMicro * sy, 1.1f);
-
-    float rx = caption.getRight() - kWellInset * sx;
-    const auto keys = std::array<std::pair<const char*, Colour>, 3> {
-        std::make_pair (kDecisionKey, Palette::accent()),
-        std::make_pair (kMeasuredKey, Palette::takeInk()),
-        std::make_pair (kReferenceKey, Palette::standard())
+    auto inkFit = [&] (const String& s) {
+        return trackedInk (s, kMicro * rowScale, 1.1f, Face::Regular) <= textRight - textLeft;
     };
-    for (const auto& k : keys) {
-        const String s = aeq::ui::u8 (k.first);
-        const float w = aeq::ui::measure (s, kCap * sy);
-        aeq::ui::draw (g, s, { rx - w, caption.getY(), w, caption.getHeight() },
-                       Justification::centredLeft, kCap * sy, Palette::muted());
-        g.setColour (k.second);
-        g.fillEllipse (rx - w - 16.0f * sy, caption.getCentreY() - 4.0f * sy,
-                       8.0f * sy, 8.0f * sy);
-        rx -= w + 30.0f * sy;
+    if (inkFit (learned + gainPart + matchPart))      learned += gainPart + matchPart;
+    else if (inkFit (learned + gainPart))             learned += gainPart;
+    trackedText (g, learned,
+                 { textLeft, caption.getY(), jmax (0.0f, textRight - textLeft),
+                   caption.getHeight() },
+                 Palette::muted(), kMicro * rowScale, 1.1f);
+
+    // ... and the legend, from the same box the sentence was measured against
+    {
+        float rx = legend.getRight();
+        const auto keys = std::array<std::pair<const char*, Colour>, 3> {
+            std::make_pair (kDecisionKey, Palette::accent()),
+            std::make_pair (kMeasuredKey, Palette::takeInk()),
+            std::make_pair (kReferenceKey, Palette::standard())
+        };
+        for (const auto& k : keys) {
+            const String s = aeq::ui::u8 (k.first);
+            const float w = aeq::ui::measure (s, kCap * rowScale);
+            aeq::ui::draw (g, s, { rx - w, caption.getY(), w, caption.getHeight() },
+                           Justification::centredLeft, kCap * rowScale, Palette::muted());
+            g.setColour (k.second);
+            g.fillEllipse (rx - w - 16.0f * rowScale, caption.getCentreY() - 4.0f * rowScale,
+                           8.0f * rowScale, 8.0f * rowScale);
+            rx -= w + 30.0f * rowScale;
+        }
     }
 }
 

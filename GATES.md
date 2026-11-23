@@ -399,7 +399,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   states.  It also caught a real one: the panel had six type sizes (8,9,10,11,12,13),
   which is what "assembled" looks like.
   CHECK: .venv/bin/python design/preview/check_craft.py
-  EXPECT: craft ok: 7 targets >= 40 px and none overlapping
+  EXPECT: craft ok: 8 targets >= 40 px and none overlapping
 
 - [x] G52: every motion is on a token, and the spec compiles.  transitions.dev supplies a
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -518,7 +518,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   22108 px in the declared hues`.  `--against-v8` fails the palette, and comparing with
   v7 fails six edges, which is what makes the pass mean something.
   CHECK: .venv/bin/python design/preview/check_match.py
-  EXPECT: match ok: 6 edges agree within 2 px
+  EXPECT: match ok: 6 edges agree within 1 px
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G59: all English, and a type scale that is actually readable.  Two asks in one
@@ -581,7 +581,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `drawRotarySlider` and a knob box under 50 px, and the rule was falsified before it was
   trusted: putting the old line back turns it red.
   CHECK: .venv/bin/python design/preview/check_knobs.py && .venv/bin/python design/preview/check_juce_api.py
-  EXPECT: knobs ok: strength 100% of the ring
+  EXPECT: knobs ok: stabiliser 100% of the ring
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
 - [x] G61: the ring was drawn backwards, and the second dial was driving the wrong
@@ -605,7 +605,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   (the end of the travel) it reads `58 %`, and on the 1.2.15 shot it reads
   `auto-stop 17 %` and names the binding.
   CHECK: .venv/bin/python design/preview/check_knobs.py
-  EXPECT: knobs ok: strength 100% of the ring
+  EXPECT: knobs ok: stabiliser 100% of the ring
   (expected 0%)
 
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
@@ -720,7 +720,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   baseline, 9 px off, on two drawings that agreed to 1 px.  Strength is the 25th percentile
   of the per-column gradient now: a block edge crosses the block, a sentence does not.
   CHECK: .venv/bin/python design/preview/check_match.py
-  EXPECT: match ok: 6 edges agree within 2 px
+  EXPECT: match ok: 6 edges agree within 1 px
   EVIDENCE: UNAVAILABLE - python environment not built here: python3 -m venv .venv && .venv/bin/pip install -r analysis/requirements.txt
   FALSIFY: design/preview/check_match.py --against-v8 · EXPECT 5 problems
 
@@ -1444,7 +1444,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   (`Icon::Reset` in `Theme.h`) - it is now a tangential arrowhead, half the arc's width, on
   the arc's own end.
   CHECK: ./build/aeq_dials
-  EXPECT: dials: 7 passed, 0 failed
+  EXPECT: dials: 11 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_dials` 7/0 with the pre-fix geometry failing checks 2 and 3
   (paint radius 0.5226 box, and 0.9 px of overlap between ring and ticks); the editor and
   the harness compile against JUCE 8.0.4.
@@ -1457,7 +1457,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   asserts it against the editor's own numbers: `layerReadout().getRight() <=
   heroBlock().getRight() - wellInsetPx()`, and that the inset is at least 8 px.
   CHECK: grep -c 'ends inside the plate' plugin/Tests/ui_shot.cpp
-  EXPECT: 1
+  EXPECT: 2
   EVIDENCE: VERIFIED - the assertion is in the controls stage; 1.2.57's run reports
   `controls` with it green (see the run's controls.log.txt).
 
@@ -1481,7 +1481,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   Three of those checks failed on the first run and moved the numbers: the tick was 1.98 px at
   the threshold, and the ring overlapped the skirt.
   CHECK: ./build/aeq_dials
-  EXPECT: dials: 10 passed, 0 failed
+  EXPECT: dials: 11 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_dials` 10/0; the editor, processor and harness compile against
   JUCE 8.0.4; the shipped 1.2.59 window is `docs/ui-1.2.59-window.png` and the side-by-side
   against the reference is `docs/ui-1.2.58-vs-reference.png`.
@@ -1574,7 +1574,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   panel a machined part is drawn as flat fill + edge highlight + a hairline that says which
   end is up, and a gradient is only for a *round* surface (the cap, the seat).
   CHECK: grep -c "the paddle" plugin/Source/PluginEditor.cpp
-  EXPECT: 1
+  EXPECT: 2
   EVIDENCE: VERIFIED - the 1.2.65 window, `docs/ui-1.2.65-window.png`; the geometry stays held
   by `aeq_controls` (6/0).
 
@@ -1618,7 +1618,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   kit-03 cards stack a title, a value and a caption - which is also what makes it re-flow
   instead of overprint.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 12 passed, 0 failed
+  EXPECT: layout: 13 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 12/0.  It was 10/0 when this gate was written; **1.2.67
   shipped 10/0 green and failed on the runner** because nothing here measured (a) a dial
   *label* against the column it is drawn in, or (b) a *sentence* against the box it is
@@ -1685,7 +1685,41 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `aeq_layout` walks 6 states x 2 forms x 7 window sizes (including both corners of the
   resize range, 1000x660 and 1800x1160) and asserts each state is representable in one form.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 12 passed, 0 failed
+  EXPECT: layout: 13 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 12/0; the harness's own check now asks the same question
   through JUCE's real font stack ("and so do all six states the copy module can be in, in
   one of its two forms"), so the two agree by construction rather than by coincidence.
+
+- [x] G112: text is placed knowing what else is in its row - the strip's sentence and its
+  legend are one measurement, and the dials are three, not two.
+  The 1.2.70 screenshot of the seven-band window printed `7 BANDS · 13-TAKE CONSENSUS`
+  **through** `• reference`, with a legend dot on top of the word.  The cause was not
+  spacing: the legend was placed right-to-left from the well's edge *after* the sentence had
+  already been given the whole row, and nothing measured the two against each other.
+    * `legendInk()` (PluginEditor) is now the one place the legend's box comes from, and the
+      sentence is given `legend.getX() - 12` as its right edge.  Both are measured with the
+      same advances the drawer uses.
+    * the strip's type follows `min(sx, sy)`, like the dial group and the footer's sentence:
+      the row's *width* scales with sx, and 15 px at sy in an sx-wide row left 16 px between
+      the two at 1000x1160 (a tall window, which the resize range allows).
+    * the sentence degrades in whole **facts** - the auto gain, then the match distance - and
+      never mid-word or mid-number.  The two facts that answer "did it scan" always show.
+  `stripLine()` in `ui/Layout.h` is the arithmetic, and `aeq_layout` walks 7 window sizes
+  against the legend's own measured width - **not** against `stripLine()`'s output, so a
+  stripLine that hands the sentence the whole row fails it (it does: 12/1 when the old
+  geometry is put back).
+  While reading those rows, the same class of defect turned up in three gates: each had a
+  default screenshot from an old release, a ring radius from a dial anatomy that was replaced
+  in 1.2.59, a two-dial footer where the panel ships three, and a "bare field" probe whose
+  band now covered the leftmost dial.  All four are fixed at the source, and `check_knobs` /
+  `check_wordmark` / `check_match` / `check_modern` are green against the shipped window.
+  CHECK: ./build/aeq_layout && .venv/bin/python design/preview/check_knobs.py && .venv/bin/python design/preview/check_match.py && .venv/bin/python design/preview/check_wordmark.py && .venv/bin/python design/preview/check_modern.py
+  EXPECT: layout: 13 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_layout` 13/0 (worst room for the strip sentence 465 px at
+  1000x660); `check_knobs` "stabiliser 100 % of the ring; strength 100 %; auto-stop 0 %";
+  `check_match` 6 edges within 1 px; `check_wordmark` two words 16 px apart; `check_modern`
+  field flat (bottom hf 0.14).  The window in `docs/ui-1.2.71-window.png` is CI's own
+  screenshot of the real editor.
+  FALSIFY: restore the old stripLine geometry (`r.textRight = rowRight`) -> `aeq_layout` 12/1
+  "the strip's sentence fits between the scan readout and the legend"; and
+  `check_knobs --shot docs/ui-1.2.34-window.png` -> 4 problems (the ring was clipped then).

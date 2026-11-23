@@ -192,6 +192,29 @@ inline FooterCopy footerCopy (float rowLeft, float rowRight, float modeW, float 
 // a test can answer "does this sentence fit this box" without a window.
 struct Sentence { int lines; float widest, needed; bool fits; };
 
+// One line, not a paragraph: the strip's sentence and its legend are single lines that must
+// not reach each other.  `stripLine()` is the layout for the caption row under the plot -
+// what was scanned on the left, the legend on the right, and what is left between them for
+// the sentence.  On the 7-band window that sentence printed through the legend, because the
+// legend was placed *after* it and from the window's edge rather than from the sentence's.
+struct StripRow
+{
+    float textLeft, textRight;   // where the sentence may be drawn
+    float legendLeft;            // where the legend starts
+    bool  fits;                  // the sentence's two facts have room
+};
+
+inline StripRow stripLine (float rowLeft, float rowRight, float stripInk, float legendInk,
+                           float scale = 1.0f) noexcept
+{
+    StripRow r {};
+    r.legendLeft = rowRight - legendInk;
+    r.textLeft   = rowLeft + stripInk + 20.0f * scale;
+    r.textRight  = r.legendLeft - 12.0f * scale;
+    r.fits       = r.textRight - r.textLeft >= 150.0f * scale;
+    return r;
+}
+
 inline Sentence wrapSentence (const char* s, float sizePx, float boxW, float boxH) noexcept
 {
     Sentence out { 0, 0.0f, 0.0f, false };

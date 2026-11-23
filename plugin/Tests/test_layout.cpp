@@ -251,6 +251,50 @@ int main() {
                    "measured with Cairo's own advances, in one of its two written forms");
     }
 
+    // ---- 6. the caption row: the sentence and the legend do not reach each other ----
+    // The 1.2.70 shot of the seven-band window printed "13-TAKE CONSENSUS" through
+    // "reference", with a legend dot on top of the word, because the legend was placed after
+    // the sentence and from the window's edge.  This walks real window sizes with the
+    // strip's own measured width and the legend's, both from FontMetrics.
+    {
+        struct W { float w, h; };
+        const W wins[] = { { 1000, 660 }, { 1024, 700 }, { 1240, 800 }, { 1440, 930 },
+                           { 1800, 1160 }, { 1000, 1160 }, { 1800, 660 } };
+        bool ok = true;
+        float worst = 1e9f;
+        for (const auto& win : wins) {
+            const float sx = win.w / kDesignW, sy = win.h / kDesignH;
+            const float ds = std::min (sx, sy);
+            const float rowL = kMargin * sx, rowR = win.w - kMargin * sx;
+            // what the strip and the legend actually measure (SemiBold for the strip,
+            // the 17 px cap for the legend words)
+            const float stripInk = aeq::ui::metrics::advance ("SCANNED 21 s OF 45 s  \xc2\xb7  COARSE",
+                                                     15.0f * ds) * 1.10f;
+            const float legendInk = (aeq::ui::metrics::advance ("reference", 17.0f * ds)
+                                     + aeq::ui::metrics::advance ("measured", 17.0f * ds)
+                                     + aeq::ui::metrics::advance ("decision", 17.0f * ds))
+                                    + 3.0f * 30.0f * ds + 16.0f * ds;
+            const auto row = stripLine (rowL, rowR, stripInk, legendInk, ds);
+            const float room = row.textRight - row.textLeft;
+            if (room < worst) worst = room;
+            // two facts always have to fit: "7 BANDS  ·  13-TAKE CONSENSUS"
+            const float need = aeq::ui::metrics::advance ("7 BANDS  \xc2\xb7  13-TAKE CONSENSUS", 15.0f * ds)
+                               * 1.10f;
+            // The legend's left edge, worked out here from the row's own right edge and the
+            // legend's measured ink - NOT read back from stripLine().  Without this the gate
+            // passed against a stripLine() that gave the sentence the whole row and let it
+            // run under the legend, which is exactly the bug the screenshot showed.
+            const float legendLeft = rowR - legendInk;
+            ok = ok && row.legendLeft <= legendLeft + 0.5f          // the legend fits the row
+                    && row.textRight <= legendLeft - 11.0f * ds     // and the sentence stops first
+                    && need <= room + 0.5f                          // the two facts still fit
+                    && row.textLeft >= rowL + stripInk;             // and start after the readout
+        }
+        std::printf ("        worst room for the strip sentence %.0f px\n", worst);
+        check (ok, "the strip's sentence fits between the scan readout and the legend, and "
+                   "the legend never starts left of it - at every window size");
+    }
+
     std::printf ("layout: %d passed, %d failed\n", passed, failed);
     return failed == 0 ? 0 : 1;
 }

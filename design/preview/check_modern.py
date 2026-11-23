@@ -61,8 +61,16 @@ notes: list[str] = []
 #     window, which are the panel's own vignette (a smooth gradient eight grey levels deep)
 #     and, at the right-hand end, the two dials' seats.  Measuring there measured the fade,
 #     not the field, and it failed the moment the footer moved 6 px down.
+# The bottom band is the field between the chips row and the footer, and it has to stop
+# **left of the dial group**: it ran to x=900, which was bare field while the footer had two
+# dials on the far right.  With the three the panel actually ships (stabiliser / strength /
+# auto-stop) the leftmost dial leans into that band and this gate reported "the bare field
+# carries texture: bottom (158 colours, hf 4.13)" over a drawing whose field was unchanged.
+# A probe that measures a dial and calls it field is not measuring texture; its right edge is
+# the dial group's own left edge now, taken from the module rather than typed.
+_knob_group_left = min(ui.KNOB_X) - 40        # the leftmost label's left edge
 MARGINS = {"left": (4, 120, 20, 600), "right": (1160, 120, 1176, 600),
-           "top": (470, 26, 1000, 44), "bottom": (300, 633, 900, 639)}
+           "top": (470, 26, 1000, 44), "bottom": (300, 633, int(_knob_group_left) - 20, 639)}
 # The real measure of texture is high-frequency energy: v9's margins sit at 0.06-0.36
 # and v7's fabric plate at 1.9-3.2, a 6x gap.  Colour count is a sanity bound only -
 # a saturated gradient legitimately holds more distinct colours than a warm grey one,

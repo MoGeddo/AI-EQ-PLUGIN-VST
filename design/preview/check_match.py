@@ -36,6 +36,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import glob
 import math
 import os
 import sys
@@ -270,7 +271,17 @@ def compare(shot_path: str, render_path: str, verbose: bool = True) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.34-window.png"))
+    # The newest window, not a fixed one from a shipped release: the default used to be
+    # ui-1.2.34-window.png, so this gate compared the *approved render* with a window five
+    # releases old and reported a mismatch nobody could act on.  It now picks the newest
+    # docs/ui-*-window.png, so the pair is always "the render" and "the panel as it ships".
+    # ... newest by *version number*, not by filename: sorted() puts 1.2.9 after 1.2.70.
+    def version_key(path):
+        digits = "".join(c if c.isdigit() else " " for c in os.path.basename(path)).split()
+        return [int(d) for d in digits[:3]]
+    shots = sorted(glob.glob(os.path.join(ROOT, "docs", "ui-*-window.png")), key=version_key)
+    default_shot = shots[-1] if shots else os.path.join(ROOT, "docs", "ui-1.2.34-window.png")
+    ap.add_argument("--shot", default=default_shot)
     ap.add_argument("--render", default=str(ui.OUT))
     ap.add_argument("--against-v8", action="store_true",
                     help="compare the approved v8 panel with the v9 window: must FAIL")

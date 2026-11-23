@@ -620,6 +620,26 @@ int runControls(const juce::File& dir) {
         const auto layerBox = ed->layerReadout();
         check(! layerBox.intersects(ed->controlBounds(AeqAudioProcessorEditor::Control::Clamp)),
               "the static/dynamic line does not sit under the clamp you press");
+        // The strip's sentence and its legend are laid out from one measurement.  They were
+        // not, and the 7-band window printed "13-TAKE CONSENSUS" through "reference" with a
+        // key's dot on top of the word - an overlap no gate looked at.
+        {
+            const auto legend = ed->legendInk();
+            check(legend.getRight() <= float (ed->getWidth()) - 8.0f,
+                  "the strip legend ends inside the panel");
+            bool fits = true;
+            const int caps2[][2] = { { 1240, 800 }, { 1024, 700 }, { 1000, 660 }, { 1800, 1160 } };
+            const int was_w = ed->getWidth(), was_h = ed->getHeight();
+            for (const auto& sz : caps2) {
+                ed->setSize (sz[0], sz[1]);
+                pump();
+                if (! ed->stripReadoutFits()) fits = false;
+            }
+            ed->setSize (was_w, was_h);
+            pump();
+            check(fits, "and the sentence beside it fits between the scan strip and the "
+                        "legend at every window size - they are laid out from one measurement");
+        }
         check(layerBox.getRight() <= ed->getWidth(),
               "and it stays inside the window");
 
@@ -650,6 +670,12 @@ int runControls(const juce::File& dir) {
             const int air = ed->wellInsetPx();
             check (ro.isEmpty() || ro.getRight() <= hero.getRight() - air + 1,
                    "the static/dynamic readout ends inside the plate, not on its border");
+            // ... and so does the legend, which is the other row right-aligned to the well.
+            // It was placed from the well's edge after the sentence and independently of it,
+            // so on the seven-band window it printed through the words beside it.
+            const auto legend = ed->legendInk();
+            check (legend.getRight() <= hero.getRight() - air + 1,
+                   "the strip's legend ends inside the plate, not on its border");
             check (air >= 8, "the plate's right inset is at least 8 px");
         }
 

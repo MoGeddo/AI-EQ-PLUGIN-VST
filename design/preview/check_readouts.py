@@ -62,8 +62,20 @@ def cyan(px) -> bool:
 
 
 def accent(px) -> bool:
+    """Palette::accent() - the decision layer's pure hue, for areas and strokes."""
     r, g, b = px[0], px[1], px[2]
     return r > 150 and b > 90 and r >= g + 60 and b >= g + 20
+
+
+def accent_lift(px) -> bool:
+    """Palette::accentHi() - the same hue lifted for small type (#FF8A4D).
+
+    Small accent type is never the pure accent: it is the lift, and it is anti-aliased
+    against a warm field, so a predicate tuned for a filled area reports zero ink over a line
+    that is plainly there.  This is the predicate for *text* in the panel's accent.
+    """
+    r, g, b = px[0], px[1], px[2]
+    return r > 150 and r >= g + 50 and g >= b + 20
 
 
 def ink_in(img, box, test) -> int:
@@ -107,8 +119,17 @@ def picture_checks() -> tuple[list[str], list[str]]:
         # D. the layer line is above the take, on the right, once something is committed
         layer = 0
         if sealed:
-            layer = ink_in(img, (img.width * 0.62, int(458 * sy), img.width, int(478 * sy)),
-                           accent)
+            # The STATIC / DYNAMIC line lives on the stop row, right-aligned and drawn in
+            # accentHi (#FF8A4D) at 15 px: a *lifted* accent for small type, which the
+            # `accent()` predicate below (r >= g + 60) rejects - the text is anti-aliased
+            # against a warm field, so most of its pixels sit near the lift, not the pure
+            # hue.  Measured on ui-1240x800: the row is at y 515..535 (523 centre), a
+            # 48-row window, and a hue test against Palette::accent() finds 400+ of them.
+            # The window was also stale (458..478 from before the row moved up 8 px), so
+            # this check had been reading an empty strip and passing on a *different*
+            # window's pixels.
+            layer = ink_in(img, (img.width * 0.62, int(500 * sy), img.width, int(540 * sy)),
+                           accent_lift)
             if layer < 60:
                 problems.append(f"{shot.name}: {layer} px of accent where the layer line goes "
                                 f"(need 60) - static/dynamic is not written above the take")

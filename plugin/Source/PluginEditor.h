@@ -106,6 +106,10 @@ public:
     juce::String footerSentence() const;
     // every caption in the band row fits the row it is drawn in (7 bands is the stress case)
     bool chipCaptionsFit() const;
+    // the strip's legend (decision / measured / reference), as the box it occupies
+    juce::Rectangle<float> legendInk() const;
+    // the strip's sentence fits between the scan strip and the legend
+    bool stripReadoutFits() const;
     juce::Rectangle<int> autoReadout() const;
     // The ink of the two things the badge has to clear: the name, and the tagline under
     // it.  A sentence that "looks fine" at one window size is not a measurement, and the

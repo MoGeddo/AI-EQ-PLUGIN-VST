@@ -51,7 +51,14 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 
 BRIGHT = 0.70      # both words are the brightest ink on the plate
 WARM = 0.05        # accent word: red over blue (brass/pink)
-COOL = -0.01       # ink word: white at 72% over the purple plate, red under blue
+# ink word: white at 72% over the plate, red a hair under blue.  The plate's hue moved in
+# 1.2.58 (the six sampled colours), and the ink word now lands at red-minus-blue
+# -0.004..-0.012 instead of the -0.01..-0.04 this was written against: the old -0.01 floor
+# cut half of its pixels off and the gate reported "no wordmark" over a wordmark in plain
+# sight (ui-empty-1024x700).  What separates the two words is the *sign*, and it is not
+# close - the accent word measures +0.47..+0.70, the ink word -0.004..-0.01.  Measured on
+# ui-1240x800: runs x140-233 at +0.47..+0.70, x256-306 at -0.004.
+COOL = -0.001
 MIN_GAP = 4        # px at 1240x800: a space, not the sidebearing of a glyph
 MIN_RATIO = 0.45   # ink word / accent word width.  "AEQ" against "GEDDO" is 0.54 in this
                    # face; if the ink word's first glyph is buried inside the accent word -

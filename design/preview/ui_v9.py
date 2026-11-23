@@ -193,7 +193,10 @@ FOOTER_SEAL = "AUTO: GAIN + DYNAMIC + STOP AT 45 s"
 # type size these sentences take two lines (docs/23 §7).
 FOOTER_REPORT = ("Sealed at 4 bands on 24 s of a 45 s pass - the numbers are coarse, "
                  "the decision is not.")
-KNOB_LABELS = ("strength", "auto-stop")
+# left to right as the audio runs through them, at the defaults in PluginProcessor.cpp
+KNOB_LABELS = ("stabiliser", "strength", "auto-stop")
+KNOB_VALUES = (1.00, 1.00, 0.00)          # kStable 100, kAmount 100, kSettle 0
+KNOB_READOUTS = ("100%", "100%", "OFF")
 CHIP_UNIT = "dB"
 CHIP_HZ = "Hz"
 FOLLOWING = "TRACKED 600 Hz"
@@ -234,11 +237,39 @@ KNOB_SEAT = 1.08
 _KNOB_CY = (FOOTER[1] + FOOTER[3]) // 2
 # The two dials, and how far apart they sit.  128 px cannot hold a 15 px label beside a 54 px
 # dial, which is why the labels collided with the numbers.
-KNOB_X = (X1 - 202, X1 - 34)
-KNOB_PITCH = KNOB_X[1] - KNOB_X[0]
+# The footer has THREE dials, and the render drew two for six releases: the panel ships
+# stabiliser / strength / auto-stop (PluginEditor's dialColumn(0..2)), and this file kept a
+# two-dial footer at X1-202 and X1-34.  check_knobs.py then read `KNOB_X[0]` - a position
+# no dial occupies in the window - and had to report that the ring was not drawing its
+# value.  The geometry below is the editor's own arithmetic, written out:
+#   col W 186, corner inset 16, dial 62, and column 0 is the LEFTMOST:
+#   right_i = rowRight - inset - (n-1-i) * colW,  centre = right_i - inset - dial/2
+DIAL_COL_W = 186
+DIAL_CORNER_INSET = 16
+DIAL_MAX_D = 62
+KNOB_X = tuple(X1 - DIAL_CORNER_INSET - (2 - i) * DIAL_COL_W - DIAL_CORNER_INSET
+               - DIAL_MAX_D / 2 for i in range(3))
+KNOB_PITCH = DIAL_COL_W
+DIAL_CY = (FOOTER[1] + FOOTER[3]) / 2 - 4     # dialColumn().valueY at design scale (659)
+# The value ring, as KnobSpec.h draws it - but KnobSpec measures against the *box* (62 px)
+# and this file passes `knob_small()` the body sprite's size instead.  The seat in drawKnob()
+# is box * 0.371 and the sprite here is drawn at `size`, i.e. a radius of size/2, so
+# size = box * 0.742 and every KnobSpec fraction has to be divided by it:
+#   groove  0.390 / 0.742 = 0.5256 of the sprite   (24.2 px on a 46 px body)
+#   stroke  0.050 / 0.742 = 0.0674
+# Reading 0.390 straight off KnobSpec put the ring at 17.9 px - inside the sprite's own rim -
+# which is why the render's dials could not be read at any value.
+# The sprite is the whole machined part - cap, knurled skirt and recess - and its own radius
+# is ~0.36 of its size.  Drawn at 0.742 of the box it is exactly the panel's `m.seat` (0.371),
+# and the value ring at 0.390 of the box sits just outside it, which is where the panel draws
+# it.  It used to be drawn at 42/62 = 0.677 of the box, i.e. with the ring inside its rim.
+KNOB_BODY = 2.0 * 0.371
+KNOB_GROOVE = 0.390              # of the BOX, as KnobSpec.h measures it
+KNOB_GROOVE_STROKE = 0.050
 TARGETS = [
-    ("knob-auto-stop", (KNOB_X[1] - 30, _KNOB_CY - 30, KNOB_X[1] + 30, _KNOB_CY + 30)),
-    ("knob-strength", (KNOB_X[0] - 30, _KNOB_CY - 30, KNOB_X[0] + 30, _KNOB_CY + 30)),
+    ("knob-auto-stop", (KNOB_X[2] - 30, _KNOB_CY - 30, KNOB_X[2] + 30, _KNOB_CY + 30)),
+    ("knob-stabiliser", (KNOB_X[0] - 30, _KNOB_CY - 30, KNOB_X[0] + 30, _KNOB_CY + 30)),
+    ("knob-strength", (KNOB_X[1] - 30, _KNOB_CY - 30, KNOB_X[1] + 30, _KNOB_CY + 30)),
     ("seal-clamp", (SEAL_X - 26, TAKE_RIBBON[1] - 10, SEAL_X + 26, TAKE_RIBBON[3] + 10)),
 ]
 for _i in range(len(BANDS)):
@@ -249,6 +280,7 @@ for _i in range(len(BANDS)):
 
 PART_STATES = {
     "knob-strength": ("idle", "hover", "press", "disabled"),
+    "knob-stabiliser": ("idle", "hover", "press", "disabled"),
     "knob-auto-stop": ("idle", "hover", "press", "disabled"),
     "seal-clamp": ("idle", "hover", "press", "disabled"),
     "band-row-1": ("idle", "hover", "press", "disabled"),
@@ -454,7 +486,15 @@ def anodize(img, col, amount=0.82):
     return out
 
 
-def knob_small(canvas, cx, cy, size, value, brass=True):
+def knob_small(canvas, cx, cy, box, value, brass=True):
+    """One dial, drawn at the *box* size the editor gives it.
+
+    `drawKnob()` is handed a box and derives every radius from `KnobSpec.h`'s fractions of
+    it.  This function used to be handed a body size instead (42 px for a 62 px box), so the
+    value ring it drew sat at 22 px where the panel's is at 24.2, and the two drawings could
+    not be compared at any value.  The box is the unit now, in both.
+    """
+    size = max(8, int(round(box * KNOB_BODY)))
     body = sprite("knob_brass.png" if brass else "knob_body.png", size)
     if _W.get("knob_tint") is not None and brass:
         body = anodize(body, _W["knob_tint"])
@@ -473,6 +513,37 @@ def knob_small(canvas, cx, cy, size, value, brass=True):
     canvas.alpha_composite(sh.filter(ImageFilter.GaussianBlur(max(2, size // 20))),
                            (int(cx - size / 2), int(cy - size / 2 + size // 22)))
     canvas.alpha_composite(body, (int(cx - size / 2), int(cy - size / 2)))
+    # The value ring, from KnobSpec.h's own arithmetic.  This is the part that makes the
+    # render falsifiable: it used to draw no ring at all, only a brass sprite that already
+    # has a lit band in it, so every dial read "100 % of the travel lit" at every value -
+    # including "OFF".  A gate that cannot see a 0 % dial is not measuring the dial.
+    #   groove = box * 0.390,  stroke = box * 0.050   (KnobSpec::knobMetrics)
+    # PIL measures from 3 o'clock with y down, so JUCE's 0 deg is PIL's 90 and the travel
+    # -135..+135 is 135..405.
+    # The recess: on the panel the ring is separated from the cap by a dark seat, which is
+    # what makes "lit" and "unlit" readable at all.  Here the sprite's own drop shadow bled
+    # 3 px past its radius into exactly where the ring is measured, so a 0 % dial collected
+    # the cap's warm edge as if it were ink.  Painting the seat clears it, and it is drawn
+    # because the panel draws it (drawKnob's `m.seat`).
+    ring_r = box * KNOB_GROOVE
+    width = max(2, int(round(box * KNOB_GROOVE_STROKE)))
+    seat_r = box * 0.345
+    over(canvas, lambda d: d.ellipse([cx - seat_r, cy - seat_r, cx + seat_r, cy + seat_r],
+                                     outline=(6, 7, 9, 255),
+                                     width=max(2, int(round(box * 0.055)))))
+    # the unlit track is a *dark* groove, as in drawKnob(): black at 60 % then the plate's
+    # hairline over it.  Drawn in the accent, or left as the sprite's own warm rim, a dial at
+    # 0 % is indistinguishable from one at 100 % - which is the state "OFF" was hiding in.
+    over(canvas, lambda d: (d.arc([cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r],
+                                  135, 405, fill=(0, 0, 0, 153), width=width),
+                            d.arc([cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r],
+                                  135, 405, fill=LINE + (72,), width=max(1, width // 2))))
+    # the lit arc, accent lifted 55 % toward its highlight - drawKnob()'s own colour
+    if value > 0.02:
+        lit = tuple(int(round(a + (b - a) * 0.55)) for a, b in zip(BRASS, BRASS_HOT))
+        over(canvas, lambda d: d.arc([cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r],
+                                     135, 135 + 270 * min(1.0, value),
+                                     fill=lit + (255,), width=width))
     needle(canvas, cx, cy, size, value)
 
 
@@ -934,20 +1005,32 @@ def draw_footer(canvas):
     # 110 design px left of the strength dial: that is where the window's footer
     # copy box stops (footerCopyBox(): the dials' side of the row minus 40), so the two
     # drawings wrap the same sentence at the same word.
-    copy_right = KNOB_X[0] - 110
+    # `footerCopy()` in Layout.h: the box stops 16 px short of the dial *group*'s left edge
+    # (rowRight - corner inset - 3 columns), not short of one dial.  With three dials the old
+    # `KNOB_X[0] - 110` ran the sentence under the stabiliser's label and its 100%.
+    group_left = X1 - DIAL_CORNER_INSET - len(KNOB_X) * DIAL_COL_W
+    # and it also stops short of the leftmost dial's *label* (40 px left of its centre), which
+    # is what the eye reads as "the dials" - the group's edge is 30 px further left still
+    label_left = KNOB_X[0] - 40 - 12
+    copy_right = min(group_left - 16, label_left)
     ar_wrapped(d, copy_left, copy_right, cy, FOOTER_REPORT, T_CAP, SOFT)
 
-    # two knobs: the only values the operator turns by hand
-    # the plugin puts "strength" on the left dial and "auto-stop" on the right one, so the
-    # render does too: the row reads in the order the chain works
-    for i, (val, label) in enumerate(((0.0, KNOB_LABELS[1]), (0.62, KNOB_LABELS[0]))):
-        cx = KNOB_X[1] - i * KNOB_PITCH
-        knob_small(canvas, cx, cy, 42, val, brass=(_W.get("knob", "brass") == "brass"))
+    # three knobs, left to right as the chain runs: stabiliser, strength, auto-stop, each at
+    # the default the parameter declares (stable 100 %, amount 100 %, settle 0 = OFF)
+    for centre, val, label, readout in zip(KNOB_X, KNOB_VALUES, KNOB_LABELS, KNOB_READOUTS):
+        # DIAL_CY, not the row's centre: `dialColumn().valueY` is rowTop + rowH/2 - 4, and a
+        # dial drawn 4 px below where the editor puts it is a dial the gate cannot find (its
+        # radial scan then reaches the accent border of the block above and reads a 0 % dial
+        # as 100 %).
+        # Brass=False: drawKnob() has not drawn a brass dial since 1.2.59 - the panel's dial
+        # is a dark machined cap in a dark seat, and the *only* warm thing on it is the value
+        # ring.  The render kept a copper sprite whose whole face is accent-hued, so every
+        # dial read "100 % of the travel lit" at every value and check_knobs could not tell
+        # OFF from 100 %.  The sprite was the last brass in the render, not a design choice.
+        knob_small(canvas, centre, DIAL_CY, DIAL_MAX_D, val, brass=False)
         d = ImageDraw.Draw(canvas)
-        ar_text(d, (cx - 40, cy - 20), label, T_CAP, DIM, anchor="ra")
-        readout = ("OFF" if val < 0.01 else "45 s") if label == KNOB_LABELS[1] \
-            else f"{val * 100:.0f}%"
-        num(canvas, cx - 40, cy - 3, readout, T_VALUE, TEXT, anchor="ra")
+        ar_text(d, (centre - 40, cy - 20), label, T_CAP, DIM, anchor="ra")
+        num(canvas, centre - 40, cy - 3, readout, T_VALUE, TEXT, anchor="ra")
 
 
 # ------------------------------------------------------------------ build

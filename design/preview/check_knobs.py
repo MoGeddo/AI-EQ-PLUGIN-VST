@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import colorsys
+import glob
 import math
 import os
 import sys
@@ -55,15 +56,27 @@ import ui_v9 as ui  # noqa: E402
 # edge, and they share its centre row.
 # Imported from the module that draws the panel.  This file used to keep its own copy of
 # the layout, and the copy drifted 22 px from the editor's on the very first change.
-CY = (ui.FOOTER[1] + ui.FOOTER[3]) / 2.0
-BOX = 54.0                                  # the child's bounds: body 42 + ring + seat
-RING = 0.39 * BOX * 1.19                    # where the value arc is drawn
-LEFT = (float(ui.KNOB_X[0]), CY)            # strength
-RIGHT = (float(ui.KNOB_X[1]), CY)           # auto-stop
-PITCH = float(ui.KNOB_PITCH)
+# The dial's own centre and its ring's radius, both from the geometry the editor draws:
+# `dialColumn()` puts the box's centre on `valueY`, and `KnobSpec.h` draws the value ring at
+# `box * 0.390`.  This file used to carry `RING = 0.39 * 54 * 1.19` - a 54 px box and the
+# 1.19 ring-relation from 1.2.5x, both replaced when the dial was rebuilt to the reference's
+# anatomy.  The gate was scanning 3 px outside a ring that was drawing perfectly, which is
+# how it came to report "the ring is missing its start" over a 100 % dial.
+BOX = ui.DIAL_MAX_D                         # the child's bounds (kDialMaxDiameter)
+RING = BOX * 0.390                          # k.groove: where the value arc is drawn
+CY = ui.DIAL_CY                             # the box's centre: dialColumn().valueY
+# Three dials, and they are the panel's own three: the footer used to be laid out for two,
+# so LEFT pointed at empty plate and the gate reported "the ring is lit for 0% of its
+# travel, the parameter says 100%" over a dial that was drawing 100% correctly two columns
+# to the right.  Read from the module, at the centres the module draws.
+CENTRES = tuple((float(x), CY) for x in ui.KNOB_X)
+LEFT = CENTRES[1]                            # strength
+RIGHT = CENTRES[2]                           # auto-stop
 
-# The screenshot test leaves both parameters at their defaults.
-EXPECTED = (("strength", LEFT, 1.00), ("auto-stop", RIGHT, 0.00))
+# The screenshot test leaves every parameter at its default (PluginProcessor.cpp): the
+# stabiliser and the strength are both 100 %, and auto-stop is 0 -> "OFF".
+EXPECTED = (("stabiliser", CENTRES[0], 1.00), ("strength", CENTRES[1], 1.00),
+            ("auto-stop", CENTRES[2], 0.00))
 
 TOLERANCE = 0.15    # of the ring's travel
 SELFTEST_TOLERANCE = 0.06
@@ -89,19 +102,29 @@ def coverage(im: Image.Image, centre, want_hue: float, radius: float = RING):
     w, h = im.size
     sx, sy = w / ui.W, h / ui.H
     cx, cy = centre[0] * sx, centre[1] * sy
-    # the editor sizes a knob from the *vertical* scale (box = roundToInt (54 * sy)), so
-    # the radius scales with sy even when the window is wider than the design
-    r = radius * sy
+    # The editor sizes a dial from `dialScale()` = min(sx, sy), not from the height: the
+    # radius was multiplied by sy here, which at 1240x800 (sx 1.05, sy 1.14) put the radial
+    # scan 3 px outside a ring that was drawing correctly, and the gate reported "the ring
+    # is missing its start" on two 100 % dials.  Same scale as the drawer, or the gate is
+    # measuring a dial nobody drew.
+    r = radius * min(sx, sy)
     lit = [0] * BUCKETS
     px = im.load()
     for i in range(BUCKETS):
         a = math.radians(-135.0 + (270.0 / BUCKETS) * (i + 0.5))
-        # a radial scan rather than a single radius: the ring's exact radius depends on
-        # the window's height, and this gate must not be a scale test
-        for dr in (-4, -3, -2, -1, 0, 1, 2, 3, 4):
+        # A radial scan rather than a single radius: the ring's exact radius depends on the
+        # window's scale, and this gate must not be a scale test.  But a radial hit is not
+        # enough - a block's 1 px accent hairline sits 3 px outside a dial and lies inside
+        # that same window, so the auto-stop dial at a true 0 % scored 57 %.  The ring is a
+        # *thick* stroke (KnobSpec: box * 0.050, i.e. 3 px at 62 px) and a rule is 1-2 px,
+        # so a bucket counts only where at least two consecutive radii are accent.
+        run = 0
+        for dr in range(-4, 5):
             x = int(round(cx + math.sin(a) * (r + dr)))
             y = int(round(cy - math.cos(a) * (r + dr)))
-            if 0 <= x < w and 0 <= y < h and is_accent(px[x, y], want_hue):
+            hit = (0 <= x < w and 0 <= y < h and is_accent(px[x, y], want_hue))
+            run = run + 1 if hit else 0
+            if run >= 2:
                 lit[i] = 1
                 break
     # the arc starts at the beginning of the travel (-135) and runs to the value, so the
@@ -165,7 +188,15 @@ def selftest() -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default=os.path.join(ROOT, "docs", "ui-1.2.34-window.png"))
+    # The newest window, not a fixed one: this defaulted to ui-1.2.34-window.png, so the
+    # gate had been reading a window five releases old - it reported "strength is lit for
+    # 0% of its travel" against a picture in which the dial was not the dial that ships.
+    def version_key(path):
+        digits = "".join(c if c.isdigit() else " " for c in os.path.basename(path)).split()
+        return [int(d) for d in digits[:3]]
+    shots = sorted(glob.glob(os.path.join(ROOT, "docs", "ui-*-window.png")), key=version_key)
+    default_shot = shots[-1] if shots else os.path.join(ROOT, "docs", "ui-1.2.34-window.png")
+    ap.add_argument("--shot", default=default_shot)
     args = ap.parse_args()
 
     problems = selftest()
