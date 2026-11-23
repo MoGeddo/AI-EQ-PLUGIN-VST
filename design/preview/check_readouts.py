@@ -128,9 +128,16 @@ def picture_checks() -> tuple[list[str], list[str]]:
             # The window was also stale (458..478 from before the row moved up 8 px), so
             # this check had been reading an empty strip and passing on a *different*
             # window's pixels.
-            layer = ink_in(img, (img.width * 0.62, int(500 * sy), img.width, int(540 * sy)),
+            # The row is kStopTop..kStopBottom (452..468), the strip above the take ribbon,
+            # where PanelCopy::stopRuleLine() and the layer line are drawn.  This window used
+            # to be 500..540 - the card row - and it passed on stray glyph ink: it reported
+            # 50 px on a panel with no committed take at all (ui-empty-1240x800), i.e. it was
+            # never reading the layer line.  Measured on ui-1.2.71-window: 785 px over
+            # 448..474, and 0 on the empty panel.  The floor follows the measurement instead
+            # of being set 1 px under it, which is how it came to fail on a 1 px type change.
+            layer = ink_in(img, (img.width * 0.62, int(448 * sy), img.width, int(474 * sy)),
                            accent_lift)
-            if layer < 60:
+            if layer < 400:
                 problems.append(f"{shot.name}: {layer} px of accent where the layer line goes "
                                 f"(need 60) - static/dynamic is not written above the take")
         lines.append(f"{shot.name}: strip {strip_px} px cyan, badge {badge} px cyan"
