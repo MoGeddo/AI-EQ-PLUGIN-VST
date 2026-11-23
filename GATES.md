@@ -1618,12 +1618,17 @@ at any vocal stem first; the other gates need nothing but the source tree.
   kit-03 cards stack a title, a value and a caption - which is also what makes it re-flow
   instead of overprint.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 11 passed, 0 failed
-  EVIDENCE: VERIFIED - `aeq_layout` 11/0.  It was 10/0 when this gate was written and the
-  eleventh check is the one this gate was missing: **1.2.67 shipped 10/0 green and failed on
-  the runner**, because nothing here measured a dial *label* against the column it is drawn
-  in.  The new check ("the widest dial label fits the column it is drawn in") failed against
-  the shipped geometry at every width, which is what a gate is for.
+  EXPECT: layout: 12 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_layout` 12/0.  It was 10/0 when this gate was written; **1.2.67
+  shipped 10/0 green and failed on the runner** because nothing here measured (a) a dial
+  *label* against the column it is drawn in, or (b) a *sentence* against the box it is
+  drawn in.  1.2.68 added both, and both failed against the shipped geometry at every
+  width - which is what a gate is for.  (b) needed the font, so `ui/FontMetrics.h` now
+  carries Cairo's own advance widths, generated from the shipped .ttf by
+  `scripts/gen_font_metrics.py`; `wrapSentence()` reproduces the panel's word wrap to a
+  fraction of a pixel, and it immediately found a fourth defect the screenshots had not:
+  at the tall-narrow corner of the resize range (1000x1160) the sentence was drawn at a
+  *height*-scaled size in a *width*-scaled box and needed 106 px of a 76 px row.
 
 - [x] G110: the panel says **who** ends the scan, and says it **before** it happens.
   Two questions the user asked, twice, in their own words: "هل هو بيسكان الصوت كله ولا بيقف
@@ -1658,3 +1663,29 @@ at any vocal stem first; the other gates need nothing but the source tree.
   voice and not never; a sealed pass stops counting; the dial stops on its own setting; the
   three words and the cap named in the sentence).  `aeq_commit` 45/0, `aeq_auto` 15/0, the
   rest of the ledger unchanged.
+
+- [x] G111: the panel's sentence is measured with the font it is drawn in.
+  The footer sentence has shipped broken three times (1.2.26 ran through the dial labels;
+  1.2.67 and 1.2.68 both failed on the runner with "the panel's sentence fits the row it is
+  drawn in"), and each time every arithmetic gate was green, because measuring text needs a
+  font and those gates have no JUCE.  This gate closes the hole rather than the symptom:
+    * `Source/ui/FontMetrics.h` is **generated** from the shipped `assets/Cairo-Regular.ttf`
+      by `scripts/gen_font_metrics.py` (95 glyphs, advance/unitsPerEm), so the gate measures
+      the face the product draws with.  Cross-checked against fontTools: the long verdict at
+      17 px is 609.7 px by both.
+    * `ui/Layout.h::wrapSentence()` reproduces `wrapWords()` + `linePitch()` on those
+      advances, so "does this sentence fit this box" is arithmetic again.
+    * the panel now has **two written forms** of every verdict - `verdict()` and
+      `verdictCompact()`, the second *written* short rather than truncated - and
+      `footerSentence()` picks the long one when it fits and the short one when it does not.
+    * and the type follows the dial group's scale `min(sx, sy)`, not the height alone: with
+      sy-scaled type in an sx-scaled box, a tall narrow window (1000x1160) needed 106 px of
+      a 76 px row.  That defect had already been named once in this project as
+      "width-scaled spacing vs height-scaled type" and came back through a different door.
+  `aeq_layout` walks 6 states x 2 forms x 7 window sizes (including both corners of the
+  resize range, 1000x660 and 1800x1160) and asserts each state is representable in one form.
+  CHECK: ./build/aeq_layout
+  EXPECT: layout: 12 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_layout` 12/0; the harness's own check now asks the same question
+  through JUCE's real font stack ("and so do all six states the copy module can be in, in
+  one of its two forms"), so the two agree by construction rather than by coincidence.

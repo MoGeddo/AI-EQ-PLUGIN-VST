@@ -582,9 +582,17 @@ String AeqAudioProcessorEditor::autoReadoutText() const {
     // question asked for - "does it scan all the audio, or does it stop by itself?" - and
     // it is drawn before the stop, when knowing it can still change what you do.
     if (! f.frozen) {
-        const auto clock = proc_.core().passClock();
-        return String (aeq::copy::stopRuleLine (clock.stopAtSeconds, clock.dialled,
-                                                clock.heardSeconds));
+        // The seconds come from the dial the panel prints, and "is a dial set" from the same
+        // dial - not from the core.  The core's copy of the setting is only refreshed when
+        // audio runs through it, so asking the core here made the line claim a dial that had
+        // just been turned off (caught by the harness, which changes parameters without
+        // playing audio), and it could disagree with the value drawn 40 px away.
+        const double dial = double (settleKnob_.getValue());
+        const bool dialled = dial >= 1.0;
+        const double stopAt = dialled ? jmin (dial, double (aeq::RestoreSettings::kHardCapSeconds))
+                                      : double (aeq::RestoreSettings::kHardCapSeconds);
+        return String (aeq::copy::stopRuleLine (stopAt, dialled,
+                                                proc_.core().passClock().heardSeconds));
     }
     return String (aeq::copy::autoLine (f));
 }
@@ -1023,10 +1031,12 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
         // asked before the stop, and a panel that only explains who ended a pass after the
         // fact answers it too late.  Sealed, it says who did (sealedSub).
         const auto f = panelFacts();
-        String line = f.frozen ? String (aeq::copy::sealedSub (f)) : autoReadoutText();
-        trackedText (g, line, autoReadout().toFloat(),
-                     panelFacts().haveData ? Palette::accentHi().withAlpha (0.88f)
-                                           : Palette::dim(),
+        // Always the readout function's own string, never a second one chosen here: the
+        // sealed sub-line is what `autoReadoutText()` returns when the pass is sealed, so
+        // this row and the panel's one source of truth cannot drift (and the readout gate's
+        // "is drawn through trackedText" question has one answer, not two call sites).
+        trackedText (g, autoReadoutText(), autoReadout().toFloat(),
+                     f.haveData ? Palette::accentHi().withAlpha (0.88f) : Palette::dim(),
                      kMicro * sy, kReadoutTrack, Justification::centredRight);
     }
 }
@@ -1410,6 +1420,7 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
 void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     const float sy = float (getHeight()) / kDesignH;
     const float sx = float (getWidth()) / kDesignW;
+    const float ds = dialScale();       // the dial group's scale: min(sx, sy)
     const auto cy = float (area.getCentreY());
 
     // the mode: two segments, because this product has two modes and no third
@@ -1459,14 +1470,20 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     // characters, and a single line of them ran straight through the dial labels.  The box
     // is measured, and the screenshot test asserts the sentence fits it - the failure was
     // invisible to every gate for three versions because no gate measured a sentence.
+    // The sentence's type follows the dial row's scale (min of the window's two scales), not
+    // the height alone: the box it sits in is a slice of a row whose *width* is the thing that
+    // constrains it.  With sy-scaled type in an sx-scaled box, a tall narrow window (1000x1160,
+    // inside the resize limits) needed 106 px of a 76 px row - the same "width-scaled box,
+    // height-scaled type" mistake this project has already paid for once.
     const auto copyBox = footerCopyBox();
-    const auto lines = aeq::ui::wrapWords (verdictLine(), kCap * sy, copyBox.getWidth());
-    const float pitch = aeq::ui::linePitch (kCap * sy);
+    const float copySize = kCap * ds;
+    const auto lines = aeq::ui::wrapWords (footerSentence(), copySize, copyBox.getWidth());
+    const float pitch = aeq::ui::linePitch (copySize);
     const float top = copyBox.getCentreY() - float (lines.size()) * pitch * 0.5f;
     for (size_t i = 0; i < lines.size(); ++i) {
         const Rectangle<float> row (copyBox.getX(), top + float (i) * pitch,
                                     copyBox.getWidth(), pitch);
-        aeq::ui::draw (g, lines[i], row, Justification::centredLeft, kCap * sy,
+        aeq::ui::draw (g, lines[i], row, Justification::centredLeft, copySize,
                        Palette::muted());
     }
 
@@ -1479,7 +1496,6 @@ void AeqAudioProcessorEditor::drawFooter (Graphics& g, Rectangle<int> area) {
     // instead of keeping design pixels at every width - which is what put the group's left
     // edge inside the sentence at 940 px (the 1.2.67 CI failure).
     constexpr float kDialMaxDiameter = aeq::ui::layout::kDialMaxDiameter;
-    const float ds = dialScale();
     const auto r0 = aeq::ui::layout::dialColumn (0, float (area.getRight()), float (area.getY()),
                                                  float (area.getHeight()), ds);
     const auto r1 = aeq::ui::layout::dialColumn (1, float (area.getRight()), float (area.getY()),
@@ -1675,21 +1691,33 @@ Rectangle<float> AeqAudioProcessorEditor::footerCopyBox() const {
     return { copy.left, area.getY(), jmax (60.0f, copy.right - copy.left), area.getHeight() };
 }
 
+// The sentence the footer actually draws: the long verdict when the row can hold it, the
+// written-short one when it cannot.  A single function so the paint code, the harness's
+// `footerCopyFits()` and any future gate cannot disagree about which sentence is on screen.
+String AeqAudioProcessorEditor::footerSentence() const {
+    const auto f = panelFacts();
+    const String longForm (aeq::copy::verdict (f));
+    if (footerCopyFits (longForm)) return longForm;
+    const String shortForm (aeq::copy::verdictCompact (f));
+    if (footerCopyFits (shortForm)) return shortForm;
+    return shortForm;   // the harness reports it; nothing longer would fit either
+}
+
 bool AeqAudioProcessorEditor::footerCopyFits (const String& line) const {
     // The same wrap, the same pitch and the same box the paint code uses.  Not the font's
     // own line box: at 1.874 em per line, two lines of 19 px type measure 72 px in a 52 px
     // row and the sentence would "not fit" while drawing perfectly - the pitch is the
     // number that decides whether lines collide.
-    const float sy = float (getHeight()) / kDesignH;
     const auto box = footerCopyBox();
     if (box.getWidth() < 40.0f || box.getHeight() < 8.0f) return false;
     if (line.isEmpty()) return true;
-    const auto lines = aeq::ui::wrapWords (line, kCap * sy, box.getWidth());
-    const float needed = float (lines.size()) * aeq::ui::linePitch (kCap * sy);
+    const float copySize = kCap * dialScale();      // the size it is *drawn* at (see drawFooter)
+    const auto lines = aeq::ui::wrapWords (line, copySize, box.getWidth());
+    const float needed = float (lines.size()) * aeq::ui::linePitch (copySize);
     return needed <= box.getHeight() + 0.5f;
 }
 
-bool AeqAudioProcessorEditor::footerCopyFits() const { return footerCopyFits (verdictLine()); }
+bool AeqAudioProcessorEditor::footerCopyFits() const { return footerCopyFits (footerSentence()); }
 
 // --------------------------------------------------------------------------- layout
 void AeqAudioProcessorEditor::resized() {

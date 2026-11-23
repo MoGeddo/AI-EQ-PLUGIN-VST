@@ -509,10 +509,19 @@ int runControls(const juce::File& dir) {
             { true,  true,  true,  false, 4, 21.0, 45.0 },        // sealed early
             { true,  true,  true,  true,  7, 45.0, 45.0 }         // sealed, settled
         };
+        // Every state, in **both** written forms: the long verdict and the written-short
+        // compact one.  The panel picks the long one when it fits and the short one when it
+        // does not, so a state is only unrepresentable if neither fits - and that is what is
+        // asserted.  (The first version of this check measured the long form only, so a
+        // narrow window failed for a sentence the panel would never have drawn there.)
         int fits = 0;
-        for (const auto& f : states)
-            if (ed->footerCopyFits (juce::String (aeq::copy::verdict (f)))) ++fits;
-        check(fits == 6, "and so do all six states the copy module can be in");
+        for (const auto& f : states) {
+            const bool longOk  = ed->footerCopyFits (juce::String (aeq::copy::verdict (f)));
+            const bool shortOk = ed->footerCopyFits (juce::String (aeq::copy::verdictCompact (f)));
+            if (longOk || shortOk) ++fits;
+            else stage (juce::String ("  neither form fits this state: ") + ed->footerSentence());
+        }
+        check(fits == 6, "and so do all six states the copy module can be in, in one of its two forms");
     }
 
     // ---- 13. the scan is on screen, and so is what runs by itself ---------------
@@ -568,10 +577,13 @@ int runControls(const juce::File& dir) {
             const float was = p->getValue();
             p->setValueNotifyingHost(p->convertTo0to1(0.0f));
             pump();
-            // sealed by a hand: the line names the hand, not the dial
-            check(ed->autoReadoutText().contains("STOP"),
-                  ("sealed by hand, the line does not claim the dial did it: "
-                   + ed->autoReadoutText()).toRawUTF8());
+            // sealed by a hand: the seal says so, and the line under it does not claim the
+            // dial did it.  (The sealed line no longer carries a STOP clause at all - who
+            // stopped it is the pill's job, and the harness checks the pill.)
+            const auto sealedLine = ed->autoReadoutText();
+            check(! sealedLine.contains("STOP AT") && ! sealedLine.contains("LEFT"),
+                  ("sealed by hand, the line does not claim the dial ended it: "
+                   + sealedLine).toRawUTF8());
             // open again, dial armed: the rule is printed before it fires
             click(ed->controlBounds(AeqAudioProcessorEditor::Control::Clamp).getCentre());
             p->setValueNotifyingHost(p->convertTo0to1(90.0f));

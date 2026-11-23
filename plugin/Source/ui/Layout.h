@@ -22,6 +22,9 @@
 // Widths are *measured* by the caller with the font it draws with (aeq::ui::measure); this
 // header only compares those numbers.
 #include <algorithm>
+#include <cstddef>
+
+#include "FontMetrics.h"
 
 namespace aeq::ui::layout {
 
@@ -153,6 +156,49 @@ inline FooterCopy footerCopy (float rowLeft, float rowRight, float modeW, float 
     f.right = dialGroupLeft (rowRight, scale) - 16.0f * scale;
     f.fits = f.left + 120.0f <= f.right;
     return f;
+}
+
+// ---- the footer's sentence, as geometry ------------------------------------------
+// The sentence is drawn with `wrapWords` (ArabicText.cpp) at kCap * sy with a 1.25 pitch, and
+// it is wrong for it to be the only thing on the panel that no arithmetic gate measures.
+// These two functions reproduce that wrap with the font's own advances (ui/FontMetrics.h), so
+// a test can answer "does this sentence fit this box" without a window.
+struct Sentence { int lines; float widest, needed; bool fits; };
+
+inline Sentence wrapSentence (const char* s, float sizePx, float boxW, float boxH) noexcept
+{
+    Sentence out { 0, 0.0f, 0.0f, false };
+    if (s == nullptr || *s == '\0' || boxW < 8.0f) return out;
+    float lineW = 0.0f;
+    const char* lineStart = s;
+    const char* wordStart = s;
+    auto hasWord = false;
+    auto flushWord = [&] (const char* end) {
+        const std::size_t n = std::size_t (end - wordStart);
+        const float w = metrics::advance (wordStart, n, sizePx);
+        const float space = hasWord ? metrics::advance (" ", 1, sizePx) : 0.0f;
+        if (hasWord && lineW + space + w > boxW) {              // wrap before this word
+            if (lineW > out.widest) out.widest = lineW;
+            ++out.lines;
+            lineW = w;
+        } else {
+            lineW += space + w;
+        }
+        hasWord = true;
+    };
+    for (const char* p = s; ; ++p) {
+        if (*p == ' ' || *p == '\0') {
+            if (p > wordStart) flushWord (p);
+            if (*p == '\0') break;
+            wordStart = p + 1;
+        }
+    }
+    if (lineW > out.widest) out.widest = lineW;
+    if (hasWord) ++out.lines;
+    out.needed = float (out.lines) * sizePx * 1.25f;
+    out.fits = out.lines > 0 && out.needed <= boxH + 0.5f;
+    (void) lineStart;
+    return out;
 }
 
 } // namespace aeq::ui::layout

@@ -190,6 +190,64 @@ int main() {
                "the dial group's left edge is the corner inset plus its three columns");
     }
 
+    // ---- 5. the footer's sentence, measured with the font's own advances -------
+    // This is the check this file should have had from the start, and the reason it did not:
+    // measuring text needs a font, and this gate has no JUCE.  Cairo's advances are now in
+    // ui/FontMetrics.h (extracted from the shipped .ttf), so the sentence can be measured
+    // here for the first time.  Three releases shipped a footer whose sentence ran through
+    // the dial labels while every arithmetic gate in the project was green.
+    {
+        struct Case { const char* text; };
+        const Case sentences[] = {
+            { "Listening. Play the take, then press the clamp to stop it." },
+            { "Listening against Amir's 15 reference takes. You stop it when you have heard the take." },
+            { "Open again: 4 bands in the path and the pass is counting. Press the clamp to seal it where you stop." },
+            { "Sealed and nothing to correct: the take sits inside the engineer's range." },
+            { "Sealed at 4 bands on 21 s of a 45 s pass - the numbers are coarse, the decision is not." },
+            { "Sealed at 7 bands. The curve is frozen; the dynamic layer keeps working." },
+            // ... and the written-short forms the panel falls back to
+            { "Listening. Play the take, then press the clamp." },
+            { "Listening against Amir's takes. Stop it when you have heard the take." },
+            { "Open again: 4 bands in the path, still counting." },
+            { "Sealed, nothing to correct: the take is in range." },
+            { "Sealed at 4 bands on 21 s of 45 - coarse, not wrong." },
+            { "Sealed at 7 bands. Frozen curve, live dynamics." },
+        };
+        struct Win { float w, h; };
+        const Win wins[] = { { 1000, 660 }, { 1024, 700 }, { 1240, 800 }, { 1440, 930 },
+                             { 1800, 1160 }, { 1000, 1160 }, { 1800, 660 } };
+        bool ok = true;
+        int worstState = 0;
+        for (const auto& win : wins) {
+            const float sx = win.w / kDesignW, sy = win.h / kDesignH;
+            const float ds = std::min (sx, sy);
+            const float boxL = kMargin * sx + 2.0f * 90.0f * sx + 4.0f * sx + 20.0f * ds;
+            const float boxR = win.w - kMargin * sx - 16.0f * ds - 3.0f * kDialColW * ds - 16.0f * ds;
+            const float boxH = 46.0f * sy;
+            // the drawn sentence size: kCap (17 design px) scaled by the window's height
+            const float size = 17.0f * ds;   // the size it is drawn at (kCap * min(sx,sy))
+            // every state must be representable in at least one of its two written forms
+            for (int i = 0; i < 6; ++i) {
+                const auto longF  = wrapSentence (sentences[i].text, size, boxR - boxL, boxH);
+                const auto shortF = wrapSentence (sentences[i + 6].text, size, boxR - boxL, boxH);
+                if (! longF.fits && ! shortF.fits) {
+                    ok = false;
+                    std::printf ("        %gx%g state %d: neither form fits "
+                                 "(long %d lines %.0f/%.0f px, short %d lines %.0f/%.0f px)\n",
+                                 win.w, win.h, i, longF.lines, longF.needed, boxH,
+                                 shortF.lines, shortF.needed, boxH);
+                } else {
+                    worstState = std::max (worstState, 1);
+                }
+            }
+            // ... and the box itself never collapses
+            ok = ok && (boxR - boxL) >= 120.0f && boxH >= 8.0f;
+        }
+        (void) worstState;
+        check (ok, "every footer sentence fits the row it is drawn in, at every window size - "
+                   "measured with Cairo's own advances, in one of its two written forms");
+    }
+
     std::printf ("layout: %d passed, %d failed\n", passed, failed);
     return failed == 0 ? 0 : 1;
 }

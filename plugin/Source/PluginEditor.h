@@ -102,6 +102,8 @@ public:
     juce::String layerReadoutText() const;   // STATIC 3 · DYNAMIC 2 · 0.8 dB
     juce::Rectangle<int> layerReadout() const;
     juce::String autoReadoutText() const;    // curve frozen · AUTO: GAIN + DYNAMIC + ...
+    // what the footer draws: the long verdict, or the written-short one when the row is tight
+    juce::String footerSentence() const;
     juce::Rectangle<int> autoReadout() const;
     // The ink of the two things the badge has to clear: the name, and the tagline under
     // it.  A sentence that "looks fine" at one window size is not a measurement, and the

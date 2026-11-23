@@ -93,6 +93,43 @@ inline std::string verdict (const Facts& f)
     return "Still learning. You stop it when you have heard the whole take.";
 }
 
+// The same verdict, for the rows that cannot hold the long one.
+//
+// The footer's sentence box is ~360 px wide at 1240x800 and ~272 px at the window's smallest
+// size, and two lines are what the row has.  At full width the long sentences fit; at the
+// small end they do not - "Sealed at 4 bands on 21 s of a 45 s pass - the numbers are coarse,
+// the decision is not." is three lines there, which the harness caught on the shipped window.
+// Dropping whole clauses silently would be dishonest, so the short form is *written* as the
+// same claim with fewer words, and the panel only uses it when the long one does not fit.
+// Both forms are true; neither is a truncation of the other.
+inline std::string verdictCompact (const Facts& f)
+{
+    if (! f.haveData)
+        return "Listening. Play the take, then press the clamp.";
+
+    if (sealed (f))
+    {
+        if (f.bands <= 0)
+            return "Sealed, nothing to correct: the take is in range.";
+        const std::string count = std::to_string (f.bands) + (f.bands == 1 ? " band" : " bands");
+        if (! f.settled && f.trustSeconds > 0.0)
+            return "Sealed at " + count + " on " + seconds (f.heardSeconds) + " s of "
+                 + seconds (f.trustSeconds) + " - coarse, not wrong.";
+        return "Sealed at " + count + ". Frozen curve, live dynamics.";
+    }
+
+    if (open (f))
+    {
+        const std::string count = f.bands <= 0 ? std::string ("nothing") : std::to_string (f.bands)
+                                  + (f.bands == 1 ? " band" : " bands");
+        return "Open again: " + count + " in the path, still counting.";
+    }
+
+    if (! f.settled)
+        return "Listening against Amir's takes. Stop it when you have heard the take.";
+    return "Still learning. You stop it when you have heard the take.";
+}
+
 // The header's one-word state.  "SEALED" alone cannot answer the user's question - "does it
 // scan all the audio, or does it stop by itself?" - because a pass that ended itself and a
 // pass the person ended read the same.  So the word carries who ended it: SEALED BY YOU,

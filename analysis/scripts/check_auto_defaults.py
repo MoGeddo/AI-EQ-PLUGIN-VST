@@ -58,11 +58,26 @@ elif settle < MIN_SETTLE_S:
 # described - a gate that lies is worse than no gate.  It now reads the current path and
 # the floor under it.
 core = (ROOT / "plugin" / "Source" / "dsp" / "RestoreCore.h").read_text(encoding="utf-8")
-if "kHardCapSeconds" not in core or "state_.analyzedSeconds >= cap" not in core:
+# The condition the cap compares has moved once already - it used to be the sung-audio
+# meter (`state_.analyzedSeconds >= cap`), which is why the cap never fired on a real take:
+# 300 s of audio reads as 248 s of voice.  A gate that pins the *comparison expression* goes
+# red every time the right expression changes and silent when the new one is wrong, so this
+# pins what must be true instead: the cap exists, something open-ended is compared to it, and
+# reaching it commits and freezes.
+cap_compares_something = bool(re.search(r"if\s*\(\s*[A-Za-z_][\w.:()]*\s*>=?\s*cap\s*\)", core))
+if "kHardCapSeconds" not in core or not cap_compares_something:
     problems.append("RestoreCore.h: the safety cap does not commit anything - a forgotten "
                     "Stop button would leave the plugin listening forever")
 elif "Phase::Committed" not in core:
     problems.append("RestoreCore.h: the cap never reaches the committed phase")
+elif not re.search(r"cap\s*\)\s*\{(?:.|\n){0,400}?frozen_\.store\s*\(\s*true", core):
+    problems.append("RestoreCore.h: the cap does not freeze the pass it ended")
+# ... and the clock it reads has to count the whole take, not only the sung part.  This is the
+# 1.2.68 defect: `analyzedSeconds` is the analyser's voice meter (76 % of a real take), so a
+# five-minute promise measured in it was never kept.
+elif "passSeconds()" not in core:
+    problems.append("RestoreCore.h: the cap is measured on the voice meter - it will never "
+                    "fire on a take that breathes")
 
 # The editor is a readout, not the thing that starts the analysis - but the control that
 # *ends* it must exist and be wired.  v9 has no learnBtn_: the clamp in the take strip is
