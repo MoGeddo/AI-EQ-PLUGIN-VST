@@ -98,6 +98,7 @@ public:
     // the clamp.
     juce::String scanBadgeText() const;      // SCANNED / SCANNING 42% / READY TO SCAN
     juce::Rectangle<int> scanBadge() const;  // the header pill that carries that word
+    float scanBadgeInk() const;              // ... and the word's width, tracking included
     juce::String scanStripText() const;      // SCAN 42% · 9 s / SCANNED 9 s OF 21 s · COARSE
     juce::String layerReadoutText() const;   // STATIC 3 · DYNAMIC 2 · 0.8 dB
     juce::Rectangle<int> layerReadout() const;

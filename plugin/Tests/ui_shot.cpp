@@ -614,6 +614,35 @@ int runControls(const juce::File& dir) {
               "and right of the name, with room to breathe");
         check(! badge.toFloat().intersects(line),
               "and above the tagline, not through it");
+        // Does the pill hold the word it actually draws?  The box was built from
+        // `measure()` - the *untracked* advance - while the paint code draws the word with
+        // `trackedText(..., kReadoutTrack)`, and at 17 px the tracking adds 6.6 px to
+        // "SCANNED".  The word was therefore pinned to the left pad and butted into the
+        // right border: measured off the 1.2.71 shot, 9 px of air on the left and 13 on the
+        // right, where the design wants the pad on both sides.  This asks the question in
+        // the drawing's own units, so the answer cannot drift from the picture.
+        // Written so that it CANNOT pass by knowing the answer: the pad below is an
+        // independent floor (8 px), not the constant the pill is built with.  An earlier
+        // version of this check subtracted `2 * kPillPadX` from the pill and compared the
+        // result with the word - which is `ink <= ink`, true for any pad, including zero.
+        {
+            const float sy = float (ed->getHeight()) / 700.0f;
+            const float led = 18.0f * sy;
+            const float word = ed->scanBadgeInk();
+            const float air = (float (badge.getWidth()) - led - word) * 0.5f;
+            check(word <= float (badge.getWidth()) - led,
+                  (juce::String ("the scan badge holds its word with the tracking it is "
+                                 "drawn with: word ") + juce::String (word, 1)
+                   + " px in " + juce::String (float (badge.getWidth()) - led, 1)
+                   + " px of pill").toRawUTF8());
+            // ... and the air is real on each side.  1.2.71 shipped 9 px on the left and 0
+            // on the right: the pad was counted once and split, and the last glyph sat on
+            // the stroke.  A floor, so a future pad may widen this but never close it.
+            check(air >= 8.0f * sy,
+                  (juce::String ("the word sits in the pill with air on both sides, not "
+                                 "against one border: ") + juce::String (air, 1)
+                   + " px each side").toRawUTF8());
+        }
         const auto autosBox = ed->autoReadout().toFloat();
         check(! autosBox.intersects(line) && ! autosBox.intersects(badge.toFloat()),
               "the automatic line does not run into the tagline or the badge");

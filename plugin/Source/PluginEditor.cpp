@@ -20,6 +20,10 @@ namespace {
 constexpr float kDesignW = 1180.0f, kDesignH = 700.0f;
 constexpr float kMargin = 22.0f;
 constexpr float kPanelR = 16.0f, kWellR = 14.0f, kChipR = 12.0f, kPillR = 11.0f;
+// The air between a pill's border and the word inside it, per side.  A pill whose text
+// touches its own border reads as text that was cut off, which is what the 1.2.71 shot
+// showed on SCANNED - 9 px of air on the left and 0 on the right.
+constexpr float kPillPadX = 9.0f;
 // 1.2.10: the type was too small to read at arm's length and the copy was Arabic.
 // Both changed at the user's instruction: the window is English now and everything is
 // one size up, twice in the case of the numbers people actually read.
@@ -589,10 +593,28 @@ Rectangle<int> AeqAudioProcessorEditor::scanBadge() const {
     const float sy = float (getHeight()) / kDesignH;
     const float sx = float (getWidth()) / kDesignW;
     const auto hd = blocks().header;
-    // the LED, the word, and the padding either side of them
-    const float w = 18.0f * sy + aeq::ui::measure (scanBadgeText(), kCap * sy) + 12.0f * sy;
+    // The LED, the word, and the padding either side of them.  The word is measured with
+    // `trackedInk()` - the width of the string **with the tracking it is drawn with** - not
+    // with `measure()`, which is the untracked advance.  At 17 px the tracking adds 6.6 px
+    // over "SCANNED" and the pill was 6.6 px too narrow for its own text: the word was
+    // pinned to the left pad and ran into the right border (9 px of air on the left, 13 on
+    // the right - and the last glyph's sidebearing is not air).  The same defect, at the
+    // same numbers, is in `autoReadout()` below.
+    // ... and a real pad on *each* side of the word.  The old `+ 12 * sy` was the whole pad,
+    // split between both edges, so a correct ink width would have left 0 px of air and the
+    // word would still touch the border - just evenly.  `kPillPadX` is the pad.
+    const float w = 18.0f * sy + trackedInk (scanBadgeText(), kCap * sy, kReadoutTrack,
+                                             Face::SemiBold) + 2.0f * kPillPadX * sy;
     return { referenceHit().getX() - roundToInt (w) - roundToInt (14.0f * sx),
              hd.getY() + roundToInt (4.0f * sy), roundToInt (w), roundToInt (30.0f * sy) };
+}
+
+// The width the badge's word actually occupies, tracking included - the number
+// `scanBadge()` has to build the pill around, exposed so a gate can ask whether the pill is
+// wide enough for the word rather than trusting that the two agree.
+float AeqAudioProcessorEditor::scanBadgeInk() const {
+    return trackedInk (scanBadgeText(), kCap * float (getHeight()) / kDesignH, kReadoutTrack,
+                       Face::SemiBold);
 }
 
 String AeqAudioProcessorEditor::scanStripText() const {
@@ -610,8 +632,7 @@ Rectangle<int> AeqAudioProcessorEditor::layerReadout() const {
     const auto row = heroRow (kStopTop, kStopBottom);
     // the tracked width, not the untracked one: a box narrower than the line it holds is
     // how a right-aligned label ends up hanging off its own left edge
-    const int w = roundToInt (aeq::ui::measure (s, kMicro * sy, Face::SemiBold)
-                              + kReadoutTrack * float (jmax (0, s.length() - 1))
+    const int w = roundToInt (trackedInk (s, kMicro * sy, kReadoutTrack, Face::SemiBold)
                               + kReadoutSlack * sy);
     // 10 px inside the plate's own edge, not on it: the line is right-aligned, and a
     // right-aligned line whose last glyph lands on the well's border reads as a line that
@@ -653,8 +674,11 @@ Rectangle<int> AeqAudioProcessorEditor::autoReadout() const {
     const float sy = float (getHeight()) / kDesignH;
     const auto f = panelFacts();
     const String s = autoReadoutText();
-    const float w = aeq::ui::measure (s, kMicro * sy)
-                    + kReadoutTrack * float (jmax (0, s.length() - 1)) + kReadoutSlack * sy;
+    // trackedInk, for the reason spelled out in scanBadge(): `measure()` is the untracked
+    // advance, and every one of these lines is drawn tracked.  The hand-written
+    // `+ kReadoutTrack * (len-1)` term below is the same mistake with a different sign -
+    // it double-counts the tracking when it is added to a width that already has it.
+    const float w = trackedInk (s, kMicro * sy, kReadoutTrack, Face::Regular) + kReadoutSlack * sy;
     const auto pill = sealPill();
     return { pill.getRight() - roundToInt (w),
              pill.getBottom() + roundToInt (4.0f * sy), roundToInt (w),
@@ -1069,7 +1093,8 @@ void AeqAudioProcessorEditor::drawHeader (Graphics& g, Rectangle<int> hd) {
         // trackedText, like the other three readouts: see drawTake for why the RTL path
         // (aeq::ui::draw) is the wrong funnel for a Latin status word
         trackedText (g, scanBadgeText(),
-                     br.translated (18.0f * sy, 0.0f).withTrimmedRight (6.0f * sy),
+                     br.translated (18.0f * sy, 0.0f).withTrimmedRight (2.0f * kPillPadX * sy
+                                                                      - 6.0f * sy),
                      scanning ? Palette::takeInk().brighter (0.30f)
                               : Palette::takeInk().withAlpha (done ? 0.95f : 0.62f),
                      kCap * sy, kReadoutTrack, Justification::centredLeft, Face::SemiBold);

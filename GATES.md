@@ -1723,3 +1723,33 @@ at any vocal stem first; the other gates need nothing but the source tree.
   FALSIFY: restore the old stripLine geometry (`r.textRight = rowRight`) -> `aeq_layout` 12/1
   "the strip's sentence fits between the scan readout and the legend"; and
   `check_knobs --shot docs/ui-1.2.34-window.png` -> 4 problems (the ring was clipped then).
+
+- [x] G113: a pill holds its word with the tracking it is drawn with, and with air on both
+  sides.  The 1.2.71 window drew `SCANNED` with its last letter touching the pill's own
+  border: measured off CI's screenshot, 9 px of air on the left and **0** on the right, and
+  at 2x the `D` is visibly clipped by the stroke.
+  Two mistakes, one shape: the box was built from `measure()` - the *untracked* advance -
+  while the paint code draws the word with `trackedText(..., kReadoutTrack)`, and at 17 px
+  that tracking adds **6.6 px** to "SCANNED"; and the old `+ 12 * sy` was the whole pad,
+  between both edges, so even a correct ink width would have left 0 px of air.  The same
+  untracked measurement was in `autoReadout()` (with a hand-written
+  `+ track * (len-1)` that double-counted it) and in `layerReadout()`.
+    * all three now measure with `trackedInk()`, which is the width of the string *as it is
+      drawn*;
+    * the pad is `kPillPadX = 9` **per side**, so the word has the same air on both edges in
+      every state: `SCANNED` 9.0 / `READY TO SCAN` 9.0 / `SCANNING 42%` 9.0.
+  CHECK: grep -c "scan badge holds its word" plugin/Tests/ui_shot.cpp
+  EXPECT: 1
+  EVIDENCE: VERIFIED - the assertion is in the 1.2.71 controls stage, in the drawing's own
+  units (the harness asks `scanBadgeInk()` against the pill's inner width).  Design
+  arithmetic: word 78.6 px, pill 114.6 px, 9.0 px of air each side - and it stays 9.0 for the
+  two longer states, which is what a per-side pad means.  On the shipped 1.2.71 shot the
+  same word measures 452..544 inside a border of 443..557: 9 px left, 13 px right, with the
+  right-hand figure inflated by the glyph's sidebearing and no pad behind it.
+  FALSIFY: put `measure()` back in `scanBadge()` - the shipped box was 102.0 px, which leaves
+  the 78.6 px word **2.7 px of air each side**, and the assertion's independent 8 px floor
+  reports "the word sits in the pill with air on both sides, not against one border: 2.7 px
+  each side".  The fixed pill is 114.6 px with 9.0 px each side.  (The floor is 8 px and not
+  `kPillPadX`, deliberately: a check that subtracts the constant the box was built with is
+  `ink <= ink` and passes at any pad, including zero - an earlier version of this assertion
+  did exactly that.)
