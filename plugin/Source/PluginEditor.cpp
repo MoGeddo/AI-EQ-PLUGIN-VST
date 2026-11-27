@@ -1449,7 +1449,7 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
         const float modeW = aeq::ui::measure (modeWord, kCap * sy);
         const auto rows = aeq::ui::layout::chipRows (
             r.getWidth(), r.getHeight(), indexW, modeW,
-            aeq::ui::measure ("2.64 kHz  \xc2\xb7  Q 0.40", kMicro * sy),
+            aeq::ui::measure ("2.64 kHz \xc2\xb7 Q 0.40", kMicro * sy),
             aeq::ui::measure ("2.64 kHz", kMicro * sy), typeScale);
         // The index and the micro line are drawn with drawText, not through the tracked
         // path.  `trackedText` builds a TextLayout, which (a) *wraps*, so "105 Hz · Q 1.10"
@@ -1483,7 +1483,7 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
             const auto spec = proc_.core().trackedSpec (chip.tracked);
             gain = proc_.core().trackedGainDb (chip.tracked);
             q = spec.q;
-            micro = "H" + String (spec.harmonic) + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2);
+            micro = "H" + String (spec.harmonic) + String::fromUTF8 (" \xc2\xb7 Q ") + String (q, 2);
         } else if (chip.band < int (bands_.size())) {
             const auto& spec = bands_[size_t (chip.band)];
             gain = spec.gainDb + (chip.band < int (trims_.size()) ? trims_[size_t (chip.band)] : 0.0);
@@ -1510,9 +1510,18 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
                     Justification::centredLeft, false);
 
         if (! hot) {
+            // One space either side of the separator, not two.  "1.25 kHz  ·  Q 1.40" is
+            // 114.09 px of ink on Cairo at 15 px and the seven-band card leaves 115.0 px
+            // inside its 9 px pads: **0.91 px of slack**, which is less than the difference
+            // between two shapers' rounding of the same string and less than FreeType's
+            // hinting noise.  That is why the card drew correctly in the 1.2.71 shot and still
+            // failed `chipCaptionsFit()` on the Windows runner in 1.2.72 - a caption that fits
+            // by 0.9 px is a caption that fits by luck.  The single-space form is 107.49 px:
+            // 7.51 px of slack on the same card, and it reads the same.  The type size and the
+            // words are unchanged; only the runaway air around the dot is.
             const String full = f0 >= 1000.0
-                ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2)
-                : String (int (f0)) + " Hz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2);
+                ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 (" \xc2\xb7 Q ") + String (q, 2)
+                : String (int (f0)) + " Hz" + String::fromUTF8 (" \xc2\xb7 Q ") + String (q, 2);
             const String freqOnly = f0 >= 1000.0 ? String (f0 / 1000.0, 2) + " kHz"
                                                  : String (int (f0)) + " Hz";
             micro = rows.microForm == 0 ? full : (rows.microForm == 1 ? freqOnly : String());
@@ -1789,7 +1798,11 @@ bool AeqAudioProcessorEditor::chipCaptionsFit() const {
     for (size_t i = 0; i < rects.size() && i < chips_.size(); ++i) {
         const auto r = rects[i].toFloat();
         const auto chip = chips_[i];
-        const float inner = r.getWidth() - 2.0f * (r.getWidth() < 150.0f ? 9.0f : 12.0f);
+        // the same pad `chipRows()` hands the drawer, scaled the same way - one source, so a
+        // gate cannot complain about a box the drawer does not use
+        const float inner = r.getWidth()
+                          - 2.0f * aeq::ui::layout::chipRows (r.getWidth(), r.getHeight(),
+                                0.0f, 0.0f, 0.0f, 0.0f, typeScale).padX;
         const int band = chip.band;
         const bool hot = chip.tracked >= 0;
         double f0 = 0.0, q = 0.0;
@@ -1797,9 +1810,11 @@ bool AeqAudioProcessorEditor::chipCaptionsFit() const {
             f0 = bands_[size_t (band)].f0;
             q = bands_[size_t (band)].q;
         }
+        // ... spelled exactly as `drawChips()` spells it.  A gate that measures a string the
+        // drawer does not draw is measuring a caption nobody sees.
         const String full = f0 >= 1000.0
-            ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2)
-            : String (int (f0)) + " Hz" + String::fromUTF8 ("  \xc2\xb7  Q ") + String (q, 2);
+            ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 (" \xc2\xb7 Q ") + String (q, 2)
+            : String (int (f0)) + " Hz" + String::fromUTF8 (" \xc2\xb7 Q ") + String (q, 2);
         const String freqOnly = f0 >= 1000.0 ? String (f0 / 1000.0, 2) + " kHz"
                                              : String (int (f0)) + " Hz";
         const float modeW = aeq::ui::measure (hot ? aeq::ui::u8 (kTracked)

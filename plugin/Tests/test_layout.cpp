@@ -9,6 +9,7 @@
 // What this does NOT check: whether a string is pretty.  It checks that the strings a cell
 // draws have room between the 12 px paddings, that the footer's sentence box does not reach
 // the dial group, and that the dial group does not reach the mode keys.
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -81,6 +82,95 @@ int main() {
             check (! chipFits (tiny, cellH),
                    "a card too narrow for its header is reported unfittable, not overprinted");
         }
+    }
+
+    // ---- 0a. the measurement walks UTF-8, not bytes ---------------------------
+    // `advance()` is what every arithmetic gate in this repo measures text with, and it used to
+    // read one *byte* at a time.  The separator in "1.25 kHz  \xc2\xb7  Q 1.40" is two bytes of
+    // UTF-8, so it was charged the 0.55 em fallback twice instead of Cairo's 0.219 em: a
+    // 114.09 px line measured 127.30 px, 13 px too wide, and the seven-band card that drew
+    // correctly was reported as over its own edge.  The numbers below are Cairo's own, read out
+    // of the shipped TTF with fontTools - not this test's arithmetic.
+    {
+        struct { const char* text; float em; } truth[] = {
+            { "a \xc2\xb7 b", 0.502f + 0.220f + 0.219f + 0.220f + 0.527f },   // 25.32 px at 15
+            { "1.25 kHz  \xc2\xb7  Q 1.40", 7.606f },                          // 114.09
+            { "105 Hz  \xc2\xb7  Q 1.10", 6.907f },                            // 103.61
+        };
+        bool ok = true;
+        std::string worst;
+        for (const auto& t : truth) {
+            const float want = t.em * 15.0f;
+            const float got  = aeq::ui::metrics::advance (t.text, 15.0f);
+            if (std::abs (got - want) > 0.15f && ok) {
+                ok = false;
+                char buf[160];
+                std::snprintf (buf, sizeof buf, "%s measured %.2f, Cairo says %.2f",
+                               t.text, got, want);
+                worst = buf;
+            }
+        }
+        check (ok, (std::string ("the measurement agrees with the font it draws with, separator "
+                                 "and all") + (ok ? "" : " - " + worst)).c_str());
+        // ... and the separator is *one* glyph, not two bytes' worth: the defect reads 8.25 px
+        // high on this string, an order of magnitude above the tolerance above
+        const float sep = aeq::ui::metrics::advance ("a \xc2\xb7 b", 15.0f);
+        check (std::abs (sep - 25.32f) < 0.15f,
+               "a UTF-8 separator is one glyph wide, not one fallback per byte");
+    }
+
+    // ---- 0c. a form clears the card by a margin, not by epsilon ----------------
+    // The 1.2.72 failure on the Windows runner was a seven-band card whose caption fitted its
+    // box by **0.91 px**.  It drew correctly; it was not *decided* correctly, because 0.9 px
+    // is inside the disagreement between two shapers and two hinting engines.  `chipRows()`
+    // now asks for `kChipFitSlack` of room before it will draw a form at all, and this walks
+    // the full matrix to prove the margin is real rather than the epsilon being renamed.
+    {
+        struct Sized { int bands; float rowW, winH; };
+        float worst = 1e9f;
+        std::string where;
+        int forms[4] = { 0, 0, 0, 0 };
+        for (int n = 1; n <= 8; ++n)
+            for (const float rowW : rows)
+                for (const float winH : { 620.0f, 660.0f, 700.0f, 800.0f, 930.0f, 1160.0f }) {
+                    const float sy = winH / 700.0f;
+                    const float sx = rowW / 1180.0f;
+                    const float cardH = cellH * sy;
+                    const float scale = cardH / kChipsDesignH;
+                    const float cellW = ((rowW - 2.0f * margin) - gapPx * float (n - 1))
+                                        / float (n);
+                    const float full = tightMicroWidth ("9.40 kHz  \xc2\xb7  Q 3.20") * sy;
+                    const float freq = tightMicroWidth ("9.40 kHz") * sy;
+                    const auto r = chipRows (cellW, cardH, tightMicroWidth ("01") * sy,
+                                             tightMicroWidth ("STATIC") * sy, full, freq, scale);
+                    (void) sx;
+                    ++forms[r.microForm];
+                    const float inner = cellW - 2.0f * r.padX;
+                    const float draw = r.microForm == 0 ? full
+                                     : (r.microForm == 1 ? freq : 0.0f);
+                    if (r.microForm >= 2) continue;          // nothing is drawn: no margin to test
+                    const float room = inner - draw;
+                    if (room < worst) {
+                        worst = room;
+                        char buf[128];
+                        std::snprintf (buf, sizeof buf, "%d bands, %.0f px row, h %.0f",
+                                       n, rowW, winH);
+                        where = buf;
+                    }
+                }
+        // The floor is the constant itself, not a number that happens to be below the worst
+        // margin the shipped geometry gives: a gate that asserts `worst >= 1.0` passes with
+        // `kChipFitSlack = 0` (the epsilon rule, worst 1.142 px) and certifies the very defect
+        // it was written for.  Building the floor from the constant makes the constant the
+        // subject of the test.
+        check (kChipFitSlack >= 4.0f && worst >= kChipFitSlack - 0.01f,
+               (std::string ("every form the card draws clears its card by the fit margin, not "
+                             "by epsilon") + " - worst " + std::to_string (worst).substr (0, 5)
+                + " px at " + where).c_str());
+        // ... and the margin is not bought by drawing nothing: the full form is still the
+        // common case at the sizes the panel actually ships, which is what the shot shows
+        check (forms[0] > forms[1] + forms[2] + forms[3],
+               "the full kHz/Q caption is still the form most cards draw, not the exception");
     }
 
     // ---- 1. the micro line has a form at every width ---------------------------

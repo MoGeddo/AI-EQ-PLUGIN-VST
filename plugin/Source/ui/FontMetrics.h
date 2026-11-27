@@ -17,139 +17,180 @@ namespace aeq::ui::metrics
 {
 
 // unitsPerEm = 1000: each value below is advance / 1000.
-struct Glyph { char c; float em; };
+//
+// The key is the **code point**, not a byte.  It used to be `char` and the table only held
+// 32..126, so every non-ASCII character the panel draws was silently measured as two unknown
+// bytes: the separator in "1.25 kHz  \u00b7  Q 1.40" is two bytes of UTF-8, each charged the
+// 0.55 em fallback, so a 114.09 px line measured 127.30 px - 13 px too wide - and the seven-band
+// card that drew correctly was reported as over its own edge.  A measurement that invents the
+// separator is worse than no measurement: it fails the correct layout and passes a wrong one.
+struct Glyph { unsigned int cp; float em; };
 
 inline const Glyph* table (std::size_t& count) noexcept
 {
     static const Glyph kGlyphs[] = {
-        {' ', 0.2200f},
-        {'!', 0.2490f},
-        {'"', 0.3750f},
-        {'#', 0.5600f},
-        {'$', 0.5600f},
-        {'%', 0.5600f},
-        {'&', 0.6890f},
-        {'\'', 0.2090f},
-        {'(', 0.2660f},
-        {')', 0.2660f},
-        {'*', 0.4200f},
-        {'+', 0.5600f},
-        {',', 0.2250f},
-        {'-', 0.4360f},
-        {'.', 0.2180f},
-        {'/', 0.4150f},
-        {'0', 0.5600f},
-        {'1', 0.5600f},
-        {'2', 0.5600f},
-        {'3', 0.5600f},
-        {'4', 0.5600f},
-        {'5', 0.5600f},
-        {'6', 0.5600f},
-        {'7', 0.5600f},
-        {'8', 0.5600f},
-        {'9', 0.5600f},
-        {':', 0.2190f},
-        {';', 0.2500f},
-        {'<', 0.5600f},
-        {'=', 0.5600f},
-        {'>', 0.5600f},
-        {'?', 0.4460f},
-        {'@', 0.9760f},
-        {'A', 0.5960f},
-        {'B', 0.6150f},
-        {'C', 0.5440f},
-        {'D', 0.6440f},
-        {'E', 0.5530f},
-        {'F', 0.5260f},
-        {'G', 0.6160f},
-        {'H', 0.6750f},
-        {'I', 0.2480f},
-        {'J', 0.2890f},
-        {'K', 0.5700f},
-        {'L', 0.4780f},
-        {'M', 0.8410f},
-        {'N', 0.6770f},
-        {'O', 0.6600f},
-        {'P', 0.5920f},
-        {'Q', 0.6600f},
-        {'R', 0.6160f},
-        {'S', 0.5420f},
-        {'T', 0.5260f},
-        {'U', 0.6450f},
-        {'V', 0.5830f},
-        {'W', 0.8880f},
-        {'X', 0.5590f},
-        {'Y', 0.5390f},
-        {'Z', 0.5360f},
-        {'[', 0.3300f},
-        {'\\', 0.4390f},
-        {']', 0.3300f},
-        {'^', 0.5600f},
-        {'_', 0.6310f},
-        {'`', 0.2380f},
-        {'a', 0.5020f},
-        {'b', 0.5270f},
-        {'c', 0.4360f},
-        {'d', 0.5300f},
-        {'e', 0.5050f},
-        {'f', 0.3320f},
-        {'g', 0.5150f},
-        {'h', 0.5380f},
-        {'i', 0.2210f},
-        {'j', 0.2210f},
-        {'k', 0.4810f},
-        {'l', 0.2330f},
-        {'m', 0.8360f},
-        {'n', 0.5380f},
-        {'o', 0.5290f},
-        {'p', 0.5280f},
-        {'q', 0.5270f},
-        {'r', 0.3470f},
-        {'s', 0.4660f},
-        {'t', 0.3510f},
-        {'u', 0.5320f},
-        {'v', 0.4820f},
-        {'w', 0.7630f},
-        {'x', 0.4530f},
-        {'y', 0.4840f},
-        {'z', 0.4550f},
-        {'{', 0.3520f},
-        {'|', 0.2320f},
-        {'}', 0.3520f},
-        {'~', 0.5600f},
+        {0x0020u, 0.2200f},
+        {0x0021u, 0.2490f},
+        {0x0022u, 0.3750f},
+        {0x0023u, 0.5600f},
+        {0x0024u, 0.5600f},
+        {0x0025u, 0.5600f},
+        {0x0026u, 0.6890f},
+        {0x0027u, 0.2090f},
+        {0x0028u, 0.2660f},
+        {0x0029u, 0.2660f},
+        {0x002Au, 0.4200f},
+        {0x002Bu, 0.5600f},
+        {0x002Cu, 0.2250f},
+        {0x002Du, 0.4360f},
+        {0x002Eu, 0.2180f},
+        {0x002Fu, 0.4150f},
+        {0x0030u, 0.5600f},
+        {0x0031u, 0.5600f},
+        {0x0032u, 0.5600f},
+        {0x0033u, 0.5600f},
+        {0x0034u, 0.5600f},
+        {0x0035u, 0.5600f},
+        {0x0036u, 0.5600f},
+        {0x0037u, 0.5600f},
+        {0x0038u, 0.5600f},
+        {0x0039u, 0.5600f},
+        {0x003Au, 0.2190f},
+        {0x003Bu, 0.2500f},
+        {0x003Cu, 0.5600f},
+        {0x003Du, 0.5600f},
+        {0x003Eu, 0.5600f},
+        {0x003Fu, 0.4460f},
+        {0x0040u, 0.9760f},
+        {0x0041u, 0.5960f},
+        {0x0042u, 0.6150f},
+        {0x0043u, 0.5440f},
+        {0x0044u, 0.6440f},
+        {0x0045u, 0.5530f},
+        {0x0046u, 0.5260f},
+        {0x0047u, 0.6160f},
+        {0x0048u, 0.6750f},
+        {0x0049u, 0.2480f},
+        {0x004Au, 0.2890f},
+        {0x004Bu, 0.5700f},
+        {0x004Cu, 0.4780f},
+        {0x004Du, 0.8410f},
+        {0x004Eu, 0.6770f},
+        {0x004Fu, 0.6600f},
+        {0x0050u, 0.5920f},
+        {0x0051u, 0.6600f},
+        {0x0052u, 0.6160f},
+        {0x0053u, 0.5420f},
+        {0x0054u, 0.5260f},
+        {0x0055u, 0.6450f},
+        {0x0056u, 0.5830f},
+        {0x0057u, 0.8880f},
+        {0x0058u, 0.5590f},
+        {0x0059u, 0.5390f},
+        {0x005Au, 0.5360f},
+        {0x005Bu, 0.3300f},
+        {0x005Cu, 0.4390f},
+        {0x005Du, 0.3300f},
+        {0x005Eu, 0.5600f},
+        {0x005Fu, 0.6310f},
+        {0x0060u, 0.2380f},
+        {0x0061u, 0.5020f},
+        {0x0062u, 0.5270f},
+        {0x0063u, 0.4360f},
+        {0x0064u, 0.5300f},
+        {0x0065u, 0.5050f},
+        {0x0066u, 0.3320f},
+        {0x0067u, 0.5150f},
+        {0x0068u, 0.5380f},
+        {0x0069u, 0.2210f},
+        {0x006Au, 0.2210f},
+        {0x006Bu, 0.4810f},
+        {0x006Cu, 0.2330f},
+        {0x006Du, 0.8360f},
+        {0x006Eu, 0.5380f},
+        {0x006Fu, 0.5290f},
+        {0x0070u, 0.5280f},
+        {0x0071u, 0.5270f},
+        {0x0072u, 0.3470f},
+        {0x0073u, 0.4660f},
+        {0x0074u, 0.3510f},
+        {0x0075u, 0.5320f},
+        {0x0076u, 0.4820f},
+        {0x0077u, 0.7630f},
+        {0x0078u, 0.4530f},
+        {0x0079u, 0.4840f},
+        {0x007Au, 0.4550f},
+        {0x007Bu, 0.3520f},
+        {0x007Cu, 0.2320f},
+        {0x007Du, 0.3520f},
+        {0x007Eu, 0.5600f},
+        {0x00A0u, 0.2200f},
+        {0x00B0u, 0.5600f},
+        {0x00B7u, 0.2190f},
+        {0x00D7u, 0.5600f},
+        {0x2013u, 0.6300f},
+        {0x2014u, 1.1300f},
+        {0x2019u, 0.2180f},
+        {0x2022u, 0.4720f},
+        {0x2026u, 0.7270f},
     };
     count = sizeof (kGlyphs) / sizeof (kGlyphs[0]);
     return kGlyphs;
 }
 
-// The advance of a Latin string at `size` px, in px: glyph by glyph, no rounding, no kerning
-// (the plugin's text paths do not enable kerning).
-inline float advance (const char* s, float size) noexcept
+// One UTF-8 code point at `p`, and the number of bytes it took.  A malformed sequence is
+// returned as a single 0xFFFD swallowed byte by byte, so a bad literal can never silently
+// measure as *less* than it draws.
+inline unsigned int decode (const char* p, std::size_t& used) noexcept
+{
+    const auto b = static_cast<unsigned char> (*p);
+    if (b < 0x80)                             { used = 1; return b; }
+    if ((b & 0xE0) == 0xC0 && p[1] != '\0')   { used = 2; return ((b & 0x1Fu) << 6)
+                                                             | (static_cast<unsigned char> (p[1]) & 0x3Fu); }
+    if ((b & 0xF0) == 0xE0 && p[1] != '\0' && p[2] != '\0')
+                                              { used = 3; return ((b & 0x0Fu) << 12)
+                                                             | ((static_cast<unsigned char> (p[1]) & 0x3Fu) << 6)
+                                                             |  (static_cast<unsigned char> (p[2]) & 0x3Fu); }
+    used = 1; return 0xFFFD;
+}
+
+inline float emOf (unsigned int cp) noexcept
 {
     std::size_t n = 0;
     const Glyph* g = table (n);
-    float total = 0.0f;
-    for (const char* p = s; p != nullptr && *p != '\0'; ++p)
+    // the table is sorted by code point, so this stops early on a miss rather than scanning
+    for (std::size_t i = 0; i < n; ++i)
     {
-        float em = 0.55f;                       // an unknown glyph: the table's mean
-        for (std::size_t i = 0; i < n; ++i)
-            if (g[i].c == *p) { em = g[i].em; break; }
-        total += em;
+        if (g[i].cp == cp) return g[i].em;
+        if (g[i].cp > cp) break;
+    }
+    return 0.55f;                             // an unknown glyph: the table's mean
+}
+
+// The advance of a string at `size` px, in px: glyph by glyph, no rounding, no kerning (the
+// plugin's text paths do not enable kerning).  Walks **code points**: text is UTF-8 on this
+// panel and measuring it byte by byte charged the 2-byte separator twice.
+inline float advance (const char* s, float size) noexcept
+{
+    float total = 0.0f;
+    for (const char* p = s; p != nullptr && *p != '\0'; )
+    {
+        std::size_t used = 1;
+        total += emOf (decode (p, used));
+        p += used;
     }
     return total * size;
 }
 
 inline float advance (const char* s, std::size_t len, float size) noexcept
 {
-    std::size_t n = 0;
-    const Glyph* g = table (n);
     float total = 0.0f;
-    for (std::size_t k = 0; k < len; ++k)
+    std::size_t k = 0;
+    while (k < len)
     {
-        float em = 0.55f;
-        for (std::size_t i = 0; i < n; ++i)
-            if (g[i].c == s[k]) { em = g[i].em; break; }
-        total += em;
+        std::size_t used = 1;
+        total += emOf (decode (s + k, used));
+        k += used;
     }
     return total * size;
 }

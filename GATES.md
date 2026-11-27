@@ -1618,7 +1618,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   kit-03 cards stack a title, a value and a caption - which is also what makes it re-flow
   instead of overprint.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 13 passed, 0 failed
+  EXPECT: layout: 17 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 12/0.  It was 10/0 when this gate was written; **1.2.67
   shipped 10/0 green and failed on the runner** because nothing here measured (a) a dial
   *label* against the column it is drawn in, or (b) a *sentence* against the box it is
@@ -1670,7 +1670,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   drawn in"), and each time every arithmetic gate was green, because measuring text needs a
   font and those gates have no JUCE.  This gate closes the hole rather than the symptom:
     * `Source/ui/FontMetrics.h` is **generated** from the shipped `assets/Cairo-Regular.ttf`
-      by `scripts/gen_font_metrics.py` (95 glyphs, advance/unitsPerEm), so the gate measures
+      by `scripts/gen_font_metrics.py` (104 glyphs, advance/unitsPerEm, keyed by code point), so the gate measures
       the face the product draws with.  Cross-checked against fontTools: the long verdict at
       17 px is 609.7 px by both.
     * `ui/Layout.h::wrapSentence()` reproduces `wrapWords()` + `linePitch()` on those
@@ -1685,8 +1685,8 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `aeq_layout` walks 6 states x 2 forms x 7 window sizes (including both corners of the
   resize range, 1000x660 and 1800x1160) and asserts each state is representable in one form.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 13 passed, 0 failed
-  EVIDENCE: VERIFIED - `aeq_layout` 12/0; the harness's own check now asks the same question
+  EXPECT: layout: 17 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_layout` 15/0; the harness's own check now asks the same question
   through JUCE's real font stack ("and so do all six states the copy module can be in, in
   one of its two forms"), so the two agree by construction rather than by coincidence.
 
@@ -1714,7 +1714,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   band now covered the leftmost dial.  All four are fixed at the source, and `check_knobs` /
   `check_wordmark` / `check_match` / `check_modern` are green against the shipped window.
   CHECK: ./build/aeq_layout && .venv/bin/python design/preview/check_knobs.py && .venv/bin/python design/preview/check_match.py && .venv/bin/python design/preview/check_wordmark.py && .venv/bin/python design/preview/check_modern.py
-  EXPECT: layout: 13 passed, 0 failed
+  EXPECT: layout: 17 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 13/0 (worst room for the strip sentence 465 px at
   1000x660); `check_knobs` "stabiliser 100 % of the ring; strength 100 %; auto-stop 0 %";
   `check_match` 6 edges within 1 px; `check_wordmark` two words 16 px apart; `check_modern`
@@ -1753,3 +1753,55 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `kPillPadX`, deliberately: a check that subtracts the constant the box was built with is
   `ink <= ink` and passes at any pad, including zero - an earlier version of this assertion
   did exactly that.)
+
+- [x] G114: the measurement walks UTF-8 code points, so a separator is one glyph wide.
+  `Source/ui/FontMetrics.h` is what every arithmetic layout gate in this repo measures text
+  with.  Its table was keyed by `char` and held 32..126 only, and `advance()` stepped one
+  **byte** at a time - so the middle-dot separator the band cards draw ("1.25 kHz  .  Q 1.40")
+  was charged the 0.55 em fallback *twice*, 1.10 em for a glyph whose real advance is
+  0.219 em.  Every string containing a separator measured ~13 px wider than it draws.
+    * the table is keyed by code point (`unsigned int cp`) and carries the non-ASCII the
+      product actually draws (middle dot, bullet, en/em dash, multiplication sign, degree,
+      right quote, ellipsis, no-break space): 104 glyphs, generated from the shipped TTF;
+    * `decode()` walks UTF-8 and `advance()` sums one glyph per code point.
+  This is the defect behind CI run 46037635897's `FAIL at seven bands every caption fits its
+  card`.  The card was drawing correctly - the fitted line is **114.09 px** in a **115.4 px**
+  inner box, 1.3 px of room - and the gate called it 127.30 px and rejected it.  The 1.2.71
+  shot agrees with the font, not with the old table: the drawn ink of that card is 112 px
+  wide inside 10 px of air on each side.
+  CHECK: ./build/aeq_layout
+  EXPECT: layout: 17 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_layout` 15/0, including "the measurement agrees with the font it
+  draws with, separator and all" against Cairo's own numbers read out with fontTools
+  (7.606 em = 114.09 px for the long caption, 6.907 em = 103.61 px for the short one).
+  FALSIFY: restore the byte-wise loop in `advance()` - `aeq_layout` reports 2 failures,
+  "a middle dot b measured 33.57, Cairo says 25.32" and "a UTF-8 separator is one glyph wide,
+  not one fallback per byte", because 0.55+0.55 em replaces 0.219 em.  The corrected reading
+  is 25.32 px, which is what the TTF's `hmtx` gives.
+
+- [x] G115: the interface is measured against published standards, in its own palette.
+  A review asked for the industry standards and the current panel compared to them. The
+  answer is only worth anything if the numbers are the panel's, so every figure in
+  `docs/11_UI_STANDARDS_AR.md` was taken from source or from the shipped shot:
+    * touch targets: the dial is `kDialMaxDiameter = 62` at `min(sx, sy)`, so the smallest
+      dial anywhere in the resize range is **52.5 px** (1000x660) - above WCAG 2.2 SC 2.5.5
+      (44 px), Apple HIG (44) and above Material's 48 at every size but one;
+    * resize order: `setResizable` -> `setResizeLimits(1000, 660, 1800, 1200)` -> `setSize`,
+      which is the order the JUCE forums name as the one people get wrong;
+    * knob sweep: `setRotaryParameters(pi * 1.25, pi * 2.75)` = 270 degrees, the conventional
+      sweep, with the indicator cut into the body rather than carried by colour alone;
+    * contrast: read from `Theme.h`, not from memory. Every text colour clears 4.5:1 on every
+      ground it sits on (`text` 13.9-16.8, `muted` 8.8-10.6, `dim` 5.1-6.2, `accentHi`
+      6.7-8.0). The two colours below it - `accent` on a chip 4.22 and `take` 3.57 - are
+      fills, and `Theme.h` already ships a lifted variant for text (`accentHi`) and a bright
+      blue for thin words, so no text is affected. The drawn caption in the shot measures
+      (143,148,159) = `dim` exactly, 5.68:1 on the card: the document and the picture agree.
+  CHECK: grep -c "52.5 px" docs/11_UI_STANDARDS_AR.md
+  EXPECT: 2
+  EVIDENCE: VERIFIED - the numbers above were computed in this session from `Theme.h`,
+  `Layout.h` and `docs/ui-1.2.71-window.png`; an earlier draft of the document carried an
+  invented palette (#2A262B ground, #7C7680 muted) and claimed a real AA failure that does
+  not exist. The correction is the point of the gate.
+  FALSIFY: measure `muted` against the palette actually shipped - it is 8.81:1 at worst, not
+  the 3.37:1 the invented colour gave. A standards review that does not read the palette it
+  is reviewing is worth nothing.

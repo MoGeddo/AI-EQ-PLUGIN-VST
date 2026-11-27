@@ -54,6 +54,14 @@ constexpr float kChipMicroType = 15.0f;   // kMicro at design size
 constexpr float kChipPadY      = 7.0f;    // top air, and the same under the micro line
 constexpr float kChipGapY      = 3.0f;    // between the header rule and the value
 constexpr float kChipHeaderH   = 16.0f;
+// the card's horizontal air, before the type scale.  One value, not a 9/12 step at 150 px -
+// see `chipRows` for the 5.87 px inward cliff that step produced.
+constexpr float kChipPadX      = 10.0f;
+// The room a form must have before the card will draw it.  Below this the caption is not
+// "tight", it is inside the shaper's rounding: HarfBuzz, FreeType and the pixel grid disagree
+// by more than a pixel on the same string, so a caption that fits by 0.9 px fits on one
+// machine and not on the next.  4 px is the smallest margin that is not a coincidence.
+constexpr float kChipFitSlack  = 4.0f;
 // the band card's design height, so the paint code can ask 'how big is my type here'
 constexpr float kChipsDesignH  = 96.0f;
 
@@ -64,7 +72,18 @@ inline ChipRows chipRows (float cellW, float cellH, float indexW, float modeW,
                           float fullW, float freqW, float typeScale = 1.0f) noexcept
 {
     ChipRows r {};
-    r.padX = cellW < 150.0f ? 9.0f : 12.0f;
+    // The horizontal pad scales with the card's type, like `padY`, `gapY` and `headerH` below.
+    // It was the one length in this row that did not: a flat 9 or 12 px whatever the type was.
+    // At 1800x1160 / 8 bands the caption grows to 178.13 px while the pad stays 9, leaving
+    // **0.87 px** of room in a 179.0 px inner box - the same knife-edge that made the 1.2.72
+    // seven-band card fail on one machine and pass on another.  A pad that does not scale with
+    // the text it pads is not air, it is a fixed share that shrinks as the type grows.
+    // ... and it is one pad, not two.  The step at 150 px (`9` under it, `12` over it) is a
+    // cliff: at 1.146 scale a 149 px card has 128.38 px inside and a 150 px card has 122.50 -
+    // a wider card with less room, exactly where the caption is tightest.  The step also lands
+    // mid-range for 6-8 bands, so whether the kHz/Q line survives depended on which side of
+    // 150 the window's width put the card.  A single pad has no cliff to fall off.
+    r.padX = kChipPadX * typeScale;
     const float padY    = kChipPadY * typeScale;
     const float gapY    = kChipGapY * typeScale;
     const float lineH   = kChipMicroType * typeScale * 1.25f;   // one micro line's pitch
@@ -83,9 +102,16 @@ inline ChipRows chipRows (float cellW, float cellH, float indexW, float modeW,
     const float valueBottom = r.valueY + r.valueH;
     r.microForm = valueBottom <= r.microY - 1.0f ? 0 : 3;   // 3 = the card cannot hold both
     const float inner = cellW - 2.0f * r.padX;
+    // A form has to clear by `kChipFitSlack`, not by epsilon.  The rule used to be
+    // `inner >= fullW`, so a caption that fitted by 0.09 px was drawn in full and a caption
+    // that fitted by 0.87 px was drawn in full too - both of them living inside the shaper's
+    // own rounding, which is why the same 7-band card passed on this machine and failed on the
+    // Windows runner.  "Fits" has to mean "fits with room to spare", or it means "fits
+    // according to the machine you asked".
     if (r.microForm == 0)
-        r.microForm = inner >= fullW ? 0 : (inner >= freqW ? 1 : 2);
-    r.headerFits = indexW + 8.0f + modeW <= inner;
+        r.microForm = inner >= fullW + kChipFitSlack ? 0
+                    : (inner >= freqW + kChipFitSlack ? 1 : 2);
+    r.headerFits = indexW + 8.0f + modeW + kChipFitSlack <= inner;
     return r;
 }
 

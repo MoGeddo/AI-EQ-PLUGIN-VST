@@ -411,7 +411,16 @@ int runControls(const juce::File& dir) {
                             ? ed->controlBounds(AeqAudioProcessorEditor::Control::StrengthKnob)
                             : juce::Rectangle<int>();
             check(! dial.isEmpty(), "the strength dial reports where it is");
-            juce::MouseWheelDetails up;
+            // Value-initialised, every field.  `MouseWheelDetails` is a plain struct of floats
+            // and bools with no constructor, so `juce::MouseWheelDetails up;` left deltaX,
+            // isReversed, isSmooth and isInertial as whatever the stack held.  JUCE reads the
+            // axis with the larger magnitude (the wheel uses deltaX when |deltaX| > |deltaY|)
+            // and multiplies by isReversed - so the "up" this test built was sometimes a
+            // garbage sideways push, sometimes reversed, and the dial moved down or not at
+            // all.  It passed on this machine and failed on CI run 46037635897 for that
+            // reason and no other: a test that reads uninitialised memory reports the
+            // allocator, not the plugin.
+            juce::MouseWheelDetails up {};
             up.deltaY = 0.15f;
             juce::MouseEvent we(juce::Desktop::getInstance().getMainMouseSource(),
                                 dial.getCentre().toFloat(), juce::ModifierKeys(), 1.0f, 0.0f, 0.0f,
