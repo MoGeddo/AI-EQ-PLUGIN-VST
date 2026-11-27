@@ -57,7 +57,13 @@ struct RestoreSettings {
     // How much sung audio to collect before the decision is *trusted* - it sets
     // `state().settled`, and the solver keeps refining until it is true.  0 means "trust
     // at once", which is what the CLI and the offline gates want.
+    // 0 = wait for the end of the take (the product default).  > 0 = decide after that many
+    // seconds of sung audio.
     double settleSeconds = 0.0;
+    // Apply the moment a decision exists, with no fade - what a measurement harness wants
+    // and what a person never does.  Separate from `settleSeconds` because the two used to
+    // be the same field and the new default could not be expressed.
+    bool applyImmediately = false;
 
     // Stop the pass by ourselves after this many seconds.  0 - the plugin's default -
     // means the pass ends when the *person* ends it, which is the whole product.  The
@@ -80,9 +86,11 @@ struct RestoreSettings {
     // measured the same way and are already comparable).
     double compareWidthOct = 1.0 / 6.0;
 
-    // The pass cannot run forever.  Five minutes of sung audio is several songs or one
-    // very long take; past that the decision is frozen where it stands rather than the
-    // plugin listening into the next session with nothing applied.
+    // The most a *hand-set* automatic stop is allowed to mean.  It is no longer a ceiling
+    // on the default pass: "scan the whole take" means the take's own length is the only
+    // limit, and a take can be longer than five minutes.  A caller that sets
+    // `autoStopSeconds` gets it clamped to this, and a caller that sets nothing waits for
+    // the transport.
     static constexpr double kHardCapSeconds = 300.0;
 };
 
@@ -377,6 +385,11 @@ private:
         // The pass clock belongs to the take, not to the decision: relearn means the whole
         // measurement starts over, so the automatic stop must start over with it.
         passSamples_.store (0, std::memory_order_relaxed);
+        // ... and so does the transport.  A relearn while the transport is parked would
+        // otherwise inherit "the take has ended" from the pass before it and decide from a
+        // single window of it.  Clearing `rolled_` is what makes `takeEnded()` false again.
+        rolled_.store (false, std::memory_order_release);
+        ended_.store (false, std::memory_order_release);
         learnStab_.prepare(fs_);
         beginLearnBank();
         learnProgress_ = 0.0;
@@ -395,6 +408,20 @@ private:
 public:
 
     // ---------------------------------------------------------------- audio
+    // Called once per block from the processor, before processBlock().  `playing` is what the
+    // host's play head says; `false` also covers "the host gave us no play head at all", which
+    // is why `takeEnded()` needs `rolled_` as well: without it every session that never
+    // un-parked the transport would read as a finished take.
+    void setTransport (bool playing, bool hasPlayHead) noexcept {
+        const bool wasRolling = rolled_.load (std::memory_order_relaxed);
+        if (playing && hasPlayHead) {
+            rolled_.store (true, std::memory_order_release);
+            ended_.store (false, std::memory_order_release);   // rolling again: a new pass
+        } else if (wasRolling) {
+            ended_.store (true, std::memory_order_release);
+        }
+    }
+
     void processBlock(float* left, float* right, int n) {
         if (n <= 0) return;
 
@@ -763,6 +790,15 @@ public:
         return double (n) / (fs_ > 0.0 ? fs_ : 48000.0);
     }
 
+    // Has the take been played through?  True only after the transport has rolled *and* then
+    // stopped: a plugin that has never seen the play head move has not heard the song, and
+    // answering "yes" there would decide from whatever fragment the transport happened to be
+    // parked on.
+    bool takeEnded() const {
+        return rolled_.load (std::memory_order_acquire)
+            && ended_.load (std::memory_order_acquire);
+    }
+
     void refreshLocked() {
         if (!analyzer_.ready()) return;
         publishLiveLocked();
@@ -1072,7 +1108,21 @@ public:
                 state_.gapAfterDb  = EqSolver::distanceToTarget(in, corr, fs_, 200.0, 13000.0);
             }
             state_.analyzedSeconds = analyzer_.activeSeconds();
-            state_.settled = state_.analyzedSeconds >= settings_.settleSeconds;
+            // When has the plugin heard enough to decide?
+            //
+            // `settleSeconds == 0` means **the end of the take**.  There is no end-of-take
+            // message in VST3 - a host hands over blocks and stops - so the signal is the
+            // transport: once it has rolled and then stopped (or the take was stopped by
+            // hand), the take is over and the decision can be made on all of it.  Until then
+            // `settled` stays false and the panel says how much it has heard, which is the
+            // honest answer to "does it scan everything?" - yes, and it is still scanning.
+            //
+            // A non-zero `settleSeconds` is the older promise and it is unchanged: decide
+            // after N seconds of sung audio, and keep refining while the take goes on.
+            if (settings_.settleSeconds > 0.0)
+                state_.settled = state_.analyzedSeconds >= settings_.settleSeconds;
+            else
+                state_.settled = analyzer_.hasSpectrum() && takeEnded();
             state_.valid = true;
             measurements_ = m;
             version_.fetch_add(1, std::memory_order_release);
@@ -1153,15 +1203,20 @@ public:
         // own decision 45 s into a take is a tool that says "stopped by you" about
         // something you did not stop.
         //
-        // There is a floor under that promise, though: a pass that nobody ever stops
-        // leaves the plugin listening forever and never applying anything, which is the
-        // worst of both worlds - the audio is untouched and the meter says "listening".
-        // So after five minutes the pass ends itself, and it says so.  This is a ceiling,
-        // not a default: it cannot be set to "never", and the panel prints it.
-        const double cap = (settings_.autoStopSeconds > 0.0)
+        // There used to be a five-minute ceiling here, on the reasoning that a pass nobody
+        // ever stops leaves the plugin listening forever.  That reasoning is wrong in the
+        // one case the product is built for: the rule is "scan the whole take, then
+        // decide", and an eight-minute vocal is a normal vocal.  A ceiling that truncates
+        // the take is a ceiling that decides on two thirds of the evidence and then calls
+        // itself the answer.  So the cap is *not* a default any more - it is what the
+        // person asked for with `autoStopSeconds`, and their own transport stop is what
+        // ends the default pass.  `kHardCapSeconds` survives only as the most a hand-set
+        // autoStop is allowed to mean, and a caller with no autoStop has no ceiling at all.
+        const bool capped = settings_.autoStopSeconds > 0.0;
+        const double cap = capped
                              ? std::min(settings_.autoStopSeconds, RestoreSettings::kHardCapSeconds)
-                             : RestoreSettings::kHardCapSeconds;
-        if (passSeconds() >= cap) {
+                             : 0.0;
+        if (capped && passSeconds() >= cap) {
             phase_.store(int(Phase::Committed), std::memory_order_release);
             frozen_.store(true, std::memory_order_release);
             // ... and it says so: a pass that ended itself must not read like one the person
@@ -1191,7 +1246,13 @@ public:
         // The signal path follows the *phase*, not a flag in the pending struct: a
         // committed decision applies even if the solve that produced it ran a moment
         // before the user pressed stop.
-        const bool settled = committed() || settings_.settleSeconds <= 0.0;
+        // Which bands reach the audio path: the committed decision, or - for a caller that
+        // asked to apply at once - the proposal as it stands.  This used to key off
+        // `settleSeconds <= 0`, which was the same field as the old "apply immediately"
+        // promise; now that `settleSeconds == 0` means "wait for the end of the take", keying
+        // off it would apply a proposal mid-take, which is the one thing the product must not
+        // do.  The steady-state caller says what it wants with `applyImmediately`.
+        const bool settled = committed() || settings_.applyImmediately;
         std::array<BandSpec, kBands> bands{};
         int count = 0;
         if (settled) {
@@ -1256,10 +1317,13 @@ public:
         // nothing until the next solve, and there is no next solve: the pass is frozen.
         if (s.stabilizer != settings_.stabilizer) pendingSeen_.store(false, std::memory_order_release);
         settings_ = s;
-        // "settle 0" has always meant "apply as soon as a decision exists" - the CLI
-        // and the offline gates depend on it.  Keep that meaning: the phase starts
-        // committed, with no fade, so a measurement harness sees the steady state.
-        if (s.settleSeconds <= 0.0) {
+        // `settleSeconds <= 0` used to mean two things at once - "wait for no threshold"
+        // and "start already committed, with no fade, so a measurement harness sees the
+        // steady state".  Those two are not the same promise, and the product needed them
+        // apart: it now means **wait for the end of the take**, so it must NOT start
+        // committed.  A harness that wants the old steady state asks for it explicitly with
+        // `applyImmediately`, which is what the CLI and the offline gates set.
+        if (settings_.applyImmediately) {
             phase_.store(int(Phase::Committed), std::memory_order_release);
             restoreGain_.store (true, std::memory_order_release);
         }
@@ -1645,6 +1709,18 @@ private:
     // Seconds the pass has been *open* (see passSeconds()).  Counted on the audio thread,
     // read by whoever refreshes; reset with the take, never with the decision.
     std::atomic<long long> passSamples_{0};
+    // ---- the end of the take ------------------------------------------------------------
+    // A VST3 plugin is never told "the song is over".  It is handed blocks, and then it is
+    // handed silence or nothing.  The honest signal is the transport: once the play head has
+    // reported *playing* and then reports *not playing*, the take has been played through
+    // and everything the song contains has gone past the analyser.
+    //
+    // Two atomics, both written from the audio thread only:
+    //   `rolled_`  - the transport has actually run since this pass opened.  Without this a
+    //                session that was never played would satisfy "stopped" from the start.
+    //   `ended_`   - the transport that had been running is now stopped.
+    std::atomic<bool> rolled_{false};
+    std::atomic<bool> ended_{false};
     std::atomic<double> movingPubDb_{0.0};
     std::atomic<int>    movingPubCount_{0};
     std::atomic<double> stabPubHz_[Stabilizer::kMaxBands];

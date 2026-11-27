@@ -90,6 +90,7 @@ int main() {
     aeq::RestoreSettings s;
     s.learn = true;
     s.settleSeconds = 0.0;
+    s.applyImmediately = true;   // these gates measure the steady state, not the wait
 
     // ---- 1. a block much larger than the prepared one -----------------------
     {

@@ -76,11 +76,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout AeqAudioProcessor::createLay
                 .withStringFromValueFunction([](float v, int) {
                     return v < 1.f ? juce::String("OFF") : juce::String((int)v) + " s";
                 })));
-    l.add(std::make_unique<AudioParameterFloat>(kSettle, "Analyze first",
-              NormalisableRange<float>(0.f, 300.f, 1.f), 45.f,
+    //
+    // 0 is the default and it means **wait for the end of the take**, not "off".  The take
+    // this plugin is built for is a finished vocal stem dropped on its own track at the end
+    // of the session - the user said so in as many words.  A pass that decides after 45 s of
+    // a four-minute song has seen a verse and a chorus at most, and the number of bands it
+    // solves is the number of problems it *found*: the wrong twelve seconds is the wrong
+    // EQ.  So the plugin hears the whole thing first and decides once, at the end.
+    //
+    // Any non-zero value is the older, faster promise: decide after N seconds of sung audio
+    // and keep refining.  It is still there for a short loop or a quick look, and the panel
+    // prints which of the two rules is in force, because the two are not the same product.
+    l.add(std::make_unique<AudioParameterFloat>(kSettle, "Decide after",
+              NormalisableRange<float>(0.f, 300.f, 1.f), 0.f,
               AudioParameterFloatAttributes().withLabel("s")
                 .withStringFromValueFunction([](float v, int) {
-                    return v < 1.f ? juce::String("OFF") : juce::String((int)v) + " s";
+                    return v < 1.f ? juce::String("END OF TAKE") : juce::String((int)v) + " s";
                 })));
     // The stabiliser: ten moving bands that hold the voice on the curve this take gave
     // it.  100 % is the product; 0 % takes them out of the path, which is the honest way
@@ -138,6 +149,21 @@ void AeqAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         if (solveRelevant(settings_, lastPushed_)) needsResolve_.store (true, std::memory_order_release);
         core_.setSettings(settings_);
         lastPushed_ = settings_;
+    }
+
+    // Tell the core whether the transport is rolling.  This is the only signal a plugin gets
+    // that a song has been played through, and the whole "scan the take before deciding"
+    // promise rests on it: with no play head the core cannot know the take has ended, so it
+    // waits rather than deciding from a fragment.
+    {
+        bool playing = false, hasHead = false;
+        if (auto* head = getPlayHead()) {
+            if (const auto pos = head->getPosition()) {
+                hasHead = true;
+                playing = pos->getIsPlaying();
+            }
+        }
+        core_.setTransport (playing, hasHead);
     }
 
     const int n = buffer.getNumSamples();

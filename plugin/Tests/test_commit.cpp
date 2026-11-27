@@ -279,9 +279,17 @@ int main() {
                    "6a. before a take, the panel asks for a take - it does not claim a verdict");
 
         f.haveData = true; f.settled = false; f.frozen = false; f.committed = false;
-        const std::string listening = aeq::copy::verdict (f);
-        checkTrue (has (listening, "Listening") && ! has (listening, "Sealed"),
-                   "6b. while learning it says it is listening, and nothing else");
+        // `trustSeconds == 0` is the product default now: the pass ends at the end of the
+        // take, so the sentence has to say that rather than claim a finish line it does not
+        // have.  Both rules are checked, because the panel prints which one is in force.
+        f.trustSeconds = 0.0;
+        const std::string whole = aeq::copy::verdict (f);
+        checkTrue (has (whole, "whole take") && ! has (whole, "Sealed"),
+                   "6b. with no threshold it says it is hearing the whole take, and nothing else");
+        f.trustSeconds = 45.0; f.heardSeconds = 21.0;
+        const std::string timed = aeq::copy::verdict (f);
+        checkTrue (has (timed, "24 s more") && ! has (timed, "Sealed"),
+                   "6b2. with a threshold it says how long is left, to the second");
 
         // sealed by the user, but stopped before the solver had the audio it trusts:
         // still a decision, and the sentence carries both numbers instead of pretending
@@ -325,8 +333,17 @@ int main() {
             g.bands = (mask & 2) ? 2 : 0;
             g.heardSeconds = 20.0; g.trustSeconds = 45.0;
             const std::string v = aeq::copy::verdict (g);
+            // The "still working" sentence used to start with "Listening" / "Still learning";
+            // with `decide after = 0` it says "Heard the whole take" / "Hearing the whole
+            // take".  What the invariant is about is that the footer carries exactly one of
+            // the three stages, so it counts the stages and not the old literals.
+            // Four stages, not three: before anything has been heard the sentence is
+            // "Listening. Play the take..." - that is a complete story of its own (the
+            // invitation), and a mask with `haveData` clear lands there whatever the other
+            // flags say.
             const int stories = (has (v, "Sealed") ? 1 : 0)
-                              + (has (v, "learning") ? 1 : 0)
+                              + (has (v, "Hearing") ? 1 : 0)
+                              + (has (v, "Heard") ? 1 : 0)
                               + (has (v, "Listening") ? 1 : 0);
             if (stories != 1) oneStory = false;
             // The pill now names *who* ended the pass ("SEALED BY YOU"), so the agreement

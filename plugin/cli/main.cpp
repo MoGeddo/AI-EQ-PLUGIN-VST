@@ -371,6 +371,11 @@ int main(int argc, char** argv) {
 
     aeq::RestoreSettings s;
     s.learn = true;
+    // A measurement harness wants the decision *applied*, not a wait for a transport that
+    // an offline render does not have.  `settleSeconds = 0` is the product's "decide at the
+    // end of the take", and an offline render has no end-of-take signal, so the harness asks
+    // for the steady state explicitly instead of relying on the old shared meaning.
+    s.applyImmediately = true;
     std::string refPath, refName = "reference";
     for (int i = 3; i < argc - 1; ++i) {
         const std::string a = argv[i];

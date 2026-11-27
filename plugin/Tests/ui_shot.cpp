@@ -510,13 +510,20 @@ int runControls(const juce::File& dir) {
     // state on screen and for the five other states the copy module can produce.
     {
         check(ed->footerCopyFits(), "the panel's sentence fits the row it is drawn in");
+        // The list is the *product's* states, and 1.2.74 added the one the product now
+        // starts in: no threshold at all (`trustSeconds = 0`), scanning to the end of the
+        // take.  Until this change every entry had a 45 s threshold, so the default state -
+        // the one every user sees first - was the only one no gate measured.  Two of them
+        // now: hearing the whole take, and having heard it while waiting for the seal.
         const aeq::copy::Facts states[] = {
-            { false, false, false, false, 0, 0.0, 0.0 },          // nothing heard yet
-            { true,  false, false, false, 0, 6.0, 45.0 },         // listening, early
-            { true,  false, true,  true,  4, 44.0, 45.0 },        // open again
-            { true,  true,  true,  true,  0, 45.0, 45.0 },        // sealed, nothing to fix
-            { true,  true,  true,  false, 4, 21.0, 45.0 },        // sealed early
-            { true,  true,  true,  true,  7, 45.0, 45.0 }         // sealed, settled
+            { false, false, false, false, 0, 0.0,   0.0 },        // nothing heard yet
+            { true,  false, false, false, 0, 6.0,   45.0 },       // listening, timed, early
+            { true,  false, false, false, 0, 130.0, 0.0 },        // listening to the whole take
+            { true,  false, true,  true,  4, 44.0,  45.0 },       // open again
+            { true,  false, false, true,  0, 214.0, 0.0 },        // whole take heard, unsealed
+            { true,  true,  true,  true,  0, 45.0,  45.0 },       // sealed, nothing to fix
+            { true,  true,  true,  false, 4, 21.0,  45.0 },       // sealed early
+            { true,  true,  true,  true,  7, 45.0,  45.0 }        // sealed, settled
         };
         // Every state, in **both** written forms: the long verdict and the written-short
         // compact one.  The panel picks the long one when it fits and the short one when it
@@ -530,7 +537,7 @@ int runControls(const juce::File& dir) {
             if (longOk || shortOk) ++fits;
             else stage (juce::String ("  neither form fits this state: ") + ed->footerSentence());
         }
-        check(fits == 6, "and so do all six states the copy module can be in, in one of its two forms");
+        check(fits == 8, "and so do all eight states the copy module can be in, in one of its two forms");
     }
 
     // ---- 13. the scan is on screen, and so is what runs by itself ---------------

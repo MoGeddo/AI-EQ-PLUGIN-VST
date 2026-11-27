@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "ui/Layout.h"
+#include "ui/PanelCopy.h"
 
 namespace {
 
@@ -290,21 +291,38 @@ int main() {
     // here for the first time.  Three releases shipped a footer whose sentence ran through
     // the dial labels while every arithmetic gate in the project was green.
     {
-        struct Case { const char* text; };
-        const Case sentences[] = {
-            { "Listening. Play the take, then press the clamp to stop it." },
-            { "Listening against Amir's 15 reference takes. You stop it when you have heard the take." },
-            { "Open again: 4 bands in the path and the pass is counting. Press the clamp to seal it where you stop." },
-            { "Sealed and nothing to correct: the take sits inside the engineer's range." },
-            { "Sealed at 4 bands on 21 s of a 45 s pass - the numbers are coarse, the decision is not." },
-            { "Sealed at 7 bands. The curve is frozen; the dynamic layer keeps working." },
-            // ... and the written-short forms the panel falls back to
-            { "Listening. Play the take, then press the clamp." },
-            { "Listening against Amir's takes. Stop it when you have heard the take." },
-            { "Open again: 4 bands in the path, still counting." },
-            { "Sealed, nothing to correct: the take is in range." },
-            { "Sealed at 4 bands on 21 s of 45 - coarse, not wrong." },
-            { "Sealed at 7 bands. Frozen curve, live dynamics." },
+        // The sentences come from `aeq::copy` itself, not from a list typed in here.  The
+        // list used to be hand-written, and by 1.2.72 it had gone stale: the panel said
+        // "Hearing the whole take...", and this gate was still measuring "Listening against
+        // Amir's 15 reference takes..." - twelve strings that no longer existed anywhere in
+        // the product.  A gate that measures copies of the copy certifies nothing.
+        auto factsFor = [] (int state) {
+            aeq::copy::Facts f;
+            switch (state) {
+                case 0:                                     // nothing heard yet
+                    f.haveData = false; break;
+                case 1:                                     // hearing, no threshold (the default)
+                    f.haveData = true; f.trustSeconds = 0.0; f.heardSeconds = 130.0; break;
+                case 2:                                     // hearing, with a threshold
+                    f.haveData = true; f.trustSeconds = 45.0; f.heardSeconds = 20.0; break;
+                case 3:                                     // heard it all, not yet sealed
+                    f.haveData = true; f.settled = true; f.trustSeconds = 0.0;
+                    f.heardSeconds = 214.0; break;
+                case 4:                                     // sealed, nothing to correct
+                    f.haveData = true; f.settled = true; f.frozen = true; f.committed = true;
+                    f.bands = 0; break;
+                case 5:                                     // sealed before the threshold
+                    f.haveData = true; f.settled = false; f.frozen = true; f.committed = true;
+                    f.bands = 3; f.heardSeconds = 21.0; f.trustSeconds = 45.0; break;
+                case 6:                                     // sealed after it
+                    f.haveData = true; f.settled = true; f.frozen = true; f.committed = true;
+                    f.bands = 7; f.trustSeconds = 0.0; break;
+                case 7:                                     // reopened
+                    f.haveData = true; f.settled = false; f.frozen = false; f.committed = true;
+                    f.bands = 4; f.trustSeconds = 0.0; break;
+                default: break;
+            }
+            return f;
         };
         struct Win { float w, h; };
         const Win wins[] = { { 1000, 660 }, { 1024, 700 }, { 1240, 800 }, { 1440, 930 },
@@ -320,9 +338,12 @@ int main() {
             // the drawn sentence size: kCap (17 design px) scaled by the window's height
             const float size = 17.0f * ds;   // the size it is drawn at (kCap * min(sx,sy))
             // every state must be representable in at least one of its two written forms
-            for (int i = 0; i < 6; ++i) {
-                const auto longF  = wrapSentence (sentences[i].text, size, boxR - boxL, boxH);
-                const auto shortF = wrapSentence (sentences[i + 6].text, size, boxR - boxL, boxH);
+            for (int i = 0; i < 8; ++i) {
+                const auto f = factsFor (i);
+                const auto longF  = wrapSentence (aeq::copy::verdict (f).c_str(),
+                                                  size, boxR - boxL, boxH);
+                const auto shortF = wrapSentence (aeq::copy::verdictCompact (f).c_str(),
+                                                  size, boxR - boxL, boxH);
                 if (! longF.fits && ! shortF.fits) {
                     ok = false;
                     std::printf ("        %gx%g state %d: neither form fits "

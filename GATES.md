@@ -1657,12 +1657,40 @@ at any vocal stem first; the other gates need nothing but the source tree.
       There is no version that says "never": a pass nobody stops never applies anything, so
       the cap is real and the panel names it.  The footer's auto-stop column says "cap 5 min
       still stops it" under the word OFF, because "OFF" alone read as "never".
+  **1.2.74 rewrote the rule this gate exists for.**  Everything above is the history of
+  "who ends the pass"; the answer is now the *transport*, because the product rule became
+  "scan the whole take, then decide" and a five-minute ceiling on that rule truncates the
+  take it is supposed to measure.  What changed, and why each piece had to:
+    * **the cap is no longer a default.**  `kHardCapSeconds` survives only as the most a
+      *hand-set* `autoStopSeconds` may mean.  A pass with no autoStop has no ceiling: an
+      eight-minute vocal is a normal vocal.  The old behaviour - freeze at 300 s of input
+      whatever the take was - is exactly "decide on two thirds of the evidence".
+    * **`settleSeconds == 0` now means "the end of the take", not "apply at once."**  The
+      only end-of-take signal a VST3 gets is the play head: the transport rolls, then stops.
+      `setTransport()` is fed from `getPlayHead()->getPosition()->getIsPlaying()` once per
+      block; `takeEnded()` requires *rolled then stopped*, so a session whose transport was
+      never un-parked never decides by itself.  Measured: a 400 s take settles at the stop
+      with **2 bands** solved from the whole heard take.
+    * **"apply at once" became its own setting.**  `applyImmediately` is what the CLI and
+      the offline gates wanted all along, and separating it is what let the default change
+      at all.  Getting this wrong broke G76 for real: the rendered file came back
+      **7.20 -> 7.20 dB**, the EQ never entered the path, and the gate caught it.  The
+      audio path keyed off `settleSeconds <= 0` (the old shared meaning) rather than the
+      new flag, and the CLI set the flag on the stems path instead of the render path.
+    * **the panel tells the truth while it listens**: `SCANNING ALL` (no threshold) rather
+      than a fake percentage, and `HEARD 21 s · TO THE END` rather than `SCAN 43%`.
+      Settling is still not sealing - a settled pass keeps counting what it is handed
+      until a hand commits, and the panel says which of the two it is.
   CHECK: ./build/aeq_when_it_stops
-  EXPECT: when_it_stops: 15 passed, 0 failed
-  EVIDENCE: VERIFIED - `aeq_when_it_stops` 15/0 (cap fires at 300 s of input, not at 248 s of
-  voice and not never; a sealed pass stops counting; the dial stops on its own setting; the
-  three words and the cap named in the sentence).  `aeq_commit` 45/0, `aeq_auto` 15/0, the
-  rest of the ledger unchanged.
+  EXPECT: when_it_stops: 28 passed, 0 failed
+  EVIDENCE: VERIFIED - `aeq_when_it_stops` 28/0 (a 430 s take is not cut off at five minutes
+  and keeps its own clock past 395 s; the transport stopping is what settles it, and it does
+  not call that "stopped by itself"; a settled pass still counts input and still has not
+  decided; a hand-sealed pass stops counting; a hand-set 120 s cap still fires at its own
+  second and still says so; no play head means no decision, 120 s fed).  `aeq_commit` 46/0,
+  `aeq_auto` 15/0, `aeq_tests` 37/0, `aeq_layout` 17/0, the rest of the ledger unchanged.
+  The gate was shown to fail: restoring the old `analyzedSeconds >= 45.0` rule fails 6a and
+  6f, and putting the 5-minute ceiling back fails section 0.
 
 - [x] G111: the panel's sentence is measured with the font it is drawn in.
   The footer sentence has shipped broken three times (1.2.26 ran through the dial labels;

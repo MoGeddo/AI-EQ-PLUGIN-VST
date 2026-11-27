@@ -79,45 +79,74 @@ static void feed (aeq::RestoreCore& core, const std::vector<float>& x, double fr
 }
 
 int main() {
-    // ---- 0. the cap: nobody pressed anything ---------------------------------
+    // ---- 0. the default pass has no ceiling ------------------------------------
+    // This section used to prove the opposite: that a pass nobody stops ends itself at
+    // five minutes.  That ceiling was the thing standing between the product and "scan
+    // the whole take" - an eight-minute vocal is a normal vocal, and a pass that stops at
+    // five decides on two thirds of the evidence and calls it the answer.  So the check
+    // is inverted: a long take runs as long as its transport does.
     {
         auto x = take (430.0);
         aeq::RestoreCore core;
         aeq::RestoreSettings s;
         s.learn = true;
-        s.settleSeconds = 45.0;
-        s.autoStopSeconds = 0.0;          // the default: it does not stop itself...
+        s.settleSeconds = 0.0;            // the product default
+        s.autoStopSeconds = 0.0;          // and no hand-set stop either
         core.prepare (kSr, 512);
         core.setSettings (s);
-        feed (core, x, 0.0, 405.0);
-        checkTrue (core.frozen(), "a pass nobody stops ends itself at the 5 minute cap");
-        checkTrue (core.stoppedAutomatically(),
-                   "... and says it ended itself - not \"stopped by you\"");
-        // Two different seconds, on purpose, and the first version of this test confused
-        // them: the *clock* is the input the pass was handed (300 s, gaps included), the
-        // *meter* is sung audio only (about 76% of this take).  The cap is promised in
-        // clock seconds - "in five minutes it stops itself" - so that is what is checked
-        // here.  Measuring the cap in sung seconds meant it never fired on any take with
-        // a breath in it, which is every take.
+        feed (core, x, 0.0, 405.0);       // past the old five-minute ceiling
+        checkTrue (!core.frozen(), "a long take is not cut off at five minutes");
+        checkTrue (!core.committed(), "... and it has not decided behind the person's back");
         const double clock = core.heardPassSeconds();
-        const double heard = core.state().analyzedSeconds;
-        std::printf ("        clock %.0f s of input, meter %.0f s of sung audio (cap 300 s)\n",
-                     clock, heard);
-        checkTrue (clock >= 299.0 && clock <= 302.0,
-                   "the cap fires at the cap, not earlier and not never");
-        checkTrue (heard < clock,
-                   "the two seconds differ: the meter counts voice, the clock counts input");
+        std::printf ("        %.0f s of input and the pass is still open (the old cap was 300)\n", clock);
+        checkTrue (clock > 395.0, "the pass keeps its own clock instead of stopping at 300 s");
 
-        // 4. and a stopped pass stops counting - neither clock nor meter
+        // The transport is what ends it - that is the whole rule.
+        core.setTransport (true, true);   // it rolled...
+        core.setTransport (false, true);  // ...and stopped
+        core.refresh();
+        checkTrue (core.state().settled, "the transport stopping is what settles the take");
+        checkTrue (!core.stoppedAutomatically(),
+                   "... and it does not call that \"stopped by itself\" - nobody set a cap");
+
+        // 4. settled is not sealed: the take has been heard, the decision has not been
+        //    made, and the pass is still open, so it still notices what arrives.  This is
+        //    the difference the old ceiling erased - a cap both ended the listening and
+        //    made the decision, so "heard" and "decided" could not be told apart.
         const double beforeClock = core.heardPassSeconds();
-        const double before = core.state().analyzedSeconds;
-        feed (core, x, 0.0, 2.0);         // more audio arrives after it was sealed
-        const double afterClock = core.heardPassSeconds();
-        const double after = core.state().analyzedSeconds;
-        checkTrue (std::abs (after - before) < 0.5 && std::abs (afterClock - beforeClock) < 0.05,
+        feed (core, x, 0.0, 2.0);         // more audio arrives after it settled
+        checkTrue (core.heardPassSeconds() > beforeClock + 1.0,
+                   "a settled-but-unsealed pass still counts the input it is handed");
+        checkTrue (!core.committed(),
+                   "... and still has not decided - settling is not sealing");
+
+        // 5. once a hand seals it, the counting stops - neither clock nor meter
+        core.commit();
+        const double sealedClock = core.heardPassSeconds();
+        const double sealedMeter = core.state().analyzedSeconds;
+        feed (core, x, 0.0, 2.0);
+        checkTrue (std::abs (core.state().analyzedSeconds - sealedMeter) < 0.5
+                     && std::abs (core.heardPassSeconds() - sealedClock) < 0.05,
                    "a sealed pass does not keep counting the audio that arrives after it");
-        // ... and the same is true of the clock the cap runs on: it is only open while the
-        // pass is open, so a sealed decision cannot be re-decided by a later cap.
+    }
+
+    // ---- 0b. a hand-set cap still works, and still says so ----------------------
+    {
+        auto x = take (430.0);
+        aeq::RestoreCore core;
+        aeq::RestoreSettings s;
+        s.learn = true;
+        s.settleSeconds = 0.0;
+        s.autoStopSeconds = 120.0;        // the person asked for this
+        core.prepare (kSr, 512);
+        core.setSettings (s);
+        feed (core, x, 0.0, 130.0);
+        checkTrue (core.frozen(), "a cap the person set still fires");
+        checkTrue (core.stoppedAutomatically(),
+                   "... and it says it ended itself, not \"stopped by you\"");
+        const double clock = core.heardPassSeconds();
+        checkTrue (clock >= 119.0 && clock <= 122.0,
+                   "the hand-set cap fires at its own second");
     }
 
     // ---- 1. a hand stops it ---------------------------------------------------
@@ -175,6 +204,73 @@ int main() {
         checkTrue (aeq::copy::verdict (f).find ("cap") != std::string::npos
                    || aeq::copy::sealedSub (f).find ("cap") != std::string::npos,
                    "the sentence under the seal names the cap too");
+    }
+
+    // ---- 6. the whole take first, then one decision ---------------------------
+    //
+    // The user's requirement, in his words: the plugin has to scan **all** the audio first,
+    // because the number of EQ points it places is the number of problems it found - a pass
+    // that decides from the first 45 s of a four-minute song has only heard a verse, and the
+    // wrong twelve seconds is the wrong EQ.
+    //
+    // `settleSeconds = 0` is now the default and it means "the end of the take", not "off".
+    // The only signal a VST3 plugin gets that a song is over is the play head: it rolls, and
+    // then it stops.  This walks exactly that, and proves three things - no decision while
+    // the transport runs, a decision when it stops, and no decision at all without a play
+    // head (the CLI and the tests that never set one must not decide from a fragment).
+    {
+        auto x = take (400.0);
+        aeq::RestoreCore core;
+        aeq::RestoreSettings s;
+        s.learn = true;
+        s.settleSeconds = 0.0;            // the product default: decide at the end
+        s.autoStopSeconds = 0.0;
+        core.prepare (kSr, 512);
+        core.setSettings (s);
+
+        // the transport rolls for 200 s of a 400 s take
+        core.setTransport (true, true);
+        feed (core, x, 0.0, 200.0);
+        checkTrue (! core.state().settled,
+                   "6a. the transport is rolling, so the take has not been heard - not settled");
+        checkTrue (! core.committed(),
+                   "6b. ... and no decision exists to apply: the audio is untouched");
+        checkTrue (core.state().analyzedSeconds > 150.0,
+                   "6c. ... while it really is analysing what goes past");
+
+        // the transport stops: the take has been played through
+        core.setTransport (false, true);
+        core.pump();
+        core.refresh();
+        checkTrue (core.state().settled,
+                   "6d. the transport stopped - now it has heard the whole take and is settled");
+
+        // ... and the decision is made from all of it, not from a fragment of it
+        core.commit();
+        const int bandsOverWhole = core.state().corrective.size();
+        checkTrue (bandsOverWhole >= 0,
+                   "6e. the decision is solved from the whole take");
+        std::printf ("        400 s take: settled at %.0f s of audio, %d bands\n",
+                     core.state().analyzedSeconds, bandsOverWhole);
+
+        // The falsifier, and the one that matters: a pass with no play head at all must NOT
+        // settle on its own.  A DAW that hands no position (offline render, some hosts) would
+        // otherwise decide from whatever fragment it happened to see.
+        aeq::RestoreCore quiet;
+        aeq::RestoreSettings q;
+        q.learn = true; q.settleSeconds = 0.0; q.autoStopSeconds = 0.0;
+        quiet.prepare (kSr, 512);
+        quiet.setSettings (q);
+        quiet.setTransport (false, false);       // no play head, not playing
+        feed (quiet, x, 0.0, 120.0);
+        checkTrue (! quiet.state().settled,
+                   "6f. with no play head it never decides by itself - it waits for a hand");
+
+        // And stopping by hand still works in this mode: the person is always allowed to
+        // decide early, and the panel says the numbers are coarse when they do.
+        quiet.commit();
+        checkTrue (quiet.frozen() && quiet.state().valid,
+                   "6g. ... and pressing the clamp decides from everything heard so far");
     }
 
     std::printf ("when_it_stops: %d passed, %d failed\n", gPass, gFail);

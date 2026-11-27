@@ -222,7 +222,8 @@ int main() {
         // heap: RestoreCore is ~470 KB (analyser + audio ring), too big for a stack
     auto coreOwner = std::make_unique<aeq::RestoreCore>();
     aeq::RestoreCore& core = *coreOwner;
-        aeq::RestoreSettings s; s.learn = true; s.settleSeconds = 0.0; s.bypass = true;
+        aeq::RestoreSettings s; s.learn = true; s.settleSeconds = 0.0;
+        s.applyImmediately = true; s.bypass = true;
         core.prepare(kSr, 512); core.setSettings(s);
         const auto take = dryVocal(196.0, 2.0, 120.0, 230.0);
         std::vector<float> l(512), r(512);

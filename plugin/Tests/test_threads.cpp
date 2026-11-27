@@ -51,7 +51,8 @@ int main() {
     aeq::RestoreCore core;
     aeq::RestoreSettings s;
     s.learn = true;
-    s.settleSeconds = 0.0;         // apply as soon as there is a proposal
+    s.settleSeconds = 0.0;
+    s.applyImmediately = true;     // apply as soon as there is a proposal
     core.prepare(kSr, kBlock);
     core.setSettings(s);
 

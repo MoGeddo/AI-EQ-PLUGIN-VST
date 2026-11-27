@@ -87,10 +87,26 @@ inline std::string verdict (const Facts& f)
                "Press the clamp to seal it where you stop.";
     }
 
+    // Whichever rule is in force, said out loud, because the two are different promises:
+    // with `decide after = 0` the pass ends at the end of the take, and with a number it
+    // ends when that many seconds have been heard.
     if (! f.settled)
-        return "Listening against Amir's 15 reference takes. You stop it when you have heard the take.";
+    {
+        if (f.trustSeconds <= 0.0)
+            return "Hearing the whole take. Play it through and it decides at the end - "
+                   "press the clamp to decide now.";
 
-    return "Still learning. You stop it when you have heard the whole take.";
+        // the seconds still to go, from the two numbers the panel already has
+        const double left = std::max (0.0, f.trustSeconds - f.heardSeconds);
+        return "Hearing the take. " + seconds (left)
+             + " s more before it decides. Press the clamp to decide now.";
+    }
+
+    // `settled` with no threshold means the transport has stopped and the whole take has
+    // gone past - but the decision is still only a proposal until a hand seals it, and a
+    // sentence that says "decides when the transport stops" *after* it has stopped reads as
+    // "wait for something else".  So this one says what is true now and what to do.
+    return "Heard the whole take and it is ready. Press the clamp to seal the decision.";
 }
 
 // The same verdict, for the rows that cannot hold the long one.
@@ -126,8 +142,9 @@ inline std::string verdictCompact (const Facts& f)
     }
 
     if (! f.settled)
-        return "Listening against Amir's takes. Stop it when you have heard the take.";
-    return "Still learning. You stop it when you have heard the take.";
+        return f.trustSeconds <= 0.0 ? "Hearing the whole take. It decides at the end."
+                                     : "Hearing the take. Press the clamp to decide now.";
+    return "Heard the whole take. Press the clamp to seal it.";
 }
 
 // The header's one-word state.  "SEALED" alone cannot answer the user's question - "does it
@@ -196,8 +213,13 @@ inline std::string clampSub (const Facts& f)
 //
 // `scanPercent` is against the threshold, not against the safety cap: 100% means "the
 // solver has what it asked for", and the cap is a different thing that must not look like
-// progress.  With no threshold (0 = the CLI's settle-0 mode) the percentage is honest only
-// as "no target", so it reports -1 and the wording says so.
+// progress.
+//
+// **-1 now means "there is no finish line to be a percentage of".**  With `decide after = 0`
+// the plugin waits for the end of the take, so "how far to the threshold" does not exist
+// and a percentage would be an invention - worse, "100%" would be a lie that reads as
+// "finished" over a take it is still hearing.  The wording carries the truth instead:
+// `SCANNING ALL`, and the bar says how much has been heard so far.
 inline int scanPercent (const Facts& f)
 {
     if (f.trustSeconds <= 0.0) return -1;
@@ -211,7 +233,12 @@ inline std::string scanWord (const Facts& f)
     if (sealed (f)) return "SCANNED";
     if (! f.haveData) return "READY TO SCAN";
     const int p = scanPercent (f);
-    return p < 0 ? std::string ("SCANNING") : ("SCANNING " + std::to_string (p) + "%");
+    // "SCANNING ALL", not "SCANNING": the question this pill exists to answer is whether the
+    // pass covers the whole take, and a bare "SCANNING" leaves the reader to guess.  It is
+    // also narrower than the "SCANNING 100%" it replaces (143.9 px against 155.6), so the
+    // pill that carries it is one of the shorter ones rather than the longest.
+    return p < 0 ? std::string ("SCANNING ALL")
+                 : ("SCANNING " + std::to_string (p) + "%");
 }
 
 // The strip inside the take bar.  While it runs it says how far and how much; once the
@@ -228,7 +255,9 @@ inline std::string scanLine (const Facts& f)
         return "SCANNED " + secs;
     }
     const int p = scanPercent (f);
-    if (p < 0) return "SCAN " + secs;
+    // No threshold: the bar cannot say "how far", only "how much so far", and it says which
+    // finish line it is aimed at so the number is not left hanging.
+    if (p < 0) return "HEARD " + secs + "  \xc2\xb7  TO THE END";
     return "SCAN " + std::to_string (p) + "%  \xc2\xb7  " + secs;
 }
 

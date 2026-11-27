@@ -67,6 +67,7 @@ static aeq::Profile capturedFrom(const std::vector<float>& take, const char* nam
     aeq::RestoreSettings s;
     s.learn = true;
     s.settleSeconds = 0.0;
+    s.applyImmediately = true;
     core.setSettings(s);
     std::vector<float> l(256), r(256);
     size_t pos = 0; int blk = 0;

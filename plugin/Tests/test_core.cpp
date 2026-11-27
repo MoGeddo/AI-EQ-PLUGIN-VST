@@ -138,6 +138,11 @@ static double rmsBand(const std::vector<float>& x, double lo, double hi) {
 // run the full pipeline (learn + apply) and return the processed signal
 static std::vector<float> runPipeline(const std::vector<float>& in, RestoreCore& core,
                                       RestoreSettings s, bool learnOnly = false) {
+    // These gates measure the *effect* of a decision on the signal, so they want it applied
+    // the moment it exists - not the product's "wait for the end of the take" default.  The
+    // two are separate settings (`applyImmediately` vs `settleSeconds`) precisely so a
+    // measurement harness can ask for the steady state without changing the product.
+    s.applyImmediately = true;
     core.prepare(sr, 512);
     core.setSettings(s);
     std::vector<float> buf(512), r(512, 0.f);
@@ -174,7 +179,7 @@ static std::vector<float> runPipeline(const std::vector<float>& in, RestoreCore&
 // "% .1f dB" is worse than no card: it is the product's face.
 static void checkTiltTextIsFormatted() {
     std::printf("\n[G21] the tilted take's report line carries numbers, not placeholders\n");
-    RestoreSettings s; s.learn = true; s.settleSeconds = 0.0;
+    RestoreSettings s; s.learn = true; s.settleSeconds = 0.0; s.applyImmediately = true;
     auto core = makeCore();
     auto x = voice(196.0, 22.0);
     // the same two faults the screenshot harness renders: a boom under 120 Hz and
@@ -506,7 +511,7 @@ int main() {
         RestoreSettings s; s.learn = true; s.hpfHz = 172.0; s.stabilizer = 0.0;
         auto core = makeCore();
         core->prepare(sr, 512);
-        s.learn = false; s.settleSeconds = 0.0;
+        s.learn = false; s.settleSeconds = 0.0; s.applyImmediately = true;
         core->setSettings(s);
         core->refresh();                     // adopt the corner before anything is measured
         // 3 s of white noise in both channels, identical
@@ -535,6 +540,7 @@ int main() {
         auto toneThrough = [&] (double hz) {
             auto c2 = makeCore();
             RestoreSettings s2; s2.learn = true; s2.hpfHz = 172.0; s2.stabilizer = 0.0;
+            s2.applyImmediately = true;   // the low cut is in the path from the first block
             c2->prepare(sr, 512);
             c2->setSettings(s2);
             const auto learned = voice(220.0, 8.0, 11u);
