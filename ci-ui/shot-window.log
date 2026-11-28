@@ -1,0 +1,91 @@
+[shot] start, mode window, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] editor constructed, before analysis
+[shot] window 1240x800 -> ui-empty-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 430
+[shot]   child 1 class juce::Slider 923 721 65 65
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1119 721 65 65
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 728 721 65 65
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-empty-1240x800.png (1240 x 800, 180810 bytes)
+[shot] window 1024x700 -> ui-empty-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 376
+[shot]   child 1 class juce::Slider 762 633 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 923 633 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 601 633 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-empty-1024x700.png (1024 x 700, 153602 bytes)
+[shot] analysis for the sealed shot
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] stopped; the seal should be where the user left it
+[shot] window 1240x800 -> ui-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 430
+[shot]   child 1 class juce::Slider 923 721 65 65
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1119 721 65 65
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 728 721 65 65
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-1240x800.png (1240 x 800, 261708 bytes)
+[shot] window 1024x700 -> ui-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 376
+[shot]   child 1 class juce::Slider 762 633 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 923 633 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 601 633 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-1024x700.png (1024 x 700, 219837 bytes)
+[shot] seven bands, on purpose
+[shot] window 1024x700 -> ui-1.2.68-7-bands-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 376
+[shot]   child 1 class juce::Slider 762 633 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 923 633 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 601 633 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-1.2.68-7-bands-1024x700.png (1024 x 700, 221611 bytes)
+[shot] window 1240x800 -> ui-1.2.68-7-bands-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 430
+[shot]   child 1 class juce::Slider 923 721 65 65
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1119 721 65 65
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 728 721 65 65
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-1.2.68-7-bands-1240x800.png (1240 x 800, 264751 bytes)
+[shot] the graph is a child of the panel
+[shot]   ok   at seven bands every caption fits its card - index, mode word, gain and the Hz Q line - at every window size
+[shot] the decision line below 100 Hz: 618 accent px (a drawn low cut puts the curve through that strip)
+[shot]   ok   the low cut is drawn: the decision line runs below 100 Hz
+[shot] done

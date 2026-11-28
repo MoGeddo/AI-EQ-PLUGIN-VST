@@ -1,0 +1,95 @@
+[shot] start, mode controls, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   the clamp can be hit by a pointer
+[shot]   ok   the bypass can be hit by a pointer
+[shot]   ok   the reset can be hit by a pointer
+[shot]   ok   the RESTORE can be hit by a pointer
+[shot]   ok   the MATCH can be hit by a pointer
+[shot]   ok   the strength dial can be hit by a pointer
+[shot]   ok   the auto-stop dial can be hit by a pointer
+[shot]   ok   the stabiliser dial can be hit by a pointer
+[shot]   ok   eight controls are on the panel and each one is reachable
+[shot]   ok   the clamp is findable
+[shot]   ok   clicking the clamp seals the take
+[shot]   ok   clicking it again opens the take
+[shot]   ok   opening a take starts the analysis again (it did not before 1.2.18)
+[shot]   ok   bypass goes on and comes back off
+[shot]   ok   reset after a stop puts the plugin back to listening
+[shot]   ok   and it is not left sealed
+[shot]   ok   and the take it had heard is gone, on the counter the panel reads
+[shot]   ok   the strength dial follows the strength parameter
+[shot]   ok   the auto-stop dial is attached to auto-stop, not to the trust threshold
+[shot]   ok   a chip's band takes a trim
+[shot]   ok   and the same chip returns the solver's answer
+[shot]   ok   space stops the pass, like the clamp
+[shot]   ok   and the panel says what the key just did
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   a relearn really does empty the take
+[shot]   ok   reopening the project restores the sealed decision
+[shot]   ok   and the same number of bands comes back with it
+[shot]   ok   on the same frequencies, to the hertz
+[shot]   ok   the take that was saved had been sealed in the first place
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   there is a sealed take to escape from
+[shot]   ok   escape is handled, not swallowed
+[shot]   ok   escape opens the sealed take
+[shot]   ok   and the plugin is listening again, not idle
+[shot]   ok   and the panel says so, so the key does not look like it did nothing
+[shot]   ok   pressing it again does not seal anything behind your back
+[shot]   ok   and an unclaimed key is passed on, not eaten
+[shot]   ok   the strength parameter is reachable by name
+[shot]   ok   the strength dial reports where it is
+[shot]   ok   the wheel moves the strength dial
+[shot]   ok   and upward is more, not less
+[shot]   ok   and the same wheel over the bare field changes nothing
+[shot]   ok   the graph is a component of the panel, not a picture
+[shot]   ok   and there is a handle on it to take hold of
+[shot]   ok   the panel's sentence fits the row it is drawn in
+[shot]   ok   and so do all eight states the copy module can be in, in one of its two forms
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   while it listens the header says it is scanning, with a number: SCANNING ALL
+[shot]   ok   and the take bar says how far and how much: HEARD 21 s  ·  TO THE END
+[shot]   ok   nothing is committed yet, so there is no layer line to read
+[shot]   ok   and the pass is sealed where it was stopped
+[shot]   ok   so the header says SCANNED, not SCANNING: SCANNED
+[shot]   ok   and how much of the pass it kept: SCANNED 21 s
+[shot]   ok   the panel answers static-or-dynamic in one line: STATIC 8  ·  DYNAMIC 0  ·  STILL
+[shot]   ok   sealed by hand, the line does not claim the dial ended it: AUTO: GAIN
+[shot]   ok   with the auto-stop dial at 90 s the open pass states the rule: SCANS TO 90 s, THEN STOPS ITSELF  ·  67 s LEFT
+[shot]   FAIL with the dial OFF it names the cap instead of leaving it to guesswork: SCANS UNTIL YOU STOP IT  ·  23 s HEARD
+[shot]   ok   the scan badge sits left of the reference pill, not under it
+[shot]   ok   and right of the name, with room to breathe
+[shot]   ok   and above the tagline, not through it
+[shot]   ok   the scan badge holds its word with the tracking it is drawn with: word 148.5 px in 169.4 px of pill
+[shot]   ok   the word sits in the pill with air on both sides, not against one border: 10.5 px each side
+[shot]   ok   the automatic line does not run into the tagline or the badge
+[shot]   ok   the static/dynamic line does not sit under the clamp you press
+[shot]   ok   and at every position the clamp can ride to - clear at all 25 points, collisions: 0
+[shot]   ok   the strip legend ends inside the panel
+[shot]   ok   and the sentence beside it fits between the scan strip and the legend at every window size - they are laid out from one measurement
+[shot]   ok   and it stays inside the window
+[shot]   ok   the bypass key sits inside the panel's corner
+[shot]   ok   the reset key sits inside the panel's corner
+[shot]   ok   the static/dynamic readout ends inside the plate, not on its border
+[shot]   ok   the strip's legend ends inside the plate, not on its border
+[shot]   ok   the plate's right inset is at least 8 px
+[shot]   ok   the strength dial clears the plate's corner and its bottom edge
+[shot]   ok   the auto-stop dial clears the plate's corner and its bottom edge
+[shot]   ok   the stabiliser dial clears the plate's corner and its bottom edge
+[shot]   ok   each footer dial clears its neighbour's label at 1240x800
+[shot]   ok   each footer dial clears its neighbour's label at 1024x700
+[shot]   ok   each footer dial clears its neighbour's label at 940x620
+[shot]   ok   RESTORE and MATCH fit inside their keys at 1240x800
+[shot]   ok   RESTORE and MATCH fit inside their keys at 1024x700
+[shot]   ok   RESTORE and MATCH fit inside their keys at 940x620
+[shot]   ok   RESTORE is the wider mode word, which is what the layout assumes
+[shot] controls: 79 passed, 1 failed
+[shot] done
