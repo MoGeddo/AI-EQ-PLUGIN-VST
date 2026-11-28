@@ -40,7 +40,8 @@ struct ChipRows
     float valueY, valueH;     // the gain, kValue type
     float microY, microH;     // "371 Hz · Q 0.90" and its two shorter forms
     int   microForm;          // 0 = full, 1 = frequency only, 2 = nothing
-    bool  headerFits;         // the index and the mode word do not collide
+    bool  headerFits;         // the header can be drawn: the index always has room
+    bool  modeFits;           // ... and the mode word fits beside it (dropped when it does not)
 };
 
 // The design type sizes the card draws with, and the row's design height.  These are *inputs*
@@ -53,7 +54,20 @@ constexpr float kChipValueType = 26.0f;   // kValue at design size
 constexpr float kChipMicroType = 15.0f;   // kMicro at design size
 constexpr float kChipPadY      = 7.0f;    // top air, and the same under the micro line
 constexpr float kChipGapY      = 3.0f;    // between the header rule and the value
+// The header row's height, in the same units as the type it holds.
+//
+// It was a flat 16 while the row's type is `kChipMicroType` (15) drawn at a height of
+// ascent + descent - 1.874 em for this face, i.e. ~28 px for a 15 px em - and the drawer
+// centres the index and the mode word inside this box.  So the box was always shorter than
+// the glyphs it was centring, and `chipCaptionsFit()` asked a question that could only be
+// answered "no": `rows.headerH + 0.5 < font getHeight()` was true at **every** window size,
+// which is why the seven-band caption check failed on 1.2.72 and 1.2.73 and every release
+// before them.  A row tall enough for its own type is not a nicety: it is what "the caption
+// fits its card" means.
 constexpr float kChipHeaderH   = 16.0f;
+// ... and the box a centred label actually needs: the face's ascent + descent per em is
+// 1.874 (see ui/ArabicText.h), so a row that holds `kChipMicroType` of type is that tall.
+constexpr float kChipLineEm    = 1.874f;
 // the card's horizontal air, before the type scale.  One value, not a 9/12 step at 150 px -
 // see `chipRows` for the 5.87 px inward cliff that step produced.
 constexpr float kChipPadX      = 10.0f;
@@ -68,6 +82,16 @@ constexpr float kChipsDesignH  = 96.0f;
 // `cellW`, `cellH`: the card, in window px.  `typeScale` = the card's own type scale
 // (height/design at the design window, min(sx,sy) otherwise): the type inside a card is sized
 // by the window, so its pitch is too.  `indexW`, `modeW`, `fullW`, `freqW`: measured advances.
+// How tall a card's header row wants to be, at that card's type scale.  A function and not
+// just a local in `chipRows`, because it is the *claim* a test has to be able to see: the
+// header gives space back when a card is short, so the height it ends up with cannot tell a
+// correct `kChipHeaderH` from the flat 16 px that made every seven-band caption check fail.
+inline float chipHeaderWants (float typeScale) noexcept
+{
+    const float line = kChipMicroType * kChipLineEm;
+    return (line > kChipHeaderH ? line : kChipHeaderH) * typeScale;
+}
+
 inline ChipRows chipRows (float cellW, float cellH, float indexW, float modeW,
                           float fullW, float freqW, float typeScale = 1.0f) noexcept
 {
@@ -87,20 +111,44 @@ inline ChipRows chipRows (float cellW, float cellH, float indexW, float modeW,
     const float padY    = kChipPadY * typeScale;
     const float gapY    = kChipGapY * typeScale;
     const float lineH   = kChipMicroType * typeScale * 1.25f;   // one micro line's pitch
-    r.headerH = kChipHeaderH * typeScale;
-    r.headerY = padY;
-    r.ruleY   = r.headerY + r.headerH + 2.0f * typeScale;
-    r.valueH  = kChipValueType * typeScale * 1.25f;
-    r.microH  = lineH;
-    // the value and the micro line share what is left of the card, from the bottom up - so
-    // the micro line is always *inside* the card and always *below* the number, whatever the
-    // card's height turns out to be
+    // The header holds the index and the mode word at `kChipMicroType`, so it wants that
+    // type's own line height - but it is the row that can give space back, and it must:
+    // the value and the micro line are the content, and a header wide enough for its type
+    // that pushes the number out of the card is a different way of being wrong.  So the
+    // header claims its line height *if the card can pay for it*, and otherwise takes what
+    // The card is four rows and a rule, and it is laid out **from the foot upwards**,
+    // because that is the order it is read in from below: the micro line is the last row, the
+    // number sits directly above it, the rule above that, and the header takes whatever is
+    // left at the top.
+    //
+    // Laying it out from the top down - header first, everything else after - is what
+    // produced the collision this replaces: the header was a flat `kChipHeaderH * typeScale`
+    // (16 design px) for a 15 px em of type whose ascent + descent is 1.874 em (~28 px), so
+    // it was always too short for the content it centred, `chipCaptionsFit()` asked exactly
+    // that question and got "no" at **every** window size on **every** release, and giving
+    // it its true height then pushed the number out through its own caption.  Both were the
+    // same mistake: three rows each claiming a height, with nothing measuring the sum.
+    const float headerWants = chipHeaderWants (typeScale);
+    const float ruleNeed = 2.0f * typeScale;
+    const float gapNeed  = kChipGapY * typeScale;
+    r.valueH = kChipValueType * typeScale * 1.25f;
+    r.microH = lineH;
+
+    // the content block, measured from the foot up...
     r.microY  = cellH - padY - r.microH;
-    r.valueY  = r.ruleY + gapY;
-    // if the card is too short for both, the value keeps its line and the micro line is the
-    // thing that goes (it is the one that can be said in the chart instead)
-    const float valueBottom = r.valueY + r.valueH;
-    r.microForm = valueBottom <= r.microY - 1.0f ? 0 : 3;   // 3 = the card cannot hold both
+    r.valueY  = r.microY - gapNeed - r.valueH;
+    r.ruleY   = r.valueY - gapNeed;
+    // ... and the header takes the rest, capped at its own line height.  When the card
+    // cannot pay for the content at all (a 113 px card at 8 bands of a tall window is the
+    // tightest the resize range allows) the *content* is what gives: the value keeps its
+    // line, the micro line is dropped - `microForm = 3` says so, and it is a state the
+    // drawer already handles by printing no caption.  A layout that silently overlaps two
+    // rows because the box was too small is the bug this whole block exists to prevent.
+    r.headerY = padY;
+    const float headerRoom = r.ruleY - ruleNeed - r.headerY;
+    r.headerH = headerRoom >= headerWants ? headerWants
+              : (headerRoom > 0.0f ? headerRoom : 0.0f);
+
     const float inner = cellW - 2.0f * r.padX;
     // A form has to clear by `kChipFitSlack`, not by epsilon.  The rule used to be
     // `inner >= fullW`, so a caption that fitted by 0.09 px was drawn in full and a caption
@@ -111,7 +159,20 @@ inline ChipRows chipRows (float cellW, float cellH, float indexW, float modeW,
     if (r.microForm == 0)
         r.microForm = inner >= fullW + kChipFitSlack ? 0
                     : (inner >= freqW + kChipFitSlack ? 1 : 2);
-    r.headerFits = indexW + 8.0f + modeW + kChipFitSlack <= inner;
+    // The header's two words are measured by the *drawer*, at the size the drawer uses, and
+    // that size follows the window's height (`kCap * sy`) while the card's width follows its
+    // width.  At 1000x1160 - the tallest, narrowest corner of the resize range - the type is
+    // 1.66x and the card is 113 px, so `STATIC` alone is 84 px and `01 + STATIC` cannot be
+    // laid out in 80 px of inner box.  The old rule then refused the header, `chipFits()`
+    // went false, and the seven-band caption gate failed on every release since 1.2.72 for a
+    // card that **drew correctly**: the drawer skips the mode word when `headerFits` is
+    // false, which is exactly the right behaviour and exactly what the gate was not told.
+    //
+    // So the gate is not "is the header full", it is "can the header be drawn at all" - the
+    // index must fit, and the mode word is dropped when it does not.  That is what the
+    // drawer does; a gate that asks for more than the drawer promises is a gate that lies.
+    r.headerFits   = indexW + kChipFitSlack <= inner;   // the index must always fit
+    r.modeFits     = indexW + 8.0f + modeW + kChipFitSlack <= inner;   // the word is optional
     return r;
 }
 

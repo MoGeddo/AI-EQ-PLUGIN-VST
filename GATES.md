@@ -1618,7 +1618,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   kit-03 cards stack a title, a value and a caption - which is also what makes it re-flow
   instead of overprint.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 17 passed, 0 failed
+  EXPECT: layout: 19 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 12/0.  It was 10/0 when this gate was written; **1.2.67
   shipped 10/0 green and failed on the runner** because nothing here measured (a) a dial
   *label* against the column it is drawn in, or (b) a *sentence* against the box it is
@@ -1713,7 +1713,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   `aeq_layout` walks 6 states x 2 forms x 7 window sizes (including both corners of the
   resize range, 1000x660 and 1800x1160) and asserts each state is representable in one form.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 17 passed, 0 failed
+  EXPECT: layout: 19 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 15/0; the harness's own check now asks the same question
   through JUCE's real font stack ("and so do all six states the copy module can be in, in
   one of its two forms"), so the two agree by construction rather than by coincidence.
@@ -1742,7 +1742,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   band now covered the leftmost dial.  All four are fixed at the source, and `check_knobs` /
   `check_wordmark` / `check_match` / `check_modern` are green against the shipped window.
   CHECK: ./build/aeq_layout && .venv/bin/python design/preview/check_knobs.py && .venv/bin/python design/preview/check_match.py && .venv/bin/python design/preview/check_wordmark.py && .venv/bin/python design/preview/check_modern.py
-  EXPECT: layout: 17 passed, 0 failed
+  EXPECT: layout: 19 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 13/0 (worst room for the strip sentence 465 px at
   1000x660); `check_knobs` "stabiliser 100 % of the ring; strength 100 %; auto-stop 0 %";
   `check_match` 6 edges within 1 px; `check_wordmark` two words 16 px apart; `check_modern`
@@ -1798,7 +1798,7 @@ at any vocal stem first; the other gates need nothing but the source tree.
   shot agrees with the font, not with the old table: the drawn ink of that card is 112 px
   wide inside 10 px of air on each side.
   CHECK: ./build/aeq_layout
-  EXPECT: layout: 17 passed, 0 failed
+  EXPECT: layout: 19 passed, 0 failed
   EVIDENCE: VERIFIED - `aeq_layout` 15/0, including "the measurement agrees with the font it
   draws with, separator and all" against Cairo's own numbers read out with fontTools
   (7.606 em = 114.09 px for the long caption, 6.907 em = 103.61 px for the short one).

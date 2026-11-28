@@ -107,6 +107,10 @@ public:
     juce::String footerSentence() const;
     // every caption in the band row fits the row it is drawn in (7 bands is the stress case)
     bool chipCaptionsFit() const;
+    // Move the clamp without waiting for a pass to run to that point.  The screenshot
+    // harness needs it to ask "does the control stay clear of its row's sentence at every
+    // position it can take", which is the question that found it parked on the word STILL.
+    void setClampFractionForTest (double f) { sealedAt_ = f; resized(); }
     // the strip's legend (decision / measured / reference), as the box it occupies
     juce::Rectangle<float> legendInk() const;
     // the strip's sentence fits between the scan strip and the legend
@@ -133,6 +137,12 @@ private:
     juce::Rectangle<int> well() const;       // the plot area inside the ribbon
     juce::Rectangle<int> ribbon() const;
     juce::Rectangle<int> clampHit() const;
+    // the clamp's centre on the ribbon; one function for the drawing and the hit box
+    int clampCentreX() const;
+    // Move the clamp without waiting for a pass to run to that point.  The screenshot
+    // harness needs it to ask "does the control stay clear of its row's sentence at every
+    // position it can take", which is the question that found it parked on the word STILL.
+
     // A chip is one thing in the chain, and which thing it is comes from the core:
     // band >= 0 is a static band of the committed cascade, tracked >= 0 is a dynamic
     // layer that sits on a harmonic of the pitch.  The row is built from what exists,

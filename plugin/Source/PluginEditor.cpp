@@ -687,11 +687,24 @@ Rectangle<int> AeqAudioProcessorEditor::autoReadout() const {
 
 // The clamp is the stop button.  It sits on the seal, and the hit area is the part
 // plus a thumb's worth of slack, so it is a 40 px target and not a hairline.
+// Where the clamp's *centre* sits on the ribbon, in window px - one function, because the
+// drawer and the hit box used to compute it separately and a control you cannot press where
+// you see it is the worst kind of bug.  It is also where the ceiling lives: the clamp may not
+// reach the layer readout, so the row's right-hand sentence is never covered by the control.
+int AeqAudioProcessorEditor::clampCentreX() const {
+    const auto r = ribbon();
+    const float sx = float (getWidth()) / kDesignW;
+    const auto readout = layerReadout();
+    const int limit = readout.isEmpty() ? r.getRight() - roundToInt (10.0f)
+                                        : readout.getX() - roundToInt (12.0f * sx);
+    const int want = roundToInt (float (r.getWidth()) * float (sealedAt_));
+    return r.getX() + jlimit (10, jmax (10, limit - r.getX()), want);
+}
+
 Rectangle<int> AeqAudioProcessorEditor::clampHit() const {
     const auto r = ribbon();
     const float sx = float (getWidth()) / kDesignW;
-    const int x = r.getX() + jlimit (10, jmax (10, r.getWidth() - 10),
-                                     roundToInt (float (r.getWidth()) * float (sealedAt_)));
+    const int x = clampCentreX();
     const int w = roundToInt (26.0f * sx);
     return { x - w, r.getY() - roundToInt (10.0f), w * 2, r.getHeight() + roundToInt (20.0f) };
 }
@@ -1176,7 +1189,7 @@ void AeqAudioProcessorEditor::drawTake (Graphics& g, Rectangle<int>) {
     }
 
     // the clamp: a machined part, anodised to the accent, with a shadow under it
-    const int cx = rib.getX() + jlimit (10, jmax (10, int (rib.getWidth()) - 10), roundToInt (cut));
+    const int cx = clampCentreX();
     const int cw = roundToInt (11.0f * sx), chh = roundToInt (float (rib.getHeight()) + 10.0f * sy);
     const Rectangle<float> clamp (float (cx) - cw * 0.5f,
                                   rib.getCentreY() - chh * 0.5f, float (cw), float (chh));
@@ -1465,7 +1478,7 @@ void AeqAudioProcessorEditor::drawChips (Graphics& g, Rectangle<int>) {
                     Justification::centredLeft, false);
         // ... and the mode word only when it has somewhere to go: on a narrow card the index
         // is the whole header, which is better than two words on top of each other
-        if (rows.headerFits)
+        if (rows.modeFits)
             aeq::ui::draw (g, modeWord,
                            { r.getRight() - rows.padX - modeW, r.getY() + rows.headerY,
                              modeW, rows.headerH },
@@ -1829,7 +1842,11 @@ bool AeqAudioProcessorEditor::chipCaptionsFit() const {
                            : String();
         if (micro.isNotEmpty() && aeq::ui::measure (micro, kMicro * sy) > inner + 0.5f)
             return false;
-        if (rows.headerFits && aeq::ui::measure ("01", kMicro * sy)
+        // the header is drawable when the index fits; the mode word is drawn only when it
+        // fits beside the index, and `chipRows` has already decided that.  Requiring both
+        // here made `chipCaptionsFit()` return false for a card that draws correctly.
+        if (! rows.headerFits) return false;
+        if (rows.modeFits && aeq::ui::measure ("01", kMicro * sy)
                                  + 8.0f + modeW > inner + 0.5f)
             return false;
         // the header row is tall enough for the type in it
@@ -2144,11 +2161,27 @@ void AeqAudioProcessorEditor::timerCallback() {
 
     // the seal: where the clamp is.  While learning it rides the head of the take;
     // once stopped it stays exactly where the user left it, which is the promise.
-    const double need = jmax (1.0, st.needSeconds);
+    // Where the clamp sits on the ribbon.
+    //
+    // With a threshold this is a fraction of a known total, and it means what it says:
+    // 19 s of a 45 s pass is 0.42.  With **no** threshold - the product default since
+    // 1.2.74, "scan the whole take" - there *is* no total: the take's length is not
+    // something a plug-in is told.  Dividing by the old `max(1.0, ...)` floor made 21 s
+    // of audio read as 94 % of a pass whose length nobody knows, and parked the clamp
+    // against the right edge where the layer readout lives.  Two lies for one bug.
+    //
+    // A bar whose denominator is unknown must not be drawn as a fraction of it.  It
+    // saturates instead: the fill grows as the take is heard and approaches, but never
+    // reaches, the end - which is exactly what the pass is doing.
+    const double need = st.needSeconds;
+    auto placeByTime = [&] (double heard) {
+        if (need > 0.0) return jlimit (0.02, 0.94, heard / need);
+        return jlimit (0.02, 0.94, heard / (heard + 45.0));   // half-fill at 45 s, never full
+    };
     if (frozen && sealedAt_ <= 0.001)
-        sealedAt_ = jlimit (0.06, 0.94, st.heardSeconds / need);
+        sealedAt_ = jlimit (0.06, 0.94, placeByTime (st.heardSeconds));
     else if (! frozen)
-        sealedAt_ = jlimit (0.02, 0.94, st.heardSeconds / need);
+        sealedAt_ = placeByTime (st.heardSeconds);
 
     aeq::ui::CurveView::Data d;
     d.meas = meas_;

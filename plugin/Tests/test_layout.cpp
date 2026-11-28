@@ -78,11 +78,45 @@ int main() {
         // ... and when a card really is too narrow for its header, chipFits() says so instead
         // of the paint code printing two words on top of each other
         {
-            const auto tiny = chipRows (80.0f, cellH, tightMicroWidth ("01"),
+            // A card too narrow for the *mode word* is not unfittable: the drawer drops the
+            // word and keeps the index, so `modeFits` is false and the card is still a card.
+            // It was `headerFits` that went false here, `chipFits()` followed it, and
+            // `chipCaptionsFit()` reported a card that draws correctly as broken - which is
+            // what made the seven-band check fail on 1.2.72, 1.2.73 and every release before
+            // them.  What is genuinely unfittable is a card with no room for the index.
+            const auto narrow = chipRows (80.0f, cellH, tightMicroWidth ("01"),
+                                          tightMicroWidth ("STATIC"), 200.0f, 60.0f);
+            check (! narrow.modeFits && narrow.headerFits,
+                   "a card too narrow for the mode word keeps the index and drops the word");
+            const auto tiny = chipRows (8.0f, cellH, tightMicroWidth ("01"),
                                         tightMicroWidth ("STATIC"), 200.0f, 60.0f);
             check (! chipFits (tiny, cellH),
-                   "a card too narrow for its header is reported unfittable, not overprinted");
+                   "a card too narrow for even the index is reported unfittable, not overprinted");
         }
+    }
+
+    // ---- 0d. a header row is tall enough for the type it centres --------------
+    // This one is new in 1.2.74 and it names a defect that had shipped since the card was
+    // first drawn: `kChipHeaderH` was a flat 16 design px while the row's type is a 15 px em
+    // of a face whose ascent + descent is 1.874 em (~28 px).  The drawer centres the index
+    // and the mode word in that box, so the box was always shorter than its own content, and
+    // `chipCaptionsFit()` asks exactly that question - so it answered "no" at every window
+    // size on every release, while the card itself drew correctly.
+    //
+    // The relation, not a number: what a header claims must be at least one line of the type
+    // it holds.  Checked against the claim (`chipHeaderWants`) rather than the height it ends
+    // up with, because a header that takes "whatever is left" would hide a wrong claim.
+    {
+        bool ok = true;
+        float worst = 1e9f;
+        for (const float scale : { 0.80f, 0.886f, 1.0f, 1.143f, 1.329f, 1.657f }) {
+            const float line  = kChipMicroType * kChipLineEm * scale;
+            const float wants = chipHeaderWants (scale);
+            worst = std::min (worst, wants - line);
+            if (wants + 0.01f < line) ok = false;
+        }
+        check (ok, (std::string ("a header row claims at least one line of the type it centres")
+                    + " - worst margin " + std::to_string (worst).substr (0, 5) + " px").c_str());
     }
 
     // ---- 0a. the measurement walks UTF-8, not bytes ---------------------------

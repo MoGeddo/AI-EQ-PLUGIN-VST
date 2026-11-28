@@ -665,6 +665,23 @@ int runControls(const juce::File& dir) {
         const auto layerBox = ed->layerReadout();
         check(! layerBox.intersects(ed->controlBounds(AeqAudioProcessorEditor::Control::Clamp)),
               "the static/dynamic line does not sit under the clamp you press");
+        // ... and it must hold at **every** position the clamp can take, not only where this
+        // shot happened to leave it.  1.2.74 moved the clamp's anchor off a fraction of the
+        // ribbon and onto the layer readout's own left edge, because with no threshold the
+        // bar carried 21 s of audio to 94 % of a total it does not know and parked the
+        // control on the word STILL.  A check at one position would have passed that.
+        {
+            bool clear = true;
+            int worst = 0;
+            for (int i = 0; i <= 24; ++i) {
+                ed->setClampFractionForTest (double (i) / 24.0);
+                const auto box = ed->controlBounds (AeqAudioProcessorEditor::Control::Clamp);
+                if (box.intersects (layerBox)) { clear = false; ++worst; }
+            }
+            check (clear, (juce::String ("and at every position the clamp can ride to - clear at "
+                                         "all 25 points, collisions: ") + juce::String (worst))
+                              .toRawUTF8());
+        }
         // The strip's sentence and its legend are laid out from one measurement.  They were
         // not, and the 7-band window printed "13-TAKE CONSENSUS" through "reference" with a
         // key's dot on top of the word - an overlap no gate looked at.
