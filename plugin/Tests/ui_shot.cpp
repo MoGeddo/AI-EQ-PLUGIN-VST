@@ -618,12 +618,20 @@ int runControls(const juce::File& dir) {
             check(rule.contains("SCANS TO 90 s") && rule.contains("LEFT"),
                   ("with the auto-stop dial at 90 s the open pass states the rule: "
                    + rule).toRawUTF8());
-            // and with the dial OFF it still states one - the cap
+            // With the dial OFF it still states one - and the one it states has to be the
+            // one the core follows.  This check used to require "5 MIN CAP" here, and it
+            // passed for months after the cap stopped being the default: the default pass
+            // now ends when the person ends it, so the sentence was naming a stopper that
+            // would never run, in the one line a user reads to find out whether they still
+            // have to press anything.  A check that asserts the string instead of the rule
+            // does not protect the rule - it protects the string, and both go stale
+            // together.  So this asserts the rule: no cap word, and it says who stops it.
             p->setValueNotifyingHost(p->convertTo0to1(0.0f));
             pump();
-            check(ed->autoReadoutText().contains("5 MIN CAP"),
-                  ("with the dial OFF it names the cap instead of leaving it to guesswork: "
-                   + ed->autoReadoutText()).toRawUTF8());
+            const auto offLine = ed->autoReadoutText();
+            check(!offLine.contains("CAP") && offLine.contains("UNTIL YOU STOP IT"),
+                  ("with the dial OFF the line names the real stopper, not a cap that is "
+                   "not there: " + offLine).toRawUTF8());
             p->setValueNotifyingHost(was);
             pump();
         }
