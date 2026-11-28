@@ -694,9 +694,14 @@ Rectangle<int> AeqAudioProcessorEditor::autoReadout() const {
 int AeqAudioProcessorEditor::clampCentreX() const {
     const auto r = ribbon();
     const float sx = float (getWidth()) / kDesignW;
+    // The *box* is what must clear the readout, not the centre: `clampHit` is two clamp
+    // widths wide and ten pixels of grab height beyond the ribbon, so a centre placed at
+    // `readout.getX() - 12` still had half a box in the sentence.  The first version of this
+    // did exactly that and the harness's 25-position walk found 8 collisions.
     const auto readout = layerReadout();
+    const int halfBox = roundToInt (26.0f * sx);
     const int limit = readout.isEmpty() ? r.getRight() - roundToInt (10.0f)
-                                        : readout.getX() - roundToInt (12.0f * sx);
+                                        : readout.getX() - roundToInt (12.0f * sx) - halfBox;
     const int want = roundToInt (float (r.getWidth()) * float (sealedAt_));
     return r.getX() + jlimit (10, jmax (10, limit - r.getX()), want);
 }
@@ -1849,8 +1854,16 @@ bool AeqAudioProcessorEditor::chipCaptionsFit() const {
         if (rows.modeFits && aeq::ui::measure ("01", kMicro * sy)
                                  + 8.0f + modeW > inner + 0.5f)
             return false;
-        // the header row is tall enough for the type in it
-        if (rows.headerH + 0.5f < aeq::ui::font (kMicro * sy).getHeight())
+        // The header row is tall enough for the type in it.  This compared the row with
+        // `font(kMicro * sy).getHeight()`, which is JUCE's ascent + descent for the *request*
+        // - not the drawn line.  `aeq::ui::font` converts its argument from ems to a JUCE
+        // height (this face is 1.874 em per unit of height), so `getHeight()` there comes
+        // back ~1.9x the em it was asked for, and the row could never satisfy it: the check
+        // was `28 px header < 53 px "height"` at every window size of every release.  The
+        // row's budget is its own type's em, which is the number `chipRows()` was given and
+        // the number `kChipLineEm` names.
+        const float lineEm = aeq::ui::layout::kChipMicroType * aeq::ui::layout::kChipLineEm * sy;
+        if (rows.headerH + 0.5f < lineEm)
             return false;
     }
     return true;

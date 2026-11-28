@@ -556,7 +556,16 @@ int runControls(const juce::File& dir) {
         check(badgeRun.startsWith("SCANNING"),
               ("while it listens the header says it is scanning, with a number: "
                + badgeRun).toRawUTF8());
-        check(stripRun.startsWith("SCAN ") && stripRun.contains(" s"),
+        // Two honest shapes, and which one is right depends on the rule in force: with no
+        // threshold the strip cannot print a percentage of a total it does not know, so it
+        // says how much has been heard and that the end is the finish line; with a threshold
+        // it prints the fraction.  The check demanded `SCAN ` and so went red on the default
+        // state - it was asserting the *timed* rule while the panel correctly followed the
+        // untimed one.
+        const bool stripSaysHeardToEnd = stripRun.startsWith("HEARD ") && stripRun.contains(" s")
+                                      && stripRun.contains("TO THE END");
+        const bool stripSaysFraction   = stripRun.startsWith("SCAN ") && stripRun.contains(" s");
+        check(stripSaysHeardToEnd || stripSaysFraction,
               ("and the take bar says how far and how much: " + stripRun).toRawUTF8());
         check(ed->layerReadoutText().isEmpty(),
               "nothing is committed yet, so there is no layer line to read");
