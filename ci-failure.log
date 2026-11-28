@@ -1,0 +1,595 @@
+== checking prerequisites ==
+   cmake version 4.5.0
+   git ok (JUCE will be fetched on the first configure)
+   Visual Studio Enterprise 2026 (18.12.12412.261)
+== configure ==
+-- The CXX compiler identification is MSVC 19.52.37029.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.52.37025/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- The C compiler identification is MSVC 19.52.37029.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.52.37025/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+CMake Warning (policy) at build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:883 (add_custom_command):
+  The following keywords are not supported when using
+  add_custom_command(TARGET): DEPENDS.
+
+  Policy CMP0175 is not set: add_custom_command() rejects invalid arguments.
+  Run "cmake --help-policy CMP0175" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+Call Stack (most recent call first):
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:1218 (_juce_create_windows_package)
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:1460 (_juce_set_plugin_target_properties)
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:1597 (_juce_link_plugin_wrapper)
+  build/_deps/juce-src/extras/Build/CMake/JUCEUtils.cmake:2190 (_juce_configure_plugin_targets)
+  CMakeLists.txt:23 (juce_add_plugin)
+This warning is for project developers.  Use -Wno-author or -Wno-policy to
+suppress it.
+
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - not found
+-- Found Threads: TRUE
+-- Performing Test AEQ_HAVE_TSAN
+-- Performing Test AEQ_HAVE_TSAN - Success
+-- AEQ: aeq_bounds built without AddressSanitizer (behavioural checks only)
+-- Configuring done (53.3s)
+-- Generating done (0.2s)
+-- Build files have been written to: D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build
+== build (Release) ==
+MSBuild version 18.12.3-1.26559.12+8df097b6f for .NET Framework
+
+  Checking File Globs
+  1>Checking Build System
+  Generating aeq_shot_artefacts/JuceLibraryCode/aeq_shot_resources.rc
+  Generating GeddoAEQ_artefacts/JuceLibraryCode/GeddoAEQ_resources.rc
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  aeq_shot_rc_lib.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_shot_rc_lib.dir\Release\aeq_shot_rc_lib.lib
+  GeddoAEQ_rc_lib.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ_rc_lib.dir\Release\GeddoAEQ_rc_lib.lib
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Generating juce_binarydata_GeddoAEQFonts/JuceLibraryCode/BinaryData1.cpp, juce_binarydata_GeddoAEQFonts/JuceLibraryCode/BinaryData2.cpp, juce_binarydata_GeddoAEQFonts/JuceLibraryCode/BinaryData3.cpp, juce_binarydata_GeddoAEQFonts/JuceLibraryCode/BinaryData.h
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  juce_VST3ManifestHelper.cpp
+  BinaryData1.cpp
+  BinaryData2.cpp
+  BinaryData3.cpp
+  Generating Code...
+  GeddoAEQFonts.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\GeddoAEQFonts.lib
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  PluginProcessor.cpp
+  PluginEditor.cpp
+  ArabicText.cpp
+  juce_audio_processors.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Profile.h(226,18): warning C4996: 'sscanf': This function or variable may be unsafe. Consider using sscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details. [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+  (compiling source file '../Source/PluginProcessor.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\dsp\Profile.h(226,18): warning C4996: 'sscanf': This function or variable may be unsafe. Consider using sscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details. [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+  (compiling source file '../Source/PluginEditor.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\ui\Layout.h(120,17): warning C4189: 'gapY': local variable is initialized but not referenced [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+  (compiling source file '../Source/PluginEditor.cpp')
+  
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1069,65): warning C4244: 'argument': conversion from 'int' to 'ValueType', possible loss of data [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1069,65): warning C4244:         with [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1069,65): warning C4244:         [ [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1069,65): warning C4244:             ValueType=float [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1069,65): warning C4244:         ] [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1580,16): warning C4189: 'cy': local variable is initialized but not referenced [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(1956,17): warning C4189: 'sy': local variable is initialized but not referenced [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\Source\PluginEditor.cpp(2000,17): warning C4189: 'sy': local variable is initialized but not referenced [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+  juce_audio_processors_ara.cpp
+  juce_audio_processors_lv2_libs.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_graphics.cpp
+  juce_vst3_helper.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\juce_vst3_helper.exe
+  juce_graphics_Harfbuzz.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\_deps\juce-src\modules\juce_gui_basics\juce_gui_basics.cpp(61): warning : This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ.vcxproj]
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_basics.cpp
+  juce_audio_utils.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  GeddoAEQ.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ_artefacts\Release\Geddo AEQ_SharedCode.lib
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+     Creating library D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build/GeddoAEQ_artefacts/Release/VST3/Geddo AEQ.lib and object D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build/GeddoAEQ_artefacts/Release/VST3/Geddo AEQ.exp
+  Generating code
+  Finished generating code
+  GeddoAEQ_VST3.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ_artefacts\Release\VST3\Geddo AEQ.vst3\Contents\x86_64-win\Geddo AEQ.vst3
+  removing moduleinfo.json
+  creating D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/build/GeddoAEQ_artefacts/Release/VST3/Geddo AEQ.vst3/Contents/Resources/moduleinfo.json
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  main.cpp
+  test_auto.cpp
+  test_bounds.cpp
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+  test_controls.cpp
+  aeq_controls.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_controls.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  test_layout.cpp
+  test_dials.cpp
+  aeq_layout.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_layout.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  aeq_auto.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_auto.exe
+  test_smooth.cpp
+  test_profile.cpp
+  aeq_bounds.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_bounds.exe
+  aeq_dials.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_dials.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  test_stabilizer.cpp
+  aeq_cli.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_cli.exe
+  Generating code
+  test_integration_stabilizer.cpp
+  aeq_stabilizer.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_stabilizer.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  test_threads.cpp
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  test_core.cpp
+  aeq_profile.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_profile.exe
+  test_when_it_stops.cpp
+  aeq_threads.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_threads.exe
+  aeq_stabilizer_chain.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_stabilizer_chain.exe
+  aeq_tests.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_tests.exe
+  aeq_when_it_stops.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_when_it_stops.exe
+  Finished generating code
+  GeddoAEQ_Standalone.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\GeddoAEQ_artefacts\Release\Standalone\Geddo AEQ.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+  ui_shot.cpp
+  PluginProcessor.cpp
+  PluginEditor.cpp
+  ArabicText.cpp
+  aeq_smooth.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\Release\aeq_smooth.exe
+  juce_audio_utils.cpp
+  juce_audio_processors.cpp
+  juce_audio_processors_ara.cpp
+  juce_audio_processors_lv2_libs.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_graphics.cpp
+D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\_deps\juce-src\modules\juce_gui_basics\juce_gui_basics.cpp(61): warning : This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_shot.vcxproj]
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  aeq_shot.vcxproj -> D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\plugin\build\aeq_shot_artefacts\Release\aeq_shot.exe
+  Building Custom Rule D:/a/AI-EQ-PLUGIN-VST/AI-EQ-PLUGIN-VST/plugin/CMakeLists.txt
+== acceptance gates ==
+
+===== GEDDO AEQ - acceptance gates =====
+
+[G1] biquad response
+  ok   peaking +6 dB at its centre                             6.000 (want 6.000 +-0.010)
+  ok   24 dB/oct HPF: -3 dB at the corner                     -3.010 (want -3.000 +-0.600)
+  ok   24 dB/oct HPF: >45 dB down two octaves below          -72.249 (want -48.000 +-10.000)
+  ok   high shelf -6 dB asymptote                             -5.921 (want -6.000 +-0.600)
+
+[G2] analyser
+  ok   white noise is flat over 0.5-8 kHz (spread)             0.000 (want 0.000 +-4.000)
+  ok   no pitch on noise                                       0.000 (want 0.000 +-1.000)
+  ok   YIN: 220 Hz source measured                           210.000 (want 220.000 +-13.200)
+
+[G3] fault detection on a synthetic take
+  (injected: +8 dB Q12 @3150, +7 dB shelf below 150, +4 dB @2800)
+  ok   detects the 3.15 kHz room resonance
+  ok   detects the missing low cut
+  ok   the harsh 2-4 kHz region is measured (+4 dB injected)    3.965 (want 4.000 +-1.500)
+  ok   and no fault is claimed for it - his own mixes span that range
+       resonance reported at 3044 Hz, correction -5.0 dB
+
+[G16] every problem line has its numbers substituted
+       5 problems, 0 with a leftover format character
+  ok   the faulty take produced problems at all
+  ok   no leftover %% in any report line
+
+[G8] envelope removes the singer from the number
+       250-700 Hz: raw drifts 32.26 dB between F0 150 and 220 Hz
+                   envelope drifts 2.98 dB
+  ok   the raw spectrum moves with the singer in the low midrange
+  ok   the envelope stays within 3 dB across a 0.55-octave pitch change
+  ok   the envelope cuts that dependence by more than 3x
+       600-3000 Hz over 1.2 octaves: raw 0.67 dB, envelope 8.85 dB (both fine; the raw one is used there)
+  ok   envelope is deterministic
+
+[G18] a UI trim changes the applied EQ, never the measurement
+       band 1: proposal -2.50 dB -> -5.50 dB after a -3 dB trim
+  ok   the trim reaches the applied cascade                   -3.000 (want -3.000 +-0.010)
+  ok   the measurement is untouched by the trim                0.000 (want 0.000 +-0.000)
+  ok   clearing the trim restores the proposal                -2.500 (want -2.500 +-0.010)
+
+[G4] correction effectiveness
+  ok   resonance band reduced by >3 dB                         7.542 (want 8.000 +-5.000)
+  ok   sub energy reduced by >6 dB (HPF)                      12.289 (want 12.000 +-8.000)
+  ok   HPF corner stays in a sane range
+       HPF 130 Hz, 3 corrective bands, 2 notches
+
+[G5] convergence over repeated passes
+       pass 1: proposes  13.50 dB, measured excess 14.91 dB RMS
+       pass 2: proposes  10.00 dB, measured excess 14.46 dB RMS
+       pass 3: proposes   8.00 dB, measured excess 13.59 dB RMS
+  ok   measured excess falls on every pass
+  ok   proposal never exceeds the configured caps             13.500 (want 31.500 +-31.500)
+
+[G6] determinism
+  ok   two runs produce identical output                       0.000 (want 0.000 +-0.000)
+
+[G22] the stereo path is the mono path, twice
+  ok   left and right are the same signal when the input is    0.000 (want 0.000 +-0.000)
+       172 Hz is -2.91 dB below 1 kHz through a 172 Hz 24 dB/oct high-pass
+  ok   a 172 Hz corner takes about 3 dB at 172 Hz             -2.912 (want -3.000 +-1.500)
+
+[G23] the level match cannot push the output over full scale
+  ok   a take at -0.26 dBFS stays inside full scale            0.776 (want 0.980 +-0.020)
+
+[G7] numerical safety
+  ok   silence in -> finite output
+  ok   0 dBFS sine does not blow up                            0.999 (want 1.000 +-0.300)
+
+[G21] the tilted take's report line carries numbers, not placeholders
+       8 problems, 1 low-end lines, 0 with a leftover format character
+  ok   no leftover %% in any report line of the tilted take
+
+[G24] the product name in the header is two words, not one
+  ok   the advance counts the tracking once per glyph (JUCE does)  117.000 (want 117.000 +-0.001)
+  ok   the ink is one gap shorter than the advance           113.600 (want 113.600 +-0.001)
+  ok   the ink word starts after the accent word's advance plus the gap  127.000 (want 127.000 +-0.001)
+  ok   placing from the ink width leaves the words track*4 apart, not gap   13.600 (want 13.600 +-0.001)
+  ok   one glyph carries no tracking between glyphs
+
+===== 37 passed, 0 failed =====
+
+== UI screenshot ==
+   -- window --
+[shot] start, mode window, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] editor constructed, before analysis
+[shot] window 1240x800 -> ui-empty-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 430
+[shot]   child 1 class juce::Slider 923 721 65 65
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1119 721 65 65
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 728 721 65 65
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-empty-1240x800.png (1240 x 800, 180810 bytes)
+[shot] window 1024x700 -> ui-empty-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 376
+[shot]   child 1 class juce::Slider 762 633 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 923 633 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 601 633 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-empty-1024x700.png (1024 x 700, 153602 bytes)
+[shot] analysis for the sealed shot
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] stopped; the seal should be where the user left it
+[shot] window 1240x800 -> ui-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 430
+[shot]   child 1 class juce::Slider 923 721 65 65
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1119 721 65 65
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 728 721 65 65
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-1240x800.png (1240 x 800, 261708 bytes)
+[shot] window 1024x700 -> ui-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 376
+[shot]   child 1 class juce::Slider 762 633 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 923 633 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 601 633 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-1024x700.png (1024 x 700, 219837 bytes)
+[shot] seven bands, on purpose
+[shot] window 1024x700 -> ui-1.2.68-7-bands-1024x700.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 19 70 986 376
+[shot]   child 1 class juce::Slider 762 633 54 54
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 923 633 54 54
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 601 633 54 54
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1006 682 18 18
+[shot] snapshot taken
+     wrote ui-1.2.68-7-bands-1024x700.png (1024 x 700, 221611 bytes)
+[shot] window 1240x800 -> ui-1.2.68-7-bands-1240x800.png
+[shot] timer pumped
+[shot]   child 0 class aeq::ui::CurveView 23 80 1194 430
+[shot]   child 1 class juce::Slider 923 721 65 65
+[shot]   child 2 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 3 class juce::Slider 1119 721 65 65
+[shot]   child 4 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 5 class juce::Slider 728 721 65 65
+[shot]   child 6 class juce::Label 0 0 0 0 HIDDEN
+[shot]   child 7 class juce::ResizableCornerComponent 1222 782 18 18
+[shot] snapshot taken
+     wrote ui-1.2.68-7-bands-1240x800.png (1240 x 800, 264751 bytes)
+[shot] the graph is a child of the panel
+[shot]   ok   at seven bands every caption fits its card - index, mode word, gain and the Hz Q line - at every window size
+[shot] the decision line below 100 Hz: 618 accent px (a drawn low cut puts the curve through that strip)
+[shot]   ok   the low cut is drawn: the decision line runs below 100 Hz
+[shot] done
+   -- components --
+[shot] start, mode components, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] curve view
+     wrote ui-curve.png (846 x 526, 78327 bytes)
+[shot] problem list
+     wrote ui-report.png (336 x 776, 50581 bytes)
+[shot] done
+   -- cards --
+[shot] start, mode cards, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot] card 0 ترددات تحت صوت الغناء action=1 f=0 sev=0.99
+[shot]   text title (21 chars) 062a..
+     wrote probe-text-0-title.png (336 x 104, 1370 bytes)
+[shot]   text title-noparen (21 chars) 062a..
+     wrote probe-text-0-title-noparen.png (336 x 104, 1370 bytes)
+[shot]   text detail (38 chars) 0637..
+     wrote probe-text-0-detail.png (336 x 104, 2180 bytes)
+[shot]   text detail-noparen (38 chars) 0637..
+     wrote probe-text-0-detail-noparen.png (336 x 104, 2180 bytes)
+     wrote probe-card-0.png (336 x 104, 5369 bytes)
+[shot] card 1 إزاحة DC action=1 f=0 sev=0.47
+[shot]   text title (8 chars) 0625..
+     wrote probe-text-1-title.png (336 x 104, 830 bytes)
+[shot]   text title-noparen (8 chars) 0625..
+     wrote probe-text-1-title-noparen.png (336 x 104, 830 bytes)
+[shot]   text detail (36 chars) 0645..
+     wrote probe-text-1-detail.png (336 x 104, 1902 bytes)
+[shot]   text detail-noparen (34 chars) 0645..
+     wrote probe-text-1-detail-noparen.png (336 x 104, 1794 bytes)
+     wrote probe-card-1.png (336 x 104, 4590 bytes)
+[shot] card 2 تخنة (Boom) action=2 f=285 sev=1.00
+[shot] card 2, detail removed
+     wrote probe-card2-0.png (336 x 104, 4392 bytes)
+[shot] card 2, title removed
+     wrote probe-card2-1.png (336 x 104, 6910 bytes)
+[shot] card 2, both removed
+     wrote probe-card2-2.png (336 x 104, 3392 bytes)
+[shot]   text title (11 chars) 062a..
+     wrote probe-text-2-title.png (336 x 104, 1164 bytes)
+[shot]   text title-noparen (9 chars) 062a..
+     wrote probe-text-2-title-noparen.png (336 x 104, 921 bytes)
+[shot]   text detail (77 chars) 0627..
+     wrote probe-text-2-detail.png (336 x 104, 3677 bytes)
+[shot]   text detail-noparen (75 chars) 0627..
+     wrote probe-text-2-detail-noparen.png (336 x 104, 3561 bytes)
+     wrote probe-card-2.png (336 x 104, 7881 bytes)
+[shot] card 3 عكارة (Mud) action=2 f=367.696 sev=1.00
+[shot]   text title (11 chars) 0639..
+     wrote probe-text-3-title.png (336 x 104, 1189 bytes)
+[shot]   text title-noparen (9 chars) 0639..
+     wrote probe-text-3-title-noparen.png (336 x 104, 1017 bytes)
+[shot]   text detail (45 chars) 0632..
+     wrote probe-text-3-detail.png (336 x 104, 2648 bytes)
+[shot]   text detail-noparen (43 chars) 0632..
+     wrote probe-text-3-detail-noparen.png (336 x 104, 2471 bytes)
+     wrote probe-card-3.png (336 x 104, 6738 bytes)
+[shot] card 4 صندوقية (Box) action=2 f=664.831 sev=1.00
+[shot]   text title (13 chars) 0635..
+     wrote probe-text-4-title.png (336 x 104, 1337 bytes)
+[shot]   text title-noparen (11 chars) 0635..
+     wrote probe-text-4-title-noparen.png (336 x 104, 1135 bytes)
+[shot]   text detail (44 chars) 0632..
+     wrote probe-text-4-detail.png (336 x 104, 2622 bytes)
+[shot]   text detail-noparen (42 chars) 0632..
+     wrote probe-text-4-detail-noparen.png (336 x 104, 2442 bytes)
+     wrote probe-card-4.png (336 x 104, 6929 bytes)
+[shot] card 5 رنين ثابت (غرفة/مايك) action=3 f=1208.16 sev=1.00
+[shot]   text title (21 chars) 0631..
+     wrote probe-text-5-title.png (336 x 104, 1573 bytes)
+[shot]   text title-noparen (19 chars) 0631..
+     wrote probe-text-5-title-noparen.png (336 x 104, 1467 bytes)
+[shot]   text detail (58 chars) 0031..
+     wrote probe-text-5-detail.png (336 x 104, 2828 bytes)
+[shot]   text detail-noparen (56 chars) 0031..
+     wrote probe-text-5-detail-noparen.png (336 x 104, 2783 bytes)
+     wrote probe-card-5.png (336 x 104, 7555 bytes)
+[shot] card 6 قصّ (Clipping) action=6 f=0 sev=1.00
+[shot]   text title (14 chars) 0642..
+     wrote probe-text-6-title.png (336 x 104, 1382 bytes)
+[shot]   text title-noparen (12 chars) 0642..
+     wrote probe-text-6-title-noparen.png (336 x 104, 1235 bytes)
+[shot]   text detail (51 chars) 0039..
+     wrote probe-text-6-detail.png (336 x 104, 2380 bytes)
+[shot]   text detail-noparen (51 chars) 0039..
+     wrote probe-text-6-detail-noparen.png (336 x 104, 2380 bytes)
+     wrote probe-card-6.png (336 x 104, 6403 bytes)
+[shot] card 7 أرضية تشويش عالية action=6 f=0 sev=1.00
+[shot]   text title (17 chars) 0623..
+     wrote probe-text-7-title.png (336 x 104, 1382 bytes)
+[shot]   text title-noparen (17 chars) 0623..
+     wrote probe-text-7-title-noparen.png (336 x 104, 1382 bytes)
+[shot]   text detail (59 chars) 0623..
+     wrote probe-text-7-detail.png (336 x 104, 2824 bytes)
+[shot]   text detail-noparen (57 chars) 0623..
+     wrote probe-text-7-detail-noparen.png (336 x 104, 2665 bytes)
+     wrote probe-card-7.png (336 x 104, 6561 bytes)
+[shot] done
+   -- controls --
+[shot] start, mode controls, output D:\a\AI-EQ-PLUGIN-VST\AI-EQ-PLUGIN-VST\dist\ui
+[shot] embedded Cairo typeface: loaded
+[shot] u8() of an Arabic literal gives: 062a 062e 0646 0629   (correct)
+[shot] the raw juce::String (const char*) path would have given 8 characters instead of 4
+[shot] typeface: Cairo, glyph for U+062A: 291
+[shot] probe plain image
+     wrote probe-plain.png (64 x 24, 101 bytes)
+[shot] probe embedded font
+     wrote probe-font.png (480 x 90, 263 bytes)
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   the clamp can be hit by a pointer
+[shot]   ok   the bypass can be hit by a pointer
+[shot]   ok   the reset can be hit by a pointer
+[shot]   ok   the RESTORE can be hit by a pointer
+[shot]   ok   the MATCH can be hit by a pointer
+[shot]   ok   the strength dial can be hit by a pointer
+[shot]   ok   the auto-stop dial can be hit by a pointer
+[shot]   ok   the stabiliser dial can be hit by a pointer
+[shot]   ok   eight controls are on the panel and each one is reachable
+[shot]   ok   the clamp is findable
+[shot]   ok   clicking the clamp seals the take
+[shot]   ok   clicking it again opens the take
+[shot]   ok   opening a take starts the analysis again (it did not before 1.2.18)
+[shot]   ok   bypass goes on and comes back off
+[shot]   ok   reset after a stop puts the plugin back to listening
+[shot]   ok   and it is not left sealed
+[shot]   ok   and the take it had heard is gone, on the counter the panel reads
+[shot]   ok   the strength dial follows the strength parameter
+[shot]   ok   the auto-stop dial is attached to auto-stop, not to the trust threshold
+[shot]   ok   a chip's band takes a trim
+[shot]   ok   and the same chip returns the solver's answer
+[shot]   ok   space stops the pass, like the clamp
+[shot]   ok   and the panel says what the key just did
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   a relearn really does empty the take
+[shot]   ok   reopening the project restores the sealed decision
+[shot]   ok   and the same number of bands comes back with it
+[shot]   ok   on the same frequencies, to the hertz
+[shot]   ok   the take that was saved had been sealed in the first place
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   there is a sealed take to escape from
+[shot]   ok   escape is handled, not swallowed
+[shot]   ok   escape opens the sealed take
+[shot]   ok   and the plugin is listening again, not idle
+[shot]   ok   and the panel says so, so the key does not look like it did nothing
+[shot]   ok   pressing it again does not seal anything behind your back
+[shot]   ok   and an unclaimed key is passed on, not eaten
+[shot]   ok   the strength parameter is reachable by name
+[shot]   ok   the strength dial reports where it is
+[shot]   ok   the wheel moves the strength dial
+[shot]   ok   and upward is more, not less
+[shot]   ok   and the same wheel over the bare field changes nothing
+[shot]   ok   the graph is a component of the panel, not a picture
+[shot]   ok   and there is a handle on it to take hold of
+[shot]   ok   the panel's sentence fits the row it is drawn in
+[shot]   ok   and so do all eight states the copy module can be in, in one of its two forms
+[shot] analysis: 8 findings, 21.4 s, valid=1, settled=0, 0 bands
+[shot]   ok   while it listens the header says it is scanning, with a number: SCANNING ALL
+[shot]   ok   and the take bar says how far and how much: HEARD 21 s  ·  TO THE END
+[shot]   ok   nothing is committed yet, so there is no layer line to read
+[shot]   ok   and the pass is sealed where it was stopped
+[shot]   ok   so the header says SCANNED, not SCANNING: SCANNED
+[shot]   ok   and how much of the pass it kept: SCANNED 21 s
+[shot]   ok   the panel answers static-or-dynamic in one line: STATIC 8  ·  DYNAMIC 0  ·  STILL
+[shot]   ok   sealed by hand, the line does not claim the dial ended it: AUTO: GAIN
+[shot]   ok   with the auto-stop dial at 90 s the open pass states the rule: SCANS TO 90 s, THEN STOPS ITSELF  ·  67 s LEFT
+[shot]   FAIL with the dial OFF it names the cap instead of leaving it to guesswork: SCANS UNTIL YOU STOP IT  ·  23 s HEARD
+[shot]   ok   the scan badge sits left of the reference pill, not under it
+[shot]   ok   and right of the name, with room to breathe
+[shot]   ok   and above the tagline, not through it
+[shot]   ok   the scan badge holds its word with the tracking it is drawn with: word 148.5 px in 169.4 px of pill
+[shot]   ok   the word sits in the pill with air on both sides, not against one border: 10.5 px each side
+[shot]   ok   the automatic line does not run into the tagline or the badge
+[shot]   ok   the static/dynamic line does not sit under the clamp you press
+[shot]   ok   and at every position the clamp can ride to - clear at all 25 points, collisions: 0
+[shot]   ok   the strip legend ends inside the panel
+[shot]   ok   and the sentence beside it fits between the scan strip and the legend at every window size - they are laid out from one measurement
+[shot]   ok   and it stays inside the window
+[shot]   ok   the bypass key sits inside the panel's corner
+[shot]   ok   the reset key sits inside the panel's corner
+[shot]   ok   the static/dynamic readout ends inside the plate, not on its border
+[shot]   ok   the strip's legend ends inside the plate, not on its border
+[shot]   ok   the plate's right inset is at least 8 px
+[shot]   ok   the strength dial clears the plate's corner and its bottom edge
+[shot]   ok   the auto-stop dial clears the plate's corner and its bottom edge
+[shot]   ok   the stabiliser dial clears the plate's corner and its bottom edge
+[shot]   ok   each footer dial clears its neighbour's label at 1240x800
+[shot]   ok   each footer dial clears its neighbour's label at 1024x700
+[shot]   ok   each footer dial clears its neighbour's label at 940x620
+[shot]   ok   RESTORE and MATCH fit inside their keys at 1240x800
+[shot]   ok   RESTORE and MATCH fit inside their keys at 1024x700
+[shot]   ok   RESTORE and MATCH fit inside their keys at 940x620
+[shot]   ok   RESTORE is the wider mode word, which is what the layout assumes
+[shot] controls: 79 passed, 1 failed
+[shot] done
+   aeq_shot controls exited 1
+
+FAILED: a control on the panel does not change the plugin
+
+=== plugin build exit: 1 ===
