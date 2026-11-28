@@ -65,9 +65,17 @@ constexpr float kChipGapY      = 3.0f;    // between the header rule and the val
 // before them.  A row tall enough for its own type is not a nicety: it is what "the caption
 // fits its card" means.
 constexpr float kChipHeaderH   = 16.0f;
-// ... and the box a centred label actually needs: the face's ascent + descent per em is
-// 1.874 (see ui/ArabicText.h), so a row that holds `kChipMicroType` of type is that tall.
-constexpr float kChipLineEm    = 1.874f;
+// ... and the pitch a line of `kChipMicroType` occupies in this card.
+//
+// This is **1.25**, the same multiplier `microH` uses two lines below, and not the face's
+// 1.874 em ascent + descent that `aeq::ui::font` converts through.  Those are two different
+// numbers for two different jobs: 1.874 is the *box* JUCE allocates for a line, which
+// includes the leading above the ascender and below the descender and which nothing on this
+// card draws into; 1.25 is the *pitch* the card has always laid its micro lines on, and the
+// header holds the same size of type as the micro row.  Using 1.874 here asked every card
+// for 28 px of header where its own design has 96 px for 98 px of content - the card could
+// not pay, and the header took 26 px of the 32 it had claimed.  Same type, same pitch.
+constexpr float kChipLineEm    = 1.25f;
 // the card's horizontal air, before the type scale.  One value, not a 9/12 step at 150 px -
 // see `chipRows` for the 5.87 px inward cliff that step produced.
 constexpr float kChipPadX      = 10.0f;
