@@ -107,6 +107,10 @@ public:
     juce::String footerSentence() const;
     // every caption in the band row fits the row it is drawn in (7 bands is the stress case)
     bool chipCaptionsFit() const;
+    // Why `chipCaptionsFit()` said no, in one line, for the screenshot harness to print.  A
+    // gate that reports "no" without saying which card, which row and by how much costs a
+    // Windows build plus a parked log to investigate - which is what this cost twice.
+    juce::String chipCaptionsWhy() const;
     // Move the clamp without waiting for a pass to run to that point.  The screenshot
     // harness needs it to ask "does the control stay clear of its row's sentence at every
     // position it can take", which is the question that found it parked on the word STILL.

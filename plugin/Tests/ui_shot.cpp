@@ -950,6 +950,8 @@ int runWindow(const juce::File& dir) {
             juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
             check (allFit, "at seven bands every caption fits its card - index, mode word, "
                            "gain and the Hz Q line - at every window size");
+            if (! allFit)
+                stage (juce::String ("  first card that does not fit: ") + seven->chipCaptionsWhy());
         }
         const auto img = editor->createComponentSnapshot (editor->getLocalBounds(), false, 1.0f);
         if (curve != nullptr && img.isValid())

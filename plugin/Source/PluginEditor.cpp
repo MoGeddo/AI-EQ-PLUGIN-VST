@@ -1869,6 +1869,54 @@ bool AeqAudioProcessorEditor::chipCaptionsFit() const {
     return true;
 }
 
+String AeqAudioProcessorEditor::chipCaptionsWhy() const {
+    const float sy = float (getHeight()) / kDesignH;
+    const auto rects = chipRects();
+    if (rects.empty()) return "no cards";
+    const float cardH = float (blocks().chips.getHeight());
+    const float typeScale = cardH / float (aeq::ui::layout::kChipsDesignH);
+    const float lineEm = aeq::ui::layout::kChipMicroType * aeq::ui::layout::kChipLineEm * sy;
+    for (size_t i = 0; i < rects.size() && i < chips_.size(); ++i) {
+        const auto r = rects[i].toFloat();
+        const auto chip = chips_[i];
+        const float inner = r.getWidth()
+                          - 2.0f * aeq::ui::layout::chipRows (r.getWidth(), r.getHeight(),
+                                0.0f, 0.0f, 0.0f, 0.0f, typeScale).padX;
+        const int band = chip.band;
+        const bool hot = chip.tracked >= 0;
+        double f0 = 0.0, q = 0.0;
+        if (! hot && band >= 0 && band < int (bands_.size())) {
+            f0 = bands_[size_t (band)].f0;
+            q = bands_[size_t (band)].q;
+        }
+        const String full = f0 >= 1000.0
+            ? String (f0 / 1000.0, 2) + " kHz" + String::fromUTF8 (" \xc2\xb7 Q ") + String (q, 2)
+            : String (int (f0)) + " Hz" + String::fromUTF8 (" \xc2\xb7 Q ") + String (q, 2);
+        const String freqOnly = f0 >= 1000.0 ? String (f0 / 1000.0, 2) + " kHz"
+                                             : String (int (f0)) + " Hz";
+        const float modeW = aeq::ui::measure (hot ? aeq::ui::u8 (kTracked)
+                                                  : aeq::ui::u8 (kStatic), kCap * sy);
+        const auto rows = aeq::ui::layout::chipRows (r.getWidth(), r.getHeight(),
+                                                     aeq::ui::measure ("01", kMicro * sy), modeW,
+                                                     aeq::ui::measure (full, kMicro * sy),
+                                                     aeq::ui::measure (freqOnly, kMicro * sy),
+                                                     typeScale);
+        const String micro = rows.microForm == 0 ? full
+                           : rows.microForm == 1 ? freqOnly : String();
+        auto say = [&] (const char* what, float need, float have) {
+            return String ("card ") + String (int (i)) + " [" + full + "] " + what + ": need "
+                 + String (need, 1) + " have " + String (have, 1);
+        };
+        if (micro.isNotEmpty() && aeq::ui::measure (micro, kMicro * sy) > inner + 0.5f)
+            return say ("micro", aeq::ui::measure (micro, kMicro * sy), inner);
+        if (! rows.headerFits) return say ("index", aeq::ui::measure ("01", kMicro * sy) + 4.0f, inner);
+        if (rows.modeFits && aeq::ui::measure ("01", kMicro * sy) + 8.0f + modeW > inner + 0.5f)
+            return say ("mode", aeq::ui::measure ("01", kMicro * sy) + 8.0f + modeW, inner);
+        if (rows.headerH + 0.5f < lineEm) return say ("headerH", lineEm, rows.headerH);
+    }
+    return "all fit";
+}
+
 bool AeqAudioProcessorEditor::dialRowFits() const {
     const float sy = float (getHeight()) / kDesignH;
     const float ds = dialScale();
