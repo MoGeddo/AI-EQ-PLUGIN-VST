@@ -288,36 +288,47 @@ inline std::string layerLine (const Facts& f)
     return s;
 }
 
-// What runs by itself, and **when it stops**.  This started as "AUTO: GAIN + DYNAMIC +
-// STOP BY YOU", which was half true: the plugin's default really is that the person ends
-// the pass, but there is a five-minute cap under that promise (a pass nobody stops would
-// listen forever and never apply anything).  The user asked directly - "does it scan all
-// the audio, or does it stop by itself?" - so the line now states the rule it will actually
-// follow, with the seconds that remain on the clock, and names the cap rather than
-// pretending there is none.
+// What runs by itself, and **when it stops**.  This line has now been been wrong twice, in
+// opposite directions, and the second time is the instructive one.
 //
-//   dial set    SCANS TO 21 s, THEN STOPS ITSELF  ·  6 s LEFT
-//   dial OFF    SCANS TO THE 5 MIN CAP  ·  240 s LEFT
+// It began as "AUTO: GAIN + DYNAMIC + STOP BY YOU", which was half true.  A five-minute cap
+// was then made the default ("a pass nobody stops would listen forever"), and the line was
+// rewritten to name it - "SCANS TO THE 5 MIN CAP" - which was honest *at the time*.  Then
+// the cap stopped being the default, on the product rule that the number of EQ points has
+// to come out of the whole take, and an eight-minute vocal is a normal vocal.  The rule
+// changed; this string did not.  So the panel went on telling every user that an unattended
+// pass would end itself at five minutes, when in fact nothing would ever end it and the
+// count beside it would never stop climbing.  A sentence about stopping that names the wrong
+// stopper is worse than no sentence: it is the one the user waits for.
+//
+// The three states are now the three states the core actually has:
+//
+//   dial set     SCANS TO 21 s, THEN STOPS ITSELF  ·  6 s LEFT
+//   no dial      SCANS UNTIL YOU STOP IT  ·  84 s HEARD
+//   already past it  (dial set, clock over) SCANS TO 21 s, THEN STOPS ITSELF  ·  0 s LEFT
 //
 // The count is against the *pass clock* (every second of input, gaps included), not the
 // sung-audio meter: a stop promised in seconds has to be seconds.
 inline std::string stopRuleLine (double stopAtSeconds, bool dialled, double clockSeconds)
 {
+    const std::string heard = std::to_string ((long long) std::llround (clockSeconds));
+    if (! dialled)
+        return "SCANS UNTIL YOU STOP IT  \xc2\xb7  " + heard + " s HEARD";
     const double left = std::max (0.0, stopAtSeconds - clockSeconds);
     const std::string at   = std::to_string ((long long) std::llround (stopAtSeconds));
     const std::string rest = std::to_string ((long long) std::llround (left));
-    if (dialled)
-        return "SCANS TO " + at + " s, THEN STOPS ITSELF  \xc2\xb7  " + rest + " s LEFT";
-    return "SCANS TO THE " + std::to_string ((long long) std::llround (stopAtSeconds / 60.0))
-         + " MIN CAP  \xc2\xb7  " + rest + " s LEFT";
+    return "SCANS TO " + at + " s, THEN STOPS ITSELF  \xc2\xb7  " + rest + " s LEFT";
 }
 
-// The footer's summary of what needs no hand: the gain match and the dynamic layer always
-// run; the stop is the line above.
+// The footer's summary of what needs no hand.  The gain match is measured on every pass and
+// needs no hand; the dynamic layers run when there is a decision to carry, which is what
+// `committed` says.  It used to claim "+ DYNAMIC" unconditionally once committed, including
+// on the passes where the stabiliser's amount was at zero and no layer was in the path -
+// so the panel advertised a feature that was switched off underneath it.
 inline std::string autoLine (const Facts& f)
 {
     std::string s = "AUTO: GAIN";
-    if (f.committed) s += " + DYNAMIC";
+    if (f.committed && f.dynamicLayers > 0) s += " + DYNAMIC";
     return s;
 }
 

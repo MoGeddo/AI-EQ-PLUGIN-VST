@@ -412,16 +412,37 @@ int main() {
                    "8k. a moving layer is named, counted and given the dB it is taking now");
 
         // ---- what runs by itself, and when it stops -------------------------------
-        // "STOP BY YOU" was the old answer and it was half true: a pass nobody stops ends
-        // itself at the cap.  The line now states the rule with the seconds left on it.
-        checkTrue (has (aeq::copy::stopRuleLine (300.0, false, 240.0), "5 MIN CAP")
-                     && has (aeq::copy::stopRuleLine (300.0, false, 240.0), "60 s LEFT"),
-                   "8l. with the dial OFF the line names the 5 minute cap and the seconds left");
+        // This test used to assert the *opposite* of the truth, and that is the reason it
+        // is written the way it is now.  It checked that a dial-off pass said "5 MIN CAP",
+        // and it passed for months - because the cap really was the default when the
+        // string was written.  Then the cap stopped being the default (the number of EQ
+        // points must come out of the whole take, and an eight-minute vocal is a normal
+        // vocal) and the string did not change, so the panel went on promising every user
+        // a stopper that no longer existed.  The test went on passing, because it asserted
+        // the string rather than the rule.  It now asserts the rule: with no dial, nothing
+        // stops it, and the line may not name a cap it will never reach.
+        checkTrue (! has (aeq::copy::stopRuleLine (300.0, false, 240.0), "CAP"),
+                   "8l. with the dial OFF the line does NOT claim a cap - the default pass "
+                   "is ended by the person, so a cap is a sentence about a stopper that "
+                   "is not there");
+        checkTrue (has (aeq::copy::stopRuleLine (300.0, false, 240.0), "UNTIL YOU STOP IT")
+                     && has (aeq::copy::stopRuleLine (300.0, false, 240.0), "240 s HEARD"),
+                   "8l2. ... it names the real stopper and how much it has heard so far");
         checkTrue (has (aeq::copy::stopRuleLine (21.0, true, 15.0), "SCANS TO 21 s")
                      && has (aeq::copy::stopRuleLine (21.0, true, 15.0), "6 s LEFT"),
-                   "8l2. with a dial set the line names the dial and the seconds left on it");
+                   "8l3. with a dial set the line names the dial and the seconds left on it");
         checkTrue (has (aeq::copy::autoLine (g), "DYNAMIC"),
                    "8m. once committed, the dynamic layer is part of what runs by itself");
+        {
+            // ... but only when a layer is actually in the path.  The line used to say
+            // "+ DYNAMIC" for any committed pass, including the ones where the stabiliser's
+            // amount was zero and nothing was moving - advertising a switched-off feature.
+            aeq::copy::Facts off = g;
+            off.dynamicLayers = 0;
+            checkTrue (! has (aeq::copy::autoLine (off), "DYNAMIC"),
+                       "8m1b. ... and not when no layer is in the path: the line describes "
+                       "chain, not the feature list");
+        }
         checkTrue (! has (aeq::copy::autoLine (g), "STOP"),
                    "8m2. ... and the stop is not in that line: one sentence talks about one "
                    "thing, and the stop has its own");

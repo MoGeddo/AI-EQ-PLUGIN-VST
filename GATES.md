@@ -784,12 +784,38 @@ at any vocal stem first; the other gates need nothing but the source tree.
   slope, so what is left to cut is what is above the take at that frequency.  Measured on
   an 8 dB-louder phrase: -0.23 dB (inaudible), and on a 12 dB ring at 1.2 kHz: -4.77 dB at
   the ring with -0.05 dB on the note (Tests/test_integration_stabilizer.cpp).
+
+  Two more defects were found by measuring the whole take rather than one band, and both
+  were errors of the same kind - a number that was published rather than enforced:
+  * The target was the *mean* of the band's log level.  On a 90 s take with phrases and the
+    room between them, 40 % of the pass sits above that mean, so the reference was below
+    the singing level by construction: the layer was free to cut the body of every note and
+    had almost no room left for the peaks it exists for.  The reference is now a 75th
+    percentile of the take's own level distribution, built as a 1024-bin histogram during
+    the learn pass (fixed 1 KB per band, no allocation, read once at commit), with the mean
+    kept as the fallback for passes too short to build a distribution from.
+  * The header promised "3 dB per band, 6 dB in total" and only the per-band half was
+    enforced: `totalGainDb()` reported a value floored at -6 dB while ten bells each took
+    their own 3 dB.  On a take where several bands peak together - a sibilant over a
+    harmonic stack - the measured total was 14.67 dB at one frequency, which is a
+    compressor with a spectrum, not a stabiliser.  The wants are now summed, scaled by one
+    factor to the ceiling, and smoothed; the applied sum is held to the same ceiling
+    because the release lets a band let go slowly.  Measured peak after the fix: 6.000 dB.
   CHECK: build/aeq_stabilizer && build/aeq_stabilizer_chain
-  EXPECT: ===== 14 passed, 0 failed =====
-  EVIDENCE: VERIFIED - ===== 14 passed, 0 failed =====
-  FALSIFY: set `ratio` to 0.2 in Stabilizer.h -> "the loud part is pulled back (-0.56 dB)"
-  FAILS, and the rest still pass; restoring 0.6 turns it green again.  The branch is tested
-  by breaking it, not by reading it.
+  EXPECT: ===== 22 passed, 0 failed =====
+  EVIDENCE: VERIFIED - ===== 22 passed, 0 failed =====; 6 dB ceiling held at 6.000 dB
+  with all ten bands driven 40 dB over target, and the learned target identical at 5 s
+  and 90 s (-31.70 dB both) while +14 dBFS reads +11.16 rather than the bin's +9.90.
+  FALSIFY: two independent breaks, both run.  (a) `ratio` 0.6 -> 0.2: "the loud part is
+  pulled back (-0.56 dB)" FAILS, the rest still pass, restoring turns it green.  (b) remove
+  the budget (`scale = 1.0`, no applied-sum clamp): "the whole bank stays inside the
+  published 6 dB ceiling (30.000 dB)" FAILS with 18 passed / 1 failed - the new check
+  catches the defect it was written for and nothing else.  (c) 16-bit histogram bins:
+  "a 5 s and a 90 s pass of the same sweeping take learn the same target" FAILS at
+  -31.70 vs -41.80 dB - a 10 dB error from a counter overflowing after 22 seconds.
+  (d) return the bin edge instead of the extreme seen: "a +14 dBFS take reads above the
+  histogram's top edge" FAILS at 9.90 dB instead of 11.16.  Each break fails its own
+  check and leaves the rest green; restoring gives 22/0.
 
 - [x] G72: a reference is measured by the same instrument as the take.
   Match EQ and smart:EQ both scan by *learning a reference profile and measuring the take

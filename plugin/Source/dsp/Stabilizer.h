@@ -41,6 +41,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 
 namespace aeq {
 
@@ -49,6 +50,9 @@ public:
     static constexpr int    kMaxBands = 10;
     static constexpr int    kSub      = 16;
     static constexpr double kPi       = 3.14159265358979323846;
+    // The most the whole bank may take at one frequency.  Enforced in process(), not
+    // merely reported - see the budget comment there.
+    static constexpr double kMaxTotalGrDb = 6.0;
 
     struct Band {
         double hz       = 1000.0;
@@ -122,6 +126,10 @@ public:
             b.env = -120.0; b.grDb = 0.0; b.levelDb = -120.0;
             accP_[size_t(i)] = 0.0;
             accN_[size_t(i)] = 0.0;
+            hist_[size_t(i)].fill(0);
+            histN_[size_t(i)] = 0;
+            histLo_[size_t(i)] = kHistLoDb;
+            histHi_[size_t(i)] = kHistHiDb;
             retune(i);
         }
         learning_ = true;
@@ -129,10 +137,31 @@ public:
     void endLearn() { learning_ = false; }
     double dbgAccN(int i) const { return (i>=0&&i<count_)?accN_[size_t(i)]:0.0; }
     double dbgAccP(int i) const { return (i>=0&&i<count_)?accP_[size_t(i)]:0.0; }
-    // The level this take actually had in each band, as a mean of power over everything
-    // that was not silence - the take's own curve, not an average of dB.
+    // The level this take actually sits at in each band: a high percentile of the level it
+    // read while the take was playing.  See `targetPercentile` for why this is not the mean.
+    // Falls back to the mean when there is too little take to build a distribution from,
+    // so a two-second pass still behaves.
     double learnedLevelDb(int i) const {
-        if (i < 0 || i >= count_ || accN_[size_t(i)] <= 0.0) return -200.0;
+        if (i < 0 || i >= count_) return -200.0;
+        const auto& h = hist_[size_t(i)];
+        const long long n = static_cast<long long>(histN_[size_t(i)]);
+        if (n >= 200) {
+            const long long want = static_cast<long long>(targetPercentile * double(n));
+            long long run = 0;
+            for (int bin = 0; bin < kHistBins; ++bin) {
+                run += h[size_t(bin)];
+                if (run < want) continue;
+                // A percentile that lands in the first or last bin is a percentile of the
+                // *clamp*, not of the take: the true value is outside the range and the bin
+                // edge is the only thing we know about it.  The extreme actually seen is the
+                // honest answer there, and it cannot be more wrong than the edge was.
+                if (bin == 0)                  return histLo_[size_t(i)];
+                if (bin == kHistBins - 1)      return histHi_[size_t(i)];
+                return kHistLoDb + double(bin) * 0.1;
+            }
+            return histHi_[size_t(i)];
+        }
+        if (accN_[size_t(i)] <= 0.0) return -200.0;
         const double p = accP_[size_t(i)] / accN_[size_t(i)];
         return 10.0 * std::log10(std::max(p, 1e-20));
     }
@@ -171,19 +200,59 @@ public:
             const double aRel = std::exp(-double(m) / (0.001 * releaseMs * fs_));
             const double coefDet = std::exp(-double(m) / (0.001 * detectorMs * fs_));
 
+            // The shared budget, decided *before* the filters run.
+            //
+            // The header has always promised "3 dB per band, 6 dB in total", and the
+            // per-band half of that was enforced while the total half was not: the bank
+            // published a total floored at -6 dB and then let ten bells each take their
+            // own 3 dB.  On a take where several bands peak together - a sibilant, a
+            // plosive, a harmonic stack - that is 14.7 dB of cut at one frequency, which
+            // is not a stabiliser, it is an unlabelled compressor with a spectrum.  The
+            // measured worst case on a 90 s take was 14.67 dB.
+            //
+            // So the wants are solved first, their sum is held to the ceiling, and only
+            // then is the smoothed gain moved.  Scaling every band by the same factor keeps
+            // the *shape* of the correction - the relative emphasis the targets decided -
+            // and gives up only its depth, which is the one thing a budget should take.
+            std::array<double, kMaxBands> want{};
+            double wantSum = 0.0;
             for (int bi = 0; bi < count_; ++bi) {
-                auto& b = bands_[size_t(bi)];
-                // gain for this sub-block, from what the previous one measured
-                // the target carried to this moment's loudness
+                const auto& b = bands_[size_t(bi)];
                 const double tgt = b.targetDb
                                  + b.slopeDb * std::clamp(loudNow_ - b.loudRefDb, -24.0, 24.0);
                 const double over = b.levelDb - (tgt + deadBandDb);
-                double want = 0.0;
+                double w = 0.0;
                 if (over > 0.0 && b.levelDb > -72.0 && b.targetDb > -100.0)
-                    want = -std::min(b.maxGrDb * amount_, ratio * over);
-                const double a = (want < b.grDb) ? aAtt : aRel;
-                b.grDb = want + (b.grDb - want) * a;
+                    w = -std::min(b.maxGrDb * amount_, ratio * over);
+                want[size_t(bi)] = w;
+                wantSum += -w;
+            }
+            double scale = 1.0;
+            if (wantSum > kMaxTotalGrDb) scale = kMaxTotalGrDb / wantSum;
 
+            for (int bi = 0; bi < count_; ++bi) {
+                auto& b = bands_[size_t(bi)];
+                const double w = want[size_t(bi)] * scale;
+                const double a = (w < b.grDb) ? aAtt : aRel;
+                b.grDb = w + (b.grDb - w) * a;
+            }
+
+            // ... and the same ceiling on what actually runs.  The release above makes a
+            // band let go slowly, so the *smoothed* sum can sit above the budgeted one for
+            // a few milliseconds - measured at 7.81 dB on a 90 s take after the wants had
+            // already been held to 6.  A promise about the output is a promise about this
+            // number, so it is held here too.  The correction is a scalar applied to an
+            // already-smoothed quantity, so it moves smoothly and cannot click.
+            double appliedSum = 0.0;
+            for (int bi = 0; bi < count_; ++bi)
+                appliedSum += -std::min(0.0, bands_[size_t(bi)].grDb);
+            if (appliedSum > kMaxTotalGrDb) {
+                const double k = kMaxTotalGrDb / appliedSum;
+                for (int bi = 0; bi < count_; ++bi) bands_[size_t(bi)].grDb *= k;
+            }
+
+            for (int bi = 0; bi < count_; ++bi) {
+                auto& b = bands_[size_t(bi)];
                 const double A  = std::pow(10.0, b.grDb / 40.0);
                 const double kB = 1.0 / (b.q * A);
                 const double m1 = kB * (A * A - 1.0);
@@ -208,12 +277,23 @@ public:
                 if (learning_ && b.env > -70.0) {          // voice, not the noise floor
                     accP_[size_t(bi)] += std::pow(10.0, b.env / 10.0);
                     accN_[size_t(bi)] += 1.0;
+                    // The percentile needs the *distribution*, not just its mean, and the
+                    // learn pass is the only time we may keep it.  A 1024-bin histogram
+                    // over -100..+2 dB in 0.1 dB steps is 1 KB per band, fixed, no
+                    // allocation - and the percentile of a histogram is a prefix sum.
+                    const int bin = std::clamp(int((b.env - kHistLoDb) * 10.0), 0, kHistBins - 1);
+                    ++hist_[size_t(bi)][size_t(bin)];
+                    ++histN_[size_t(bi)];
+                    histLo_[size_t(bi)] = std::min(histLo_[size_t(bi)], b.env);
+                    histHi_[size_t(bi)] = std::max(histHi_[size_t(bi)], b.env);
                 }
             }
         }
         double total = 0.0;
         for (int i = 0; i < count_; ++i) total += std::min(0.0, bands_[size_t(i)].grDb);
-        totalGrDb_ = std::max(-6.0, total);
+        // No floor needed any more: `scale` above already held the sum to the ceiling, so
+        // this number reports what happened rather than what was hoped for.
+        totalGrDb_ = total;
     }
 
     // ---- readouts (editor + tests) -------------------------------------------
@@ -228,7 +308,7 @@ public:
         const auto& b = bands_[size_t(i)];
         return b.targetDb + b.slopeDb * std::clamp(loudNow_ - b.loudRefDb, -24.0, 24.0);
     }
-    // The sum of the bands that are cutting, floored at the product's 6 dB ceiling.
+    // The sum of the bands that are cutting.  Bounded by kMaxTotalGrDb by construction.
     double totalGainDb() const { return totalGrDb_; }
 
 private:
@@ -284,6 +364,26 @@ private:
     double totalGrDb_ = 0.0;
     bool learning_ = false;
     std::array<double, kMaxBands> accP_{}, accN_{};
+    // The take's own level distribution per band, kept only while learning.  0.1 dB bins
+    // over kHistLoDb..kHistHiDb: 4 KB per band (40 KB for the bank, fixed, allocated with
+    // the object), built once, read once.  A percentile is a prefix sum over this, which is
+    // why it costs nothing at commit.
+    //
+    // The bins are 32-bit on purpose.  A sub-block is 16 samples, so at 48 kHz a band
+    // reads 3000 times a second; a 16-bit bin would saturate after 22 seconds, and the
+    // *shortest* useful take is far longer than that.  Saturation is silent and it lands
+    // on whichever bin the voice sits in most - i.e. exactly on the percentile - so it
+    // would have biased the target on every real take and on no test.
+    static constexpr double kHistLoDb = -110.0;
+    static constexpr double kHistHiDb = +10.0;
+    static constexpr int    kHistBins = 1200;   // (10 - -110) / 0.1
+    std::array<std::array<uint32_t, kHistBins>, kMaxBands> hist_{};
+    std::array<uint32_t, kMaxBands> histN_{};
+    // The highest and lowest level actually seen, so a percentile that piles up in an edge
+    // bin is not read as that bin's number.  A +6 dBFS tone measured +2.3 dB before this
+    // existed: the distribution was clamped at the top of the range and the percentile
+    // returned the clamp.  Cheap, and it is what makes the answer defensible at the edges.
+    std::array<double, kMaxBands> histLo_{}, histHi_{};
 
     // 4 ms attack / 180 ms release: fast enough to catch a plosive, slow enough that a
     // vibrato does not pump the band - the same numbers a mastering stabiliser uses.
@@ -292,6 +392,16 @@ private:
     double detectorMs = 30.0;     // how long the band's level estimate takes to settle
     double deadBandDb = 2.0;      // how much louder than the take before it acts
     double ratio      = 0.6;      // cut this fraction of the excess
+    // The target is a *reference level*, not the mean.  The mean of a band's log level on
+    // a vocal is 3-4 dB under the level the voice actually sits at while it is singing,
+    // because the pauses, the breaths and the decay tails all pull it down - measured on a
+    // 60 s synthetic take as 40 % of the pass sitting above the mean, and on a real voice
+    // it is worse.  Defending the mean therefore puts the target *below* the singing level
+    // by construction, so the layer is allowed to cut the body of every note it was built
+    // to leave alone, and is given almost no room to cut the peaks it exists for.
+    // A reference that says "this is where the voice normally is" is a high percentile of
+    // the level distribution, which is what smart:EQ and Equator defend.
+    double targetPercentile = 0.75;  // which month of the take's own level to defend
 };
 
 } // namespace aeq

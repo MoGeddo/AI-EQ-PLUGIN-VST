@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <vector>
 
 // Which band each drawn row refers to.
@@ -32,9 +33,42 @@ struct Row
     double gainDb = 0.0;
 };
 
-// The bands worth drawing: everything that is not sitting at 0 dB.  Bands are ordered the
-// way the core has them - corrective first, then resonances - so a row's `src` is its
-// index in that list whenever it can be trimmed.
+// The bands this decision actually uses, in the order the core has them - corrective first,
+// then resonances - so a row's `src` is its index in that list whenever it can be trimmed.
+//
+// **Every band the decision made, not every band that happens to be above 0.05 dB right
+// now.**  This is the difference between a row that means something and a row that flickers,
+// and the flicker was the user's own report: "عدد الاستاتيك بيزيد و يقل يعني مرة 5 مرة 4 مرة
+// 6 مرة 7" - five, four, six, seven, on a decision that had not changed.
+//
+// What made it move: the solver refines four times a second and re-chooses its band set from
+// the take's current spectrum, so a band whose correction is 0.04 dB at one solve and 0.06 dB
+// at the next crossed this threshold twice a second.  The count on the panel is a *statement
+// about the decision*, and a decision is a fixed number of bands - so the threshold belongs
+// to the solver (which bands earn a place in the chain), not to the display (which bands
+// exist).  A band in the chain at 0.02 dB is still a band in the chain: it is drawn at its
+// own gain, which is what makes the picture honest, and it is counted, which is what makes
+// the number honest.
+//
+// `visible()` survives for the one caller that genuinely wants "which bands are doing
+// something audible": the gate that counts hot bands in a test.
+inline std::vector<Row> decision (const double* gainDb, int count, int correctiveCount)
+{
+    std::vector<Row> rows;
+    if (gainDb == nullptr || count <= 0) return rows;
+    rows.reserve (size_t (count));
+    for (int i = 0; i < count; ++i)
+    {
+        const double g = gainDb[i];
+        if (std::isnan (g)) continue;              // a band with no answer is not a band
+        rows.push_back ({ i, i < correctiveCount ? i : kNoTrim, g });
+    }
+    return rows;
+}
+
+// The bands whose correction is loud enough to see moving.  Not what the row draws any more
+// (see `decision()` above), but still the right question for a gate that wants to know
+// whether the decision is doing anything at a given moment.
 inline std::vector<Row> visible (const double* gainDb, int count, int correctiveCount,
                                  double threshold = 0.05)
 {

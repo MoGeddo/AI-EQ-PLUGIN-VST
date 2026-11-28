@@ -2207,8 +2207,13 @@ void AeqAudioProcessorEditor::timerCallback() {
         std::vector<double> gains;
         gains.reserve (all.size());
         for (const auto& b : all) gains.push_back (b.gainDb);
-        for (const auto& row : aeq::bands::visible (gains.data(), int (gains.size()),
-                                                   proc_.core().correctiveCount())) {
+        // The decision, not a snapshot of it: every band the solver put in the chain is
+        // drawn and counted, whatever its correction is at this instant.  `visible()` drops
+        // anything under 0.05 dB, and the solver re-chooses four times a second, so a band
+        // crossing that line twice a second made the count read 5, 4, 6, 7 on a decision
+        // that had not changed - the user's own report, and the reason this is `decision()`.
+        for (const auto& row : aeq::bands::decision (gains.data(), int (gains.size()),
+                                                    proc_.core().correctiveCount())) {
             bands_.push_back (all[size_t (row.index)]);
             chips_.push_back ({ int (bands_.size()) - 1, -1, row.src });
             trims_.push_back (row.src >= 0 ? proc_.core().bandTrim (row.src) : 0.0);
